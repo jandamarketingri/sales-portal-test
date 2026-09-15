@@ -199,16 +199,24 @@
         }
 
         $('#loginBtn').prop('disabled', true).text('Checking…');
-        $('#loadingMsg').show();
+        $('#loadingMsg').show().text('Checking access…');
         $('#errorMessage').hide();
 
+        attemptAuth(email, 0);
+    }
+
+    // Apps Script can take a few extra seconds to "wake up" after sitting
+    // idle — occasionally longer than one request's timeout. Rather than
+    // show an error the first time that happens, retry once, silently,
+    // before actually telling the person something's wrong.
+    function attemptAuth(email, attemptNumber) {
         $.ajax({
             url: AUTH_SCRIPT_URL +
                 '?action=authenticate&email=' + encodeURIComponent(email),
             method: 'GET',
             dataType: 'jsonp',
             jsonpCallback: 'authCallback',
-            timeout: 10000,
+            timeout: 15000,
             success: function (response) {
                 if (response && response.success) {
                     sessionStorage.setItem('salesPortalAuth', JSON.stringify({
@@ -226,8 +234,13 @@
                 }
             },
             error: function () {
-                showError('Unable to reach authentication service');
-                resetButton();
+                if (attemptNumber === 0) {
+                    $('#loadingMsg').text('Still checking, one more try…');
+                    attemptAuth(email, 1);
+                } else {
+                    showError('Unable to reach authentication service. Please try again in a moment.');
+                    resetButton();
+                }
             }
         });
     }
