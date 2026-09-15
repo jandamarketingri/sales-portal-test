@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fixture Signs Request - Sales Portal</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --border: #e2e0d8;
+            --text: #1a1a18;
+            --text-muted: #7a7870;
+            --accent: #667eea;
+            --accent2: #764ba2;
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --warning: #e65100;
+            --warning-bg: #fff8e1;
+            --error: #c62828;
+            --error-bg: #ffebee;
+            --shadow: 0 2px 12px rgba(0,0,0,0.07);
+            --radius: 10px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .portal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .portal-header img.logo {
+            max-height: 38px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+        .portal-header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .rep-badge {
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .btn-back {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: white;
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.25); }
+
+        /* ── Page body ── */
+        .page-body {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .page-title {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        /* ── Auth banner ── */
+        .auth-banner {
+            background: var(--success-bg);
+            border: 1px solid #c3e6cb;
+            border-radius: var(--radius);
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .auth-banner strong { color: var(--success); }
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn-logout:hover { background: #b02a37; }
+
+        /* ── Card ── */
+        .form-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        .form-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-card-title .icon { font-size: 18px; }
+
+        /* ── Form grid ── */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-row.single { grid-template-columns: 1fr; }
+        .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+        @media (max-width: 600px) {
+            .form-row, .form-row.triple { grid-template-columns: 1fr; }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            margin-bottom: 7px;
+        }
+        .form-group label .required { color: #e53935; margin-left: 2px; }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="date"],
+        .form-group input[type="number"],
+        .form-group textarea,
+        .form-group select {
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 7px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--surface);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        }
+        .form-group input.autofilled {
+            background: #f0f4ff;
+            border-color: #b3c0f5;
+            color: #3a4a9a;
+        }
+        .form-group input.field-valid {
+            border-color: #81c784;
+            background: var(--success-bg);
+        }
+        .form-group input.field-error {
+            border-color: #e57373;
+            background: var(--error-bg);
+        }
+        .form-group input[readonly] {
+            background: #f8f8f6;
+            color: var(--text-muted);
+            cursor: default;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .field-hint {
+            font-size: 11px;
+            margin-top: 5px;
+            color: var(--text-muted);
+        }
+        .field-hint.success { color: var(--success); }
+        .field-hint.error   { color: var(--error); }
+        .field-hint.warning { color: var(--warning); }
+
+        /* ── PO Autocomplete ── */
+        .po-wrapper {
+            position: relative;
+        }
+        .po-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1.5px solid var(--accent);
+            border-radius: 7px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 200;
+            max-height: 260px;
+            overflow-y: auto;
+            display: none;
+        }
+        .po-dropdown.open { display: block; }
+        .po-option {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .po-option:last-child { border-bottom: none; }
+        .po-option:hover, .po-option.focused { background: #f0f4ff; }
+        .po-option-main {
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        .po-option-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .po-option .match-highlight { color: var(--accent); font-weight: 700; }
+        .po-loading, .po-empty {
+            padding: 14px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .po-source-tag {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .po-source-pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .po-source-archived {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        /* ── Sign configuration ── */
+        .sign-config-section { margin-bottom: 24px; }
+        .sign-config-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        /* Size toggle buttons */
+        .size-btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .size-btn {
+            padding: 10px 22px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.18s;
+            line-height: 1.3;
+            text-align: center;
+        }
+        .size-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .size-btn.selected {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(102,126,234,0.3);
+        }
+        .size-btn .size-label { display: block; font-size: 16px; font-weight: 700; }
+        .size-btn .size-sub   { display: block; font-size: 11px; opacity: 0.75; margin-top: 1px; }
+
+        /* Pricing toggle */
+        .pricing-btn-group { display: flex; gap: 10px; }
+        .pricing-btn {
+            padding: 9px 28px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+        .pricing-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .pricing-btn.selected {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 2px 10px rgba(102,126,234,0.3);
+        }
+
+        /* Styles list */
+        .styles-area { margin-top: 4px; }
+        .styles-loading, .styles-empty, .styles-error {
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            border: 1.5px dashed var(--border);
+            border-radius: 8px;
+        }
+        .styles-prompt {
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            border: 1.5px dashed var(--border);
+            border-radius: 8px;
+        }
+        .styles-list { display: flex; flex-direction: column; gap: 6px; }
+        .style-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 11px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            cursor: pointer;
+            transition: border-color 0.18s, background 0.18s;
+            user-select: none;
+        }
+        .style-row:hover { border-color: var(--accent); background: #f7f9ff; }
+        .style-row.selected { border-color: var(--accent); background: #f0f4ff; }
+        .style-checkbox {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+            font-size: 12px;
+            color: white;
+        }
+        .style-row.selected .style-checkbox {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+        }
+        .style-row.selected .style-checkbox::after { content: '✓'; }
+        .style-info { flex: 1; min-width: 0; }
+        .style-name { font-size: 14px; font-weight: 600; color: var(--text); }
+        .style-desc { font-size: 12px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Style quantity input */
+        .style-qty-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .style-qty-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .style-qty-input {
+            width: 72px;
+            padding: 6px 10px;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            color: var(--text);
+            background: var(--surface);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+        .style-qty-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+        }
+        .style-row.selected .style-qty-input {
+            border-color: var(--accent);
+            background: white;
+        }
+        .style-qty-input.has-value {
+            border-color: #81c784;
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        /* Ship-to options */
+        .ship-btn-group { display: flex; flex-direction: column; gap: 10px; }
+        .ship-btn {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.18s;
+            text-align: left;
+        }
+        .ship-btn:hover { border-color: var(--accent); background: #f7f9ff; }
+        .ship-btn.selected {
+            border-color: var(--accent);
+            background: #f0f4ff;
+            box-shadow: 0 2px 10px rgba(102,126,234,0.15);
+        }
+        .ship-radio {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 1px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s;
+        }
+        .ship-btn.selected .ship-radio {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .ship-btn.selected .ship-radio::after {
+            content: '';
+            width: 6px; height: 6px;
+            background: white;
+            border-radius: 50%;
+            display: block;
+        }
+        .ship-btn-body { flex: 1; }
+        .ship-btn-title { font-size: 14px; font-weight: 600; color: var(--text); }
+        .ship-btn-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .ship-preferred {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .ship-address-fields {
+            display: none;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--border);
+        }
+        .ship-address-fields.open { display: block; }
+
+        /* ── Order summary bar ── */
+        .summary-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: var(--radius);
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .summary-stat {
+            text-align: center;
+        }
+        .summary-stat .num {
+            font-size: 26px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            display: block;
+        }
+        .summary-stat .lbl {
+            font-size: 11px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .summary-divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* ── Submit button ── */
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: -0.2px;
+            transition: opacity 0.2s, transform 0.15s;
+            box-shadow: 0 4px 14px rgba(102,126,234,0.35);
+        }
+        .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-submit:active { transform: translateY(0); }
+        .btn-submit:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── State boxes ── */
+        .state-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 48px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .state-box .icon { font-size: 36px; margin-bottom: 12px; }
+        .state-box p { font-size: 14px; }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Section label ── */
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="portal-header">
+    <div class="logo-area">
+        <img src="logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+        <h1>Sales Portal</h1>
+    </div>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge">Loading…</span>
+        <a href="index.html" class="btn-back">← Back to Portal</a>
+    </div>
+</div>
+
+<div class="page-body">
+
+    <div class="page-title">🪧 Fixture Signs Request</div>
+    <div class="page-subtitle">Request fixture signs for an existing order. Look up your PO number to auto-fill location details.</div>
+
+    <!-- Auth banner injected here by JS -->
+    <div id="authBanner"></div>
+
+    <!-- ── Order Reference ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">🔍</span> Order Reference</div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>PO Number <span class="required">*</span></label>
+                <div class="po-wrapper">
+                    <input type="text" id="poNumber" placeholder="Start typing a PO number…" autocomplete="off">
+                    <div class="po-dropdown" id="poDropdown"></div>
+                </div>
+                <div class="field-hint" id="poHint">Search across active and archived orders</div>
+            </div>
+        </div>
+
+        <div class="form-row triple">
+            <div class="form-group">
+                <label>Facility ID</label>
+                <input type="text" id="facilityId" readonly placeholder="Auto-filled from PO">
+            </div>
+            <div class="form-group">
+                <label>Location Name</label>
+                <input type="text" id="locationName" readonly placeholder="Auto-filled from PO">
+            </div>
+            <div class="form-group">
+                <label>Begin Ship Date</label>
+                <input type="text" id="beginShip" readonly placeholder="Auto-filled from PO">
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Rep Info ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">👤</span> Rep Information</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Sales Rep Name <span class="required">*</span></label>
+                <input type="text" id="repName" placeholder="Your name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Email Address <span class="required">*</span></label>
+                <input type="email" id="repEmail" placeholder="Your email" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Signs Configuration ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">🪧</span> Sign Configuration</div>
+
+        <!-- Size selection -->
+        <div class="sign-config-section">
+            <div class="sign-config-label">Sign Size <span style="color:#e53935;">*</span></div>
+            <div class="size-btn-group">
+                <button class="size-btn" data-size="8.5x11" onclick="selectSize(this)">
+                    <span class="size-label">8.5 × 11"</span>
+                    <span class="size-sub">Letter</span>
+                </button>
+                <button class="size-btn" data-size="11x11" onclick="selectSize(this)">
+                    <span class="size-label">11 × 11"</span>
+                    <span class="size-sub">Square</span>
+                </button>
+                <button class="size-btn" data-size="12x12" onclick="selectSize(this)">
+                    <span class="size-label">12 × 12"</span>
+                    <span class="size-sub">Large Square</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Pricing selection -->
+        <div class="sign-config-section">
+            <div class="sign-config-label">Include Pricing on Sign <span style="color:#e53935;">*</span></div>
+            <div class="pricing-btn-group">
+                <button class="pricing-btn" data-pricing="yes" onclick="selectPricing(this)">✓ Yes</button>
+                <button class="pricing-btn" data-pricing="no"  onclick="selectPricing(this)">✕ No</button>
+            </div>
+        </div>
+
+        <!-- Styles from this order -->
+        <div class="sign-config-section" style="margin-bottom:0;">
+            <div class="sign-config-label" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span>Styles on This Order</span>
+                <button type="button" id="refreshStylesBtn" onclick="refreshStylesForCurrentPO()"
+                        style="display:none;font-size:11px;font-weight:600;padding:4px 10px;border:1.5px solid var(--border);
+                               border-radius:6px;background:var(--surface);color:var(--text-muted);cursor:pointer;">
+                    🔄 Refresh Styles
+                </button>
+            </div>
+            <div class="field-hint" id="stylesFreshnessHint" style="display:none;margin-bottom:8px;"></div>
+            <div class="styles-area" id="stylesArea">
+                <div class="styles-prompt">Select a PO number above to load the styles on this order.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Ship-To ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">📦</span> Ship To</div>
+        <div class="ship-btn-group" id="shipBtnGroup">
+
+            <div class="ship-btn selected" data-ship="order" onclick="selectShipTo(this)">
+                <div class="ship-radio"></div>
+                <div class="ship-btn-body">
+                    <div class="ship-btn-title">Ship with Order <span class="ship-preferred">Preferred</span></div>
+                    <div class="ship-btn-sub">Signs will be included with the merchandise shipment for this PO</div>
+                </div>
+            </div>
+
+            <div class="ship-btn" data-ship="store" onclick="selectShipTo(this)">
+                <div class="ship-radio"></div>
+                <div class="ship-btn-body">
+                    <div class="ship-btn-title">Ship to Store</div>
+                    <div class="ship-btn-sub">Ship directly to a store address</div>
+                    <div class="ship-address-fields" id="storeAddressFields">
+                        <div class="form-row" style="margin-bottom:14px;">
+                            <div class="form-group">
+                                <label>Store Name</label>
+                                <input type="text" id="storeAddrName" placeholder="Store name">
+                            </div>
+                            <div class="form-group">
+                                <label>Attention / Contact</label>
+                                <input type="text" id="storeAddrAttn" placeholder="Attn: name or dept.">
+                            </div>
+                        </div>
+                        <div class="form-row single" style="margin-bottom:14px;">
+                            <div class="form-group">
+                                <label>Street Address</label>
+                                <input type="text" id="storeAddrStreet" placeholder="123 Main St">
+                            </div>
+                        </div>
+                        <div class="form-row triple" style="margin-bottom:0;">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="storeAddrCity" placeholder="City">
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="storeAddrState" placeholder="ST" maxlength="2" style="text-transform:uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label>ZIP Code</label>
+                                <input type="text" id="storeAddrZip" placeholder="00000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ship-btn" data-ship="rep" onclick="selectShipTo(this)">
+                <div class="ship-radio"></div>
+                <div class="ship-btn-body">
+                    <div class="ship-btn-title">Ship to Rep's Residence</div>
+                    <div class="ship-btn-sub">Ship to your personal address</div>
+                    <div class="ship-address-fields" id="repAddressFields">
+                        <div class="form-row single" style="margin-bottom:14px;">
+                            <div class="form-group">
+                                <label>Street Address</label>
+                                <input type="text" id="repAddrStreet" placeholder="123 Main St">
+                            </div>
+                        </div>
+                        <div class="form-row triple" style="margin-bottom:0;">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="repAddrCity" placeholder="City">
+                            </div>
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="repAddrState" placeholder="ST" maxlength="2" style="text-transform:uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label>ZIP Code</label>
+                                <input type="text" id="repAddrZip" placeholder="00000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Summary + Notes ── -->
+    <div class="summary-bar" id="summaryBar" style="display:none;">
+        <div class="summary-stat">
+            <span class="num" id="sumStyles">0</span>
+            <span class="lbl">Styles Selected</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+            <span class="num" id="sumQty">0</span>
+            <span class="lbl">Total Signs</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+            <span class="num" id="sumSize">—</span>
+            <span class="lbl">Sign Size</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat">
+            <span class="num" id="sumPricing">—</span>
+            <span class="lbl">Pricing</span>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">💬</span> Additional Notes</div>
+        <div class="form-row single">
+            <div class="form-group">
+                <label>Notes / Special Instructions</label>
+                <textarea id="notes" placeholder="Any special instructions, rush requests, or notes for this sign order…"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="submitRequest()">Submit Fixture Signs Request</button>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+// ⚠️ UNCHANGED — this points at a DIFFERENT script deployment than your other
+// pages (apparel/signs/login/my-orders all share one URL; this one doesn't).
+// Left as-is on purpose until you confirm whether that's intentional — see
+// chat. Submitting a fixture request from this test file right now will hit
+// your PRODUCTION script/sheet, not the test one.
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx26_OTO83kPs-37piVhddGyaHXOr4onI46vsG-ugsao8G8ktcZqW6B0W-FxELDbBye/exec';
+
+var PENDING_CSV  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTiPIoX-kRukDbyPcEwaXiYlOXdY8LAmu9NIroi0BuuBRbCYH_SKjt70U7Gf4CwCuNtDIbKHlF3BHNN/pub?gid=1101647414&single=true&output=csv';
+var ARCHIVED_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTiPIoX-kRukDbyPcEwaXiYlOXdY8LAmu9NIroi0BuuBRbCYH_SKjt70U7Gf4CwCuNtDIbKHlF3BHNN/pub?gid=2075341928&single=true&output=csv';
+var UPC_LOOKUP_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRDkzzgPIkLzN8SY8g_rwU3gK7YwJbsRMYdFtnIYw2qEFja87-1GXaKgyObGMQyJTQrotJv1GofRuqj/pub?gid=1743444304&single=true&output=csv';
+
+// Column indices (0-based) for order CSVs
+// Col G (6) = Facility ID, Col E (4) = Location Name, Col H (7) = PO Number, Col I (8) = Begin Ship Date
+// Col D (3) = Rep Email, Col M (12) = SKU, Col N (13) = Exploded Kit flag, Col Q (16) = UPC
+var COL = {
+    facilityId: 6, locationName: 4, poNumber: 7, beginShip: 8, repEmail: 3,
+    sku: 12, explodedKit: 13, upc: 16
+};
+
+// UPC lookup CSV columns (0-based): col G (6) = UPC, col F (5) = item CSV URL
+var UPC_COL = { upc: 6, csvUrl: 5 };
+
+// Item CSV columns (0-based): col A (0) = style, col B (1) = style desc, cols F–K (5–10) = sized SKUs
+var ITEM_COL = { style: 0, styleDesc: 1, skuStart: 5, skuEnd: 10 };
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var allOrders        = [];   // { po, facilityId, locationName, beginShip, source, repEmail }
+var allOrderRows     = [];   // all raw rows from both CSVs (for per-PO SKU/UPC lookup)
+var ordersLoaded     = false;
+var upcLookupMap     = {};   // upc → itemCsvUrl
+var upcLookupLoaded  = false;
+var selectedPO       = null;
+var selectedSize     = null;
+var selectedPricing  = null;
+var selectedShipTo   = 'order';
+var focusedOptionIndex = -1;
+var repEmailGlobal   = '';
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+$(document).ready(function () {
+    // Auth check
+    var raw = sessionStorage.getItem('salesPortalAuth');
+    if (!raw) { window.location.href = 'login.html'; return; }
+    try {
+        var auth = JSON.parse(raw);
+        repEmailGlobal = (auth.email || '').toLowerCase().trim();
+        $('#repBadge').text(auth.name || auth.email);
+        $('#repName').val(auth.name || '');
+        $('#repEmail').val(auth.email || '');
+
+        $('#authBanner').html(
+            '<div class="auth-banner">' +
+            '<span><strong>✓ Authenticated:</strong> ' + esc(auth.name) + ' (' + esc(auth.email) + ')</span>' +
+            '<button class="btn-logout" onclick="portalLogout()">Logout</button>' +
+            '</div>'
+        );
+    } catch (e) {
+        sessionStorage.removeItem('salesPortalAuth');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    loadOrderData();
+    loadUpcLookup();
+    setupPOAutocomplete();
+
+    // Pre-fill PO from URL param (?po=XXXX or ?PO=XXXX)
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlPO = (urlParams.get('po') || urlParams.get('PO') || '').trim();
+    if (urlPO) {
+        $('#poNumber').val(urlPO);
+        // Wait for order data to load, then auto-select the PO
+        var poWaitTries = 0;
+        var poWaitInterval = setInterval(function () {
+            poWaitTries++;
+            if (ordersLoaded || poWaitTries > 60) {
+                clearInterval(poWaitInterval);
+                // Find matching order
+                var match = allOrders.filter(function (o) {
+                    return o.po.toUpperCase() === urlPO.toUpperCase();
+                })[0];
+                if (match) {
+                    // Simulate a selection
+                    window._currentMatches = [match];
+                    selectPO(0);
+                    // We arrived here straight off an order submission — the published
+                    // CSV export may still be catching up with Google's own cache, so
+                    // keep quietly re-checking for any styles that didn't show up yet.
+                    scheduleBackgroundStyleRefreshes(match.po);
+                } else {
+                    $('#poHint').text('PO "' + urlPO + '" not found — you can still type to search').addClass('warning');
+                }
+            }
+        }, 100);
+    }
+});
+
+function portalLogout() {
+    if (confirm('Are you sure you want to log out?')) {
+        sessionStorage.removeItem('salesPortalAuth');
+        window.location.href = 'login.html';
+    }
+}
+
+// ── Load order data from both CSV sources ─────────────────────────────────────
+// Accepts an optional callback, invoked once both CSVs have loaded (or failed).
+// Can be called again later (e.g. by the background refresh / manual refresh
+// button) to re-pull the published CSVs — this is what lets us recover from
+// Google's publish-to-web cache lagging behind a just-submitted order.
+function loadOrderData(onDone) {
+    var loaded = 0;
+
+    // Reset accumulators on every call so repeated refreshes don't duplicate rows
+    allOrderRows = [];
+    allOrders = [];
+
+    function checkDone() {
+        loaded++;
+        if (loaded === 2) {
+            ordersLoaded = true;
+            // Deduplicate allOrders by PO (prefer pending over archived)
+            var seen = {};
+            allOrders = allOrders.filter(function (o) {
+                if (!o.po) return false;
+                if (seen[o.po]) return false;
+                seen[o.po] = true;
+                return true;
+            });
+            if (typeof onDone === 'function') onDone();
+        }
+    }
+
+    function parseCSV(csvText, source) {
+        var rows = csvText.split('\n');
+        for (var i = 1; i < rows.length; i++) {
+            var row = rows[i].trim();
+            if (!row) continue;
+            var cols = parseCSVRow(row);
+            var po = (cols[COL.poNumber] || '').trim().replace(/^'/, '');
+            if (!po) continue;
+            // Store every raw row for later per-PO style lookups
+            allOrderRows.push({ po: po, cols: cols, source: source });
+            allOrders.push({
+                po:           po,
+                facilityId:   (cols[COL.facilityId]   || '').trim(),
+                locationName: (cols[COL.locationName]  || '').trim(),
+                beginShip:    (cols[COL.beginShip]     || '').trim(),
+                repEmail:     (cols[COL.repEmail]      || '').trim().toLowerCase(),
+                source:       source
+            });
+        }
+    }
+
+    // Fetch pending — cache:false busts browser caching; it does NOT bust
+    // Google's own publish-to-web cache, which is the more likely culprit
+    // when a freshly-submitted order's rows are briefly missing.
+    $.ajax({
+        url: PENDING_CSV, method: 'GET', dataType: 'text', cache: false,
+        success: function (data) { parseCSV(data, 'pending'); },
+        error:   function ()     { console.warn('Could not load pending orders CSV'); },
+        complete: checkDone
+    });
+
+    // Fetch archived
+    $.ajax({
+        url: ARCHIVED_CSV, method: 'GET', dataType: 'text', cache: false,
+        success: function (data) { parseCSV(data, 'archived'); },
+        error:   function ()     { console.warn('Could not load archived orders CSV'); },
+        complete: checkDone
+    });
+}
+
+// ── Background + manual re-check for missing styles ───────────────────────────
+// When we land here via ?po=... right after an order submission, the published
+// CSV export may not yet reflect every line item (Google's cache lag). This
+// re-pulls the CSVs and re-derives the styles list, merging in anything new,
+// without wiping out styles/quantities the rep may have already started
+// entering.
+var styleRefreshAttempt = 0;
+var styleRefreshTimer = null;
+
+function scheduleBackgroundStyleRefreshes(po) {
+    styleRefreshAttempt = 0;
+    var delays = [8000, 20000, 40000]; // spaced out to give Google's cache time to catch up
+    $('#stylesFreshnessHint').show().removeClass('error warning').addClass('success')
+        .text('🔄 Double-checking for any styles still syncing from the order sheet…');
+
+    function runNext() {
+        if (styleRefreshAttempt >= delays.length) {
+            $('#stylesFreshnessHint').fadeOut(400);
+            return;
+        }
+        var delay = delays[styleRefreshAttempt];
+        styleRefreshAttempt++;
+        styleRefreshTimer = setTimeout(function () {
+            if (!selectedPO || selectedPO.po !== po) return; // rep switched POs, stop
+            loadOrderData(function () {
+                loadStylesForPO(po, true /* merge, don't clear existing rows */);
+                runNext();
+            });
+        }, delay);
+    }
+    runNext();
+}
+
+function refreshStylesForCurrentPO() {
+    if (!selectedPO) return;
+    if (styleRefreshTimer) clearTimeout(styleRefreshTimer);
+    var $btn = $('#refreshStylesBtn');
+    $btn.prop('disabled', true).text('Refreshing…');
+    $('#stylesFreshnessHint').show().removeClass('error warning').addClass('success').text('🔄 Refreshing from the order sheet…');
+    loadOrderData(function () {
+        loadStylesForPO(selectedPO.po, true);
+        $btn.prop('disabled', false).text('🔄 Refresh Styles');
+        $('#stylesFreshnessHint').fadeOut(600);
+    });
+}
+
+// ── Load UPC → item CSV URL lookup ────────────────────────────────────────────
+function loadUpcLookup() {
+    $.ajax({
+        url: UPC_LOOKUP_CSV, method: 'GET', dataType: 'text', cache: false,
+        success: function (csv) {
+            var rows = csv.split('\n');
+            for (var i = 1; i < rows.length; i++) {
+                var row = rows[i].trim();
+                if (!row) continue;
+                var cols = parseCSVRow(row);
+                var upc    = (cols[UPC_COL.upc]    || '').trim();
+                var csvUrl = (cols[UPC_COL.csvUrl]  || '').trim();
+                if (upc && csvUrl) upcLookupMap[upc] = csvUrl;
+            }
+            upcLookupLoaded = true;
+        },
+        error: function () { console.warn('Could not load UPC lookup CSV'); upcLookupLoaded = true; }
+    });
+}
+
+// ── PO Autocomplete ───────────────────────────────────────────────────────────
+function setupPOAutocomplete() {
+    var $input    = $('#poNumber');
+    var $dropdown = $('#poDropdown');
+
+    $input.on('input', function () {
+        var val = $(this).val().trim().toUpperCase();
+        if (!val) {
+            closeDropdown();
+            clearAutofill();
+            return;
+        }
+        if (!ordersLoaded) {
+            $dropdown.html('<div class="po-loading">Loading orders…</div>').addClass('open');
+            return;
+        }
+        showMatches(val);
+    });
+
+    $input.on('keydown', function (e) {
+        var $opts = $dropdown.find('.po-option');
+        if (!$dropdown.hasClass('open') || !$opts.length) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            focusedOptionIndex = Math.min(focusedOptionIndex + 1, $opts.length - 1);
+            updateFocus($opts);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            focusedOptionIndex = Math.max(focusedOptionIndex - 1, 0);
+            updateFocus($opts);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (focusedOptionIndex >= 0) $($opts[focusedOptionIndex]).click();
+        } else if (e.key === 'Escape') {
+            closeDropdown();
+        }
+    });
+
+    // Close on outside click
+    $(document).on('mousedown', function (e) {
+        if (!$(e.target).closest('.po-wrapper').length) closeDropdown();
+    });
+}
+
+function showMatches(query) {
+    var $dropdown = $('#poDropdown');
+    focusedOptionIndex = -1;
+
+    var matches = allOrders.filter(function (o) {
+        return o.po.toUpperCase().includes(query);
+    }).slice(0, 10);
+
+    if (!matches.length) {
+        $dropdown.html('<div class="po-empty">No matching PO numbers found</div>').addClass('open');
+        return;
+    }
+
+    var html = '';
+    matches.forEach(function (o, idx) {
+        var highlighted = o.po.replace(new RegExp('(' + escRegex(query) + ')', 'gi'),
+            '<span class="match-highlight">$1</span>');
+        var sourceClass = o.source === 'pending' ? 'po-source-pending' : 'po-source-archived';
+        var sourceLabel = o.source === 'pending' ? 'Pending' : 'Archived';
+        html += '<div class="po-option" data-index="' + idx + '" onclick="selectPO(' + idx + ')">';
+        html += '<div class="po-option-main">' + highlighted +
+                '<span class="po-source-tag ' + sourceClass + '">' + sourceLabel + '</span></div>';
+        html += '<div class="po-option-sub">' + esc(o.locationName || '—') +
+                (o.facilityId ? ' · ' + esc(o.facilityId) : '') + '</div>';
+        html += '</div>';
+    });
+
+    // Store filtered matches so selectPO can reference them
+    window._currentMatches = matches;
+    $dropdown.html(html).addClass('open');
+}
+
+function updateFocus($opts) {
+    $opts.removeClass('focused');
+    if (focusedOptionIndex >= 0) $($opts[focusedOptionIndex]).addClass('focused');
+}
+
+function selectPO(idx) {
+    var o = window._currentMatches[idx];
+    if (!o) return;
+
+    if (styleRefreshTimer) { clearTimeout(styleRefreshTimer); styleRefreshTimer = null; }
+    $('#stylesFreshnessHint').hide();
+
+    selectedPO = o;
+    $('#poNumber').val(o.po).removeClass('field-error').addClass('field-valid');
+    $('#poHint').text('✓ Found in ' + (o.source === 'pending' ? 'active orders' : 'archived orders'))
+                .removeClass('error warning').addClass('success');
+
+    // Autofill
+    $('#facilityId').val(o.facilityId).addClass('autofilled');
+    $('#locationName').val(o.locationName).addClass('autofilled');
+    $('#beginShip').val(o.beginShip).addClass('autofilled');
+
+    closeDropdown();
+    $('#refreshStylesBtn').show();
+    loadStylesForPO(o.po);
+}
+
+function clearAutofill() {
+    selectedPO = null;
+    $('#facilityId, #locationName, #beginShip').val('').removeClass('autofilled');
+    $('#poHint').text('Search across active and archived orders').removeClass('success error warning');
+    $('#poNumber').removeClass('field-valid field-error');
+    $('#stylesArea').html('<div class="styles-prompt">Select a PO number above to load the styles on this order.</div>');
+    updateSummary();
+}
+
+function closeDropdown() {
+    $('#poDropdown').removeClass('open');
+    focusedOptionIndex = -1;
+}
+
+// ── Size and Pricing selectors ────────────────────────────────────────────────
+function selectSize(btn) {
+    $('.size-btn').removeClass('selected');
+    $(btn).addClass('selected');
+    selectedSize = $(btn).data('size');
+    updateSummary();
+}
+
+function selectPricing(btn) {
+    $('.pricing-btn').removeClass('selected');
+    $(btn).addClass('selected');
+    selectedPricing = $(btn).data('pricing');
+    updateSummary();
+}
+
+// ── Ship-To selector ──────────────────────────────────────────────────────────
+function selectShipTo(btn) {
+    $('.ship-btn').removeClass('selected');
+    $('.ship-address-fields').removeClass('open');
+    $(btn).addClass('selected');
+    selectedShipTo = $(btn).data('ship');
+
+    if (selectedShipTo === 'store') {
+        $('#storeAddressFields').addClass('open');
+    } else if (selectedShipTo === 'rep') {
+        $('#repAddressFields').addClass('open');
+    }
+    updateSummary();
+}
+
+
+function loadStylesForPO(po, isMerge) {
+    // On a merge refresh, keep whatever's currently rendered/entered on screen
+    // instead of blanking it out — we only want to add newly-discovered styles.
+    if (!isMerge) {
+        $('#stylesArea').html('<div class="styles-loading"><div class="spinner" style="margin:0 auto 10px;"></div>Loading styles from this order…</div>');
+    }
+
+    // Collect UPCs from rows matching this PO where explodedKit !== 'Y'
+    var upcs = [];
+    var seenUpcs = {};
+    allOrderRows.forEach(function (r) {
+        if (r.po !== po) return;
+        var exploded = (r.cols[COL.explodedKit] || '').trim().toUpperCase();
+        if (exploded === 'Y') return;
+        var upc = (r.cols[COL.upc] || '').trim();
+        if (upc && !seenUpcs[upc]) { seenUpcs[upc] = true; upcs.push(upc); }
+    });
+
+    if (!upcs.length) {
+        $('#stylesArea').html('<div class="styles-empty">No eligible line items found for PO ' + esc(po) + '.</div>');
+        return;
+    }
+
+    // Wait for UPC lookup to be loaded (it usually is by now, but guard anyway)
+    function proceed() {
+        // Map UPCs → unique item CSV URLs
+        var csvUrls = {};
+        upcs.forEach(function (upc) {
+            var url = upcLookupMap[upc];
+            if (url) csvUrls[url] = (csvUrls[url] || []).concat(upc);
+        });
+
+        var urlList = Object.keys(csvUrls);
+        if (!urlList.length) {
+            $('#stylesArea').html('<div class="styles-empty">No item data found for the UPCs on this order. Check the UPC lookup sheet.</div>');
+            return;
+        }
+
+        // Fetch all item CSVs in parallel
+        var pending  = urlList.length;
+        var styles   = {}; // style → { style, styleDesc }
+        var styleOrder = [];
+
+        function onAllDone() {
+            if (!styleOrder.length) {
+                if (!isMerge) $('#stylesArea').html('<div class="styles-empty">No styles found in item data for this order.</div>');
+                return;
+            }
+            renderStylesList(styleOrder.map(function (s) { return styles[s]; }), isMerge);
+        }
+
+        urlList.forEach(function (csvUrl) {
+            var upcsForUrl = csvUrls[csvUrl];
+            $.ajax({
+                url: csvUrl, method: 'GET', dataType: 'text', cache: false,
+                success: function (csv) {
+                    var rows = csv.split('\n');
+                    for (var i = 1; i < rows.length; i++) {
+                        var row = rows[i].trim();
+                        if (!row) continue;
+                        var cols = parseCSVRow(row);
+                        var style     = (cols[ITEM_COL.style]     || '').trim();
+                        var styleDesc = (cols[ITEM_COL.styleDesc]  || '').trim();
+                        if (!style) continue;
+                        // Check if any of the sized SKU columns match one of our UPCs-bearing SKUs
+                        // Actually we match by checking if this row's style/desc is relevant;
+                        // but we need to find rows corresponding to our UPCs via the SKU columns.
+                        // Strategy: check if any SKU in cols 5-10 is one of the SKUs from our order rows.
+                        var rowSkus = [];
+                        for (var ci = ITEM_COL.skuStart; ci <= ITEM_COL.skuEnd; ci++) {
+                            var s = (cols[ci] || '').trim();
+                            if (s) rowSkus.push(s.toUpperCase());
+                        }
+                        // Get the order SKUs for the UPCs on this URL
+                        // We match by UPC: get the SKUs from our order rows that have these UPCs
+                        var orderSkusForUrl = [];
+                        allOrderRows.forEach(function (r) {
+                            if (r.po !== po) return;
+                            if ((r.cols[COL.explodedKit] || '').trim().toUpperCase() === 'Y') return;
+                            var upc = (r.cols[COL.upc] || '').trim();
+                            if (upcsForUrl.indexOf(upc) >= 0) {
+                                var sku = (r.cols[COL.sku] || '').trim().toUpperCase();
+                                if (sku) orderSkusForUrl.push(sku);
+                            }
+                        });
+                        var matched = rowSkus.some(function (s) { return orderSkusForUrl.indexOf(s) >= 0; });
+                        if (matched && !styles[style]) {
+                            styles[style] = { style: style, styleDesc: styleDesc };
+                            styleOrder.push(style);
+                        }
+                    }
+                },
+                error: function () { console.warn('Could not load item CSV: ' + csvUrl); },
+                complete: function () {
+                    pending--;
+                    if (pending === 0) onAllDone();
+                }
+            });
+        });
+    }
+
+    if (upcLookupLoaded) {
+        proceed();
+    } else {
+        // Poll until loaded (max 5s)
+        var tries = 0;
+        var interval = setInterval(function () {
+            tries++;
+            if (upcLookupLoaded || tries > 50) {
+                clearInterval(interval);
+                proceed();
+            }
+        }, 100);
+    }
+}
+
+function renderStylesList(styleItems, isMerge) {
+    if (!styleItems.length) {
+        if (!isMerge) $('#stylesArea').html('<div class="styles-empty">No styles found for this order.</div>');
+        return;
+    }
+
+    // On a merge (background/manual refresh), preserve whatever the rep has
+    // already selected/typed so re-rendering doesn't wipe their entries —
+    // we're only trying to surface styles that were missing the first time.
+    var existingQty = {};
+    var priorSafeIds = {};
+    $('.sign-qty-input').each(function () {
+        var safeId = $(this).data('safeid');
+        priorSafeIds[safeId] = true;
+        var val = $(this).val();
+        if (safeId && val) existingQty[safeId] = val;
+    });
+
+    var html = '<div class="styles-list">';
+    styleItems.forEach(function (item) {
+        var safeId = 'style_' + item.style.replace(/[^a-zA-Z0-9]/g, '_');
+        var prevVal   = existingQty[safeId] || '';
+        var hasVal    = prevVal && parseInt(prevVal) > 0;
+        var isNewRow  = isMerge && !priorSafeIds[safeId];
+        html += '<div class="style-row' + (hasVal ? ' selected' : '') + '" id="row_' + safeId + '" data-style="' + esc(item.style) + '">';
+        // Left: checkbox + info (clicking this area toggles selection)
+        html += '<div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;cursor:pointer;" onclick="toggleStyle(\'' + safeId + '\')">';
+        html += '<div class="style-checkbox" id="chk_' + safeId + '"></div>';
+        html += '<div class="style-info">';
+        html += '<div class="style-name">' + esc(item.style)
+              + (isNewRow ? ' <span style="font-size:10px;font-weight:700;color:var(--success);background:var(--success-bg);padding:1px 6px;border-radius:8px;vertical-align:middle;">NEW</span>' : '')
+              + '</div>';
+        if (item.styleDesc) html += '<div class="style-desc">' + esc(item.styleDesc) + '</div>';
+        html += '</div></div>';
+        // Right: quantity input
+        html += '<div class="style-qty-wrap">';
+        html += '<span class="style-qty-label">Qty</span>';
+        html += '<input type="number" min="0" step="1" class="style-qty-input sign-qty-input' + (hasVal ? ' has-value' : '') + '" '
+              + 'id="qty_' + safeId + '" data-sku="' + esc(item.style) + '" data-safeid="' + safeId + '" '
+              + 'value="' + esc(prevVal) + '" placeholder="0" onclick="event.stopPropagation();">';
+        html += '</div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    $('#stylesArea').html(html);
+    $('#refreshStylesBtn').show();
+
+    // Auto-select row when qty is typed, deselect when cleared
+    $(document).on('input', '.sign-qty-input', function () {
+        var safeId = $(this).data('safeid');
+        var val = parseInt($(this).val()) || 0;
+        var $row = $('#row_' + safeId);
+        if (val > 0) {
+            $row.addClass('selected');
+            $(this).addClass('has-value');
+        } else {
+            $row.removeClass('selected');
+            $(this).removeClass('has-value');
+        }
+        updateSummary();
+    });
+
+    updateSummary();
+}
+
+function toggleStyle(safeId) {
+    var $row = $('#row_' + safeId);
+    $row.toggleClass('selected');
+    if (!$row.hasClass('selected')) {
+        // Clear qty when deselecting via checkbox click
+        var $qty = $('#qty_' + safeId);
+        $qty.val('').removeClass('has-value');
+    } else {
+        // Focus qty input when selecting
+        setTimeout(function () { $('#qty_' + safeId).focus(); }, 50);
+    }
+    updateSummary();
+}
+
+function updateSummary() {
+    var selectedStyles = $('.style-row.selected').length;
+    var totalQtySelected = 0;
+    $('.sign-qty-input').each(function () {
+        totalQtySelected += parseInt($(this).val()) || 0;
+    });
+    $('#sumStyles').text(selectedStyles);
+    $('#sumQty').text(totalQtySelected);
+    $('#sumSize').text(selectedSize ? selectedSize + '"' : '—');
+    $('#sumPricing').text(selectedPricing ? (selectedPricing === 'yes' ? 'Yes' : 'No') : '—');
+
+    var hasSelection = selectedStyles > 0 || selectedSize || selectedPricing;
+    if (hasSelection) {
+        $('#summaryBar').show();
+    } else {
+        $('#summaryBar').hide();
+    }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+function submitRequest() {
+    var po       = $('#poNumber').val().trim();
+    var repName  = $('#repName').val().trim();
+    var repEmail = $('#repEmail').val().trim();
+
+    if (!po) { alert('Please enter or select a PO number.'); $('#poNumber').focus(); return; }
+    if (!repName || !repEmail) { alert('Rep name and email are required.'); return; }
+    if (!selectedSize) { alert('Please select a sign size.'); return; }
+    if (!selectedPricing) { alert('Please choose whether to include pricing on the sign.'); return; }
+
+    // Collect style quantities
+    var items = [];
+    $('.sign-qty-input').each(function () {
+        var qty = parseInt($(this).val()) || 0;
+        if (qty > 0) {
+            items.push({ style: $(this).data('sku'), quantity: qty });
+        }
+    });
+    if (items.length === 0) {
+        alert('Please enter a quantity for at least one style.');
+        return;
+    }
+
+    // Collect ship-to info
+    var shipTo = { method: selectedShipTo };
+    if (selectedShipTo === 'store') {
+        var street = $('#storeAddrStreet').val().trim();
+        var city   = $('#storeAddrCity').val().trim();
+        var state  = $('#storeAddrState').val().trim();
+        var zip    = $('#storeAddrZip').val().trim();
+        if (!street || !city || !state || !zip) {
+            alert('Please fill in all store address fields.');
+            return;
+        }
+        shipTo.name    = $('#storeAddrName').val().trim();
+        shipTo.attn    = $('#storeAddrAttn').val().trim();
+        shipTo.street  = street;
+        shipTo.city    = city;
+        shipTo.state   = state;
+        shipTo.zip     = zip;
+    } else if (selectedShipTo === 'rep') {
+        var street = $('#repAddrStreet').val().trim();
+        var city   = $('#repAddrCity').val().trim();
+        var state  = $('#repAddrState').val().trim();
+        var zip    = $('#repAddrZip').val().trim();
+        if (!street || !city || !state || !zip) {
+            alert('Please fill in all address fields for your residence.');
+            return;
+        }
+        shipTo.street = street;
+        shipTo.city   = city;
+        shipTo.state  = state;
+        shipTo.zip    = zip;
+    }
+
+    var authDataForSubmit = JSON.parse(sessionStorage.getItem('salesPortalAuth') || '{}');
+    var payload = {
+        action:       'fixtureSignsRequest',
+        token:        authDataForSubmit.token,
+        poNumber:     po,
+        facilityId:   $('#facilityId').val().trim(),
+        locationName: $('#locationName').val().trim(),
+        beginShip:    $('#beginShip').val().trim(),
+        repName:      repName,
+        repEmail:     repEmail,
+        signSize:     selectedSize,
+        includePricing: selectedPricing,
+        shipTo:       shipTo,
+        notes:        $('#notes').val().trim(),
+        orderDate:    new Date().toISOString(),
+        items:        items
+    };
+
+    $('#submitBtn').prop('disabled', true).text('Submitting…');
+
+    var form = $('<form>', { method: 'POST', action: APPS_SCRIPT_URL, target: '_blank', style: 'display:none;' });
+    form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
+    $('body').append(form);
+    form.submit();
+    setTimeout(function () { form.remove(); }, 1000);
+
+    var totalQty = items.reduce(function (s, i) { return s + i.quantity; }, 0);
+    var shipLabel = selectedShipTo === 'order' ? 'with order' : selectedShipTo === 'store' ? 'to store' : 'to rep residence';
+    alert('✅ Fixture signs request submitted!\n\nPO: ' + po + '\nStyles: ' + items.length + ' · Total qty: ' + totalQty + '\nSize: ' + selectedSize + '  ·  Pricing: ' + (selectedPricing === 'yes' ? 'Yes' : 'No') + '\nShip: ' + shipLabel + '\n\nA confirmation will be sent to ' + repEmail + '.');
+
+    // Reset form state
+    $('.sign-qty-input').val('').removeClass('has-value');
+    $('.style-row').removeClass('selected');
+    updateSummary();
+    $('#notes').val('');
+    $('#submitBtn').prop('disabled', false).text('Submit Fixture Signs Request');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function parseCSVRow(row) {
+    var cols = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+        var ch = row[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return cols;
+}
+
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+</script>
+</body>
+</html>

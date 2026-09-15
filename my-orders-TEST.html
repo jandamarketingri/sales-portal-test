@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Orders - Sales Portal</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --border: #e2e0d8;
+            --text: #1a1a18;
+            --text-muted: #7a7870;
+            --accent: #667eea;
+            --accent2: #764ba2;
+            --pending-badge: #fff8e1;
+            --pending-text: #e65100;
+            --imported-badge: #e8f5e9;
+            --imported-text: #2e7d32;
+            --shadow: 0 2px 12px rgba(0,0,0,0.07);
+            --radius: 10px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .portal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header .logo-area { display: flex; align-items: center; gap: 14px; }
+        .portal-header img.logo { max-height: 38px; max-width: 120px; object-fit: contain; }
+        .portal-header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+        .header-right { display: flex; align-items: center; gap: 18px; }
+        .rep-badge {
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .btn-back {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: white;
+            padding: 7px 16px;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.25); }
+
+        /* ── Page body ── */
+        .page-body { max-width: 1100px; margin: 0 auto; padding: 36px 24px 60px; }
+        .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .page-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+        /* ── Filter bar ── */
+        .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 7px 18px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.18s;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+        .filter-divider { flex: 1; }
+        .order-count { font-size: 13px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+        /* ── Loading / empty / error ── */
+        .state-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        .state-box .icon { font-size: 40px; margin-bottom: 14px; }
+        .state-box p { font-size: 15px; }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Order cards ── */
+        .orders-list { display: flex; flex-direction: column; gap: 12px; }
+        .order-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.2s;
+        }
+        .order-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+        .order-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto auto;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 22px;
+            cursor: pointer;
+            user-select: none;
+        }
+        @media (max-width: 760px) { .order-summary { grid-template-columns: 1fr 1fr; gap: 10px; } }
+
+        .summary-field label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+        }
+        .summary-field .val { font-size: 14px; font-weight: 500; color: var(--text); }
+        .summary-field .val.mono { font-family: 'DM Mono', monospace; font-size: 13px; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 11px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .status-pending  { background: var(--pending-badge);  color: var(--pending-text); }
+        .status-imported { background: var(--imported-badge); color: var(--imported-text); }
+
+        .expand-btn {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .expand-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .expand-btn.open { transform: rotate(180deg); border-color: var(--accent); color: var(--accent); }
+
+        /* ── Tracking bar — always visible below summary row ── */
+        .tracking-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 22px 11px;
+            border-top: 1px dashed var(--border);
+            flex-wrap: wrap;
+        }
+        .tracking-bar-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .tracking-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+        /* Chip base — works as <a> or <span> */
+        .tracking-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px 3px 6px;
+            border-radius: 6px;
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: filter 0.15s, box-shadow 0.15s;
+        }
+        a.tracking-chip:hover {
+            filter: brightness(0.92);
+            box-shadow: 0 1px 6px rgba(0,0,0,0.13);
+            text-decoration: none;
+        }
+
+        /* Carrier colour themes */
+        .chip-ups     { background: #fdf0dc; border: 1px solid #f0c97a; color: #7a4a00; }
+        .chip-fedex   { background: #ede8fb; border: 1px solid #b9a8f5; color: #4a1f9e; }
+        .chip-usps    { background: #dbeafe; border: 1px solid #93c5fd; color: #1e3a8a; }
+        .chip-unknown { background: #f3f3f0; border: 1px solid var(--border); color: var(--text-muted); }
+
+        .carrier-badge {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .chip-ups     .carrier-badge { background: #f0c97a; color: #7a4a00; }
+        .chip-fedex   .carrier-badge { background: #b9a8f5; color: #4a1f9e; }
+        .chip-usps    .carrier-badge { background: #93c5fd; color: #1e3a8a; }
+        .chip-unknown .carrier-badge { background: var(--border); color: var(--text-muted); }
+
+        /* ── Invoice link bar — shown when PDF link exists ── */
+        .invoice-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 22px 10px;
+            border-top: 1px dashed var(--border);
+        }
+        .invoice-bar-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .invoice-links { display: flex; flex-wrap: wrap; gap: 6px; }
+        .invoice-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px 4px 9px;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            text-decoration: none;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #3730a3;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .invoice-link-btn:hover {
+            background: #e0e7ff;
+            box-shadow: 0 1px 6px rgba(99,102,241,0.2);
+            text-decoration: none;
+        }
+        .invoice-link-btn .inv-icon { font-size: 13px; }
+
+        /* ── Fixture signs link bar ── */
+        .fixture-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 22px 10px;
+            border-top: 1px dashed var(--border);
+        }
+        .fixture-bar-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .fixture-signs-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px 4px 9px;
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            text-decoration: none;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #7a4a00;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        .fixture-signs-btn:hover {
+            background: #fff0b3;
+            box-shadow: 0 1px 6px rgba(245,158,11,0.25);
+            text-decoration: none;
+        }
+        .order-detail {
+            display: none;
+            border-top: 1px solid var(--border);
+            background: #fafaf8;
+            padding: 20px 22px;
+            animation: slideDown 0.2s ease;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .order-detail.open { display: block; }
+
+        .detail-meta {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .detail-meta-item label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+        .detail-meta-item span { font-size: 13px; font-weight: 500; }
+
+        /* ── Line items table ── */
+        .items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .items-table th {
+            text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted);
+            border-bottom: 1.5px solid var(--border);
+        }
+        .items-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .items-table tr:last-child td { border-bottom: none; }
+        .items-table tr:hover td { background: rgba(102,126,234,0.04); }
+        .items-table .sku-col { font-family: 'DM Mono', monospace; font-size: 12px; }
+        .items-table .qty-col { font-weight: 600; color: var(--accent); }
+
+        .detail-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .total-items { font-size: 13px; color: var(--text-muted); }
+        .total-items strong { color: var(--text); }
+
+        /* ── Search bar ── */
+        .search-wrap {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 15px;
+            pointer-events: none;
+            opacity: 0.45;
+        }
+        .search-clear {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--border);
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 11px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: none;
+            padding: 0;
+            transition: background 0.15s;
+        }
+        .search-clear:hover { background: #d0cec6; }
+        .search-input {
+            width: 100%;
+            padding: 11px 40px 11px 40px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            box-shadow: var(--shadow);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.13);
+        }
+        .search-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            margin-left: 2px;
+        }
+        .search-hint kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .highlight {
+            background: #fff0b3;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        /* ── Tab switcher ── */
+        .tab-bar {
+            display: flex; gap: 4px; margin-bottom: 28px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 5px; width: fit-content;
+        }
+        .tab-btn {
+            padding: 8px 20px; border-radius: 7px; border: none;
+            background: transparent; font-family: 'DM Sans', sans-serif;
+            font-size: 13px; font-weight: 500; color: var(--text-muted);
+            cursor: pointer; transition: all 0.18s; white-space: nowrap;
+        }
+        .tab-btn:hover { color: var(--accent); }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; font-weight: 600;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.35);
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Drinkware ── */
+        .dw-filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+        .dw-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto auto;
+            align-items: center; gap: 14px; padding: 18px 22px;
+            cursor: pointer; user-select: none;
+        }
+        @media (max-width: 860px) { .dw-summary { grid-template-columns: 1fr 1fr; gap: 10px; } }
+        .dw-detail {
+            display: none; border-top: 1px solid var(--border);
+            background: #fafaf8; padding: 20px 22px; animation: slideDown 0.2s ease;
+        }
+        .dw-detail.open { display: block; }
+        .dw-meta { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .dw-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .dw-table th {
+            text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted);
+            border-bottom: 1.5px solid var(--border); white-space: nowrap;
+        }
+        .dw-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .dw-table tr:last-child td { border-bottom: none; }
+        .dw-table tr:hover td { background: rgba(102,126,234,0.04); }
+        .dw-table .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+        .dw-table .qty  { font-weight: 700; color: var(--accent); }
+        .color-chip { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #ede9fe; color: #5b21b6; white-space: nowrap; }
+        .art-chip   { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e0f2f1; color: #00695c; font-family: 'DM Mono', monospace; white-space: nowrap; }
+        .status-drinkware { background: #e0f2f1; color: #00695c; }
+    </style>
+</head>
+<body>
+
+<div class="portal-header">
+    <div class="logo-area">
+        <img src="logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+        <h1>Sales Portal</h1>
+    </div>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge">Loading…</span>
+        <a href="index.html" class="btn-back">← Back to Portal</a>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="page-title">My Orders</div>
+    <div class="page-subtitle" id="pageSubtitle">Loading your order history…</div>
+
+    <div class="search-wrap">
+        <input type="text" class="search-input" id="globalSearch"
+               placeholder="Search by PO number, location, or SKU…"
+               oninput="onSearchInput(this.value)"
+               autocomplete="off" spellcheck="false">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Clear search">✕</button>
+        <div class="search-hint">Search across <kbd>PO #</kbd> <kbd>location</kbd> <kbd>SKU</kbd> <kbd>ship-to code</kbd></div>
+    </div>
+
+    <div class="tab-bar">
+        <button class="tab-btn active" id="tabBtnOrders"    onclick="switchTab('orders')">📋 Orders</button>
+        <button class="tab-btn"        id="tabBtnDrinkware" onclick="switchTab('drinkware')">☕ Past Drinkware</button>
+    </div>
+
+    <!-- ── Orders tab ── -->
+    <div class="tab-panel active" id="tabOrders">
+        <div class="filter-bar" id="filterBar" style="display:none;">
+            <button class="filter-btn active" data-filter="30"  onclick="applyFilter('30',  this)">Last 30 Days</button>
+            <button class="filter-btn"        data-filter="90"  onclick="applyFilter('90',  this)">Last 90 Days</button>
+            <button class="filter-btn"        data-filter="365" onclick="applyFilter('365', this)">Last Year</button>
+            <button class="filter-btn"        data-filter="all" onclick="applyFilter('all', this)">All Time</button>
+            <div class="filter-divider"></div>
+            <span class="order-count" id="orderCount"></span>
+        </div>
+        <div id="contentArea">
+            <div class="state-box"><div class="spinner"></div><p>Fetching your orders…</p></div>
+        </div>
+    </div>
+
+    <!-- ── Drinkware tab ── -->
+    <div class="tab-panel" id="tabDrinkware">
+        <div class="dw-filter-bar" id="dwFilterBar" style="display:none;">
+            <button class="filter-btn active" data-dwfilter="all"  onclick="applyDwFilter('all',  this)">All Time</button>
+            <button class="filter-btn"        data-dwfilter="365"  onclick="applyDwFilter('365', this)">Last Year</button>
+            <button class="filter-btn"        data-dwfilter="90"   onclick="applyDwFilter('90',  this)">Last 90 Days</button>
+            <button class="filter-btn"        data-dwfilter="30"   onclick="applyDwFilter('30',  this)">Last 30 Days</button>
+            <div class="filter-divider"></div>
+            <span class="order-count" id="dwOrderCount"></span>
+        </div>
+        <div id="dwContentArea">
+            <div class="state-box"><div class="spinner"></div><p>Loading drinkware history…</p></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+
+// ▶ Apps Script web app URL (same one login.html / apparel.html use).
+// Orders are now fetched server-side, filtered to YOUR email, and require
+// a valid session token — not from a public "publish to web" CSV anymore.
+var ORDERS_API_URL = 'https://script.google.com/macros/s/AKfycbyCV58j5xPRPTng9c7WLuNJ1UopYkPBKdI_cZVTsGEyRSRDaLlf84T1kNU_AgQgjxP8/exec'; // TEST deployment
+
+var DRINKWARE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7uNYew2smPQWTZRff7v-70y1jrRYViSu-buckNngS2m16e3GoqUuueaEQqsTn09PmoyGQOvleYBpG/pub?gid=1339922144&single=true&output=csv';
+
+// ── Orders column indices (0-based) ───────────────────────────────────────────
+// A[0] Checkbox    B[1] Timestamp    C[2] Rep Name     D[3] Rep Email
+// E[4] Location    F[5] Ship-To Code G[6] Facility ID  H[7] PO Number
+// I[8] Begin Ship  J[9] Ship By      K[10] Line Key     L[11] Kit Line Key
+// M[12] SKU        N[13] Exploded Kit O[14] Quantity    P[15] Retail Price
+// Q[16] UPC        R[17] Comments    S[18] Qty/Bill     T[19] Brand
+// U[20] Export Date (archived rows only)   V[21] Tracking Numbers
+// W[22]+ Invoice PDF Links (one per column; W = first, X = second, …)
+var ORD_COL = {
+    timestamp: 1, repName: 2, repEmail: 3, locationName: 4, shipToCode: 5,
+    facilityId: 6, poNumber: 7, beginShip: 8, shipBy: 9, lineKey: 10,
+    kitLineKey: 11, sku: 12, explodedKit: 13, quantity: 14, retailPrice: 15,
+    upc: 16, comments: 17, qtyPerBill: 18, brand: 19, exportDate: 20, tracking: 21,
+    invoiceLinkStart: 22
+};
+
+// ── Drinkware column indices (0-based) ────────────────────────────────────────
+var DW_COL = {
+    salesOrderNo: 0, customPO: 1, orderDate: 2, shipTo: 3, reqDelivery: 4,
+    repEmail: 5, sku: 6, skuDesc: 7, color: 8, quantity: 9,
+    artNumber: 10, imprintColor: 11, comments: 12
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var allOrders      = [];
+var allDwOrders    = [];
+var dwLoaded       = false;
+var currentTab     = 'orders';
+var repEmailGlobal = '';
+var sessionTokenGlobal = '';
+var searchQuery    = '';
+
+// ── Search ────────────────────────────────────────────────────────────────────
+function onSearchInput(val) {
+    searchQuery = val.toLowerCase().trim();
+    $('#searchClear').css('display', val ? 'block' : 'none');
+    if (currentTab === 'orders') {
+        triggerOrdersRender();
+    } else {
+        triggerDwRender();
+    }
+}
+
+function clearSearch() {
+    searchQuery = '';
+    $('#globalSearch').val('').focus();
+    $('#searchClear').hide();
+    if (currentTab === 'orders') {
+        triggerOrdersRender();
+    } else {
+        triggerDwRender();
+    }
+}
+
+function orderMatchesSearch(group, q) {
+    if (!q) return true;
+    var meta = group.meta;
+    // Check PO number
+    if ((meta.poNumber || '').toLowerCase().indexOf(q) !== -1) return true;
+    // Check location / facility
+    if ((meta.locationName || '').toLowerCase().indexOf(q) !== -1) return true;
+    if ((meta.facilityId || '').toLowerCase().indexOf(q) !== -1) return true;
+    if ((meta.shipToCode || '').toLowerCase().indexOf(q) !== -1) return true;
+    // Check any SKU across all line items
+    for (var i = 0; i < group.items.length; i++) {
+        if ((group.items[i].sku || '').toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return false;
+}
+
+function dwMatchesSearch(group, q) {
+    if (!q) return true;
+    var meta = group.meta;
+    if ((meta.salesOrderNo || '').toLowerCase().indexOf(q) !== -1) return true;
+    if ((meta.customPO || '').toLowerCase().indexOf(q) !== -1) return true;
+    if ((meta.shipTo || '').toLowerCase().indexOf(q) !== -1) return true;
+    for (var i = 0; i < group.lines.length; i++) {
+        if ((group.lines[i].sku || '').toLowerCase().indexOf(q) !== -1) return true;
+        if ((group.lines[i].skuDesc || '').toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return false;
+}
+
+// Highlight matching text within a string
+function highlightMatch(str, q) {
+    if (!q || !str) return esc(str);
+    var idx = str.toLowerCase().indexOf(q);
+    if (idx === -1) return esc(str);
+    return esc(str.substring(0, idx))
+         + '<mark class="highlight">' + esc(str.substring(idx, idx + q.length)) + '</mark>'
+         + esc(str.substring(idx + q.length));
+}
+
+// Re-run active date filter, then render with current search
+function triggerOrdersRender() {
+    var activeFilter = $('#filterBar .filter-btn.active').data('filter') || '30';
+    var now = new Date();
+    var dateFiltered = allOrders.filter(function (o) {
+        if (activeFilter === 'all') return true;
+        if (!o.timestamp) return false;
+        var d = new Date(o.timestamp);
+        if (isNaN(d.getTime())) return false;
+        return d >= new Date(now.getTime() - parseInt(activeFilter) * 86400000);
+    });
+    renderOrders(dateFiltered);
+}
+
+function triggerDwRender() {
+    var activeFilter = $('#dwFilterBar .filter-btn.active').data('dwfilter') || 'all';
+    var now = new Date();
+    var dateFiltered = allDwOrders.filter(function (r) {
+        if (activeFilter === 'all') return true;
+        if (!r.orderDate) return false;
+        var d = new Date(r.orderDate);
+        if (isNaN(d.getTime())) return false;
+        return d >= new Date(now.getTime() - parseInt(activeFilter) * 86400000);
+    });
+    renderDrinkwareOrders(dateFiltered);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+$(document).ready(function () {
+    var raw = sessionStorage.getItem('salesPortalAuth');
+    if (!raw) { window.location.href = 'login.html'; return; }
+    try {
+        var auth = JSON.parse(raw);
+        repEmailGlobal = (auth.email || '').toLowerCase().trim();
+        sessionTokenGlobal = auth.token || '';
+        $('#repBadge').text(auth.name || auth.email);
+        loadOrders();
+    } catch (e) {
+        window.location.href = 'login.html';
+    }
+});
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+    currentTab = tab;
+    $('.tab-btn').removeClass('active');
+    $('.tab-panel').removeClass('active');
+    if (tab === 'orders') {
+        $('#tabBtnOrders').addClass('active');
+        $('#tabOrders').addClass('active');
+        $('#pageSubtitle').text('Showing orders placed under your account.');
+    } else {
+        $('#tabBtnDrinkware').addClass('active');
+        $('#tabDrinkware').addClass('active');
+        $('#pageSubtitle').text('Past drinkware orders associated with your rep account.');
+        if (!dwLoaded) loadDrinkwareOrders();
+    }
+}
+
+// ── Carrier detection ─────────────────────────────────────────────────────────
+function detectCarrier(num) {
+    var n = num.replace(/\s+/g, '');
+    if (/^1Z/i.test(n))          return 'ups';   // UPS: always starts with 1Z
+    if (/^9\d{19,21}$/.test(n))  return 'usps';  // USPS: 20-22 digits starting with 9
+    if (/^\d{12}$/.test(n) || /^\d{15}$/.test(n) || /^\d{20}$/.test(n)) return 'fedex';
+    return 'unknown';
+}
+
+function trackingUrl(num) {
+    var n = num.replace(/\s+/g, '');
+    switch (detectCarrier(n)) {
+        case 'ups':   return 'https://www.ups.com/track?tracknum=' + encodeURIComponent(n);
+        case 'usps':  return 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' + encodeURIComponent(n);
+        case 'fedex': return 'https://www.fedex.com/fedextrack/?trknbr=' + encodeURIComponent(n);
+        default:      return 'https://www.google.com/search?q=' + encodeURIComponent(n + ' package tracking');
+    }
+}
+
+function carrierLabel(num) {
+    switch (detectCarrier(num.replace(/\s+/g, ''))) {
+        case 'ups':   return 'UPS';
+        case 'usps':  return 'USPS';
+        case 'fedex': return 'FedEx';
+        default:      return 'TRK';
+    }
+}
+
+function carrierClass(num) {
+    switch (detectCarrier(num.replace(/\s+/g, ''))) {
+        case 'ups':   return 'chip-ups';
+        case 'usps':  return 'chip-usps';
+        case 'fedex': return 'chip-fedex';
+        default:      return 'chip-unknown';
+    }
+}
+
+// Returns HTML string of tracking chips for a raw comma-separated tracking string.
+// Returns empty string if no tracking numbers present.
+function renderTrackingChips(trackingRaw) {
+    if (!trackingRaw || !trackingRaw.trim()) return '';
+    var nums = trackingRaw.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+    if (!nums.length) return '';
+    return nums.map(function (num) {
+        var cls   = carrierClass(num);
+        var label = carrierLabel(num);
+        var url   = trackingUrl(num);
+        return '<a href="' + esc(url) + '" target="_blank" rel="noopener" class="tracking-chip ' + cls + '">'
+             + '<span class="carrier-badge">' + label + '</span>'
+             + esc(num)
+             + '</a>';
+    }).join('');
+}
+
+// ── Load regular orders from the token-protected Apps Script endpoint ─────────
+function loadOrders() {
+    if (!sessionTokenGlobal) {
+        // No token means they logged in before this feature existed, or
+        // sessionStorage got cleared oddly — send them through login again
+        // rather than let the request fail silently.
+        window.location.href = 'login.html';
+        return;
+    }
+    $.ajax({
+        url: ORDERS_API_URL,
+        method: 'GET',
+        dataType: 'json',
+        cache: false,
+        data: {
+            action: 'getOrdersByRep',
+            email: repEmailGlobal,
+            token: sessionTokenGlobal
+        },
+        success: function (response) {
+            if (!response || !response.success) {
+                // Most likely an expired/invalid token — send them to log in again.
+                sessionStorage.removeItem('salesPortalAuth');
+                window.location.href = 'login.html';
+                return;
+            }
+            allOrders = response.orders || [];
+            allOrders.sort(function (a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+            $('#filterBar').show();
+            $('#pageSubtitle').text('Showing orders placed under your account.');
+            applyFilter('30', $('#filterBar .filter-btn[data-filter="30"]')[0]);
+        },
+        error: function () {
+            $('#contentArea').html(
+                '<div class="state-box"><div class="icon">⚠️</div>' +
+                '<p>Could not load orders. Please try again in a moment.</p></div>'
+            );
+            $('#pageSubtitle').text('Something went wrong.');
+        }
+    });
+}
+
+// ── Filter by date range ──────────────────────────────────────────────────────
+function applyFilter(filter, btn) {
+    $('#filterBar .filter-btn').removeClass('active');
+    $(btn).addClass('active');
+    triggerOrdersRender();
+}
+
+// ── Render regular orders ──────────────────────────────────────────────────────
+function renderOrders(orders) {
+    // Group by PO — first row encountered becomes the meta/tracking source
+    var grouped = {}, poOrder = [];
+    orders.forEach(function (row) {
+        var po = row.poNumber || '—';
+        if (!grouped[po]) { grouped[po] = { meta: row, items: [], source: row.source }; poOrder.push(po); }
+        grouped[po].items.push(row);
+    });
+
+    // Apply search filter at the group level
+    var q = searchQuery;
+    if (q) {
+        poOrder = poOrder.filter(function (po) { return orderMatchesSearch(grouped[po], q); });
+    }
+
+    if (poOrder.length === 0) {
+        var msg = q
+            ? 'No orders match <strong>' + esc(q) + '</strong>.'
+            : 'No orders found for this time period.';
+        $('#contentArea').html('<div class="state-box"><div class="icon">📋</div><p>' + msg + '</p></div>');
+        $('#orderCount').text('');
+        return;
+    }
+
+    $('#orderCount').text(poOrder.length + ' order' + (poOrder.length !== 1 ? 's' : '') + (q ? ' matching <em>' + esc(q) + '</em>' : ''));
+
+    var html = '<div class="orders-list">';
+    poOrder.forEach(function (po) {
+        var g    = grouped[po];
+        var meta = g.meta;
+        var lineItems = g.items.filter(function (r) { return r.sku && r.sku !== '/C' && r.explodedKit !== 'Y'; });
+        var totalQty  = lineItems.reduce(function (s, r) { return s + (parseInt(r.quantity) || 0); }, 0);
+        var statusClass = g.source === 'active' ? 'status-pending'  : 'status-imported';
+        var statusLabel = g.source === 'active' ? 'Pending Import'  : 'Imported to ERP';
+
+        // Tracking chips — sourced from first row of each PO only
+        var trackingChipsHtml = renderTrackingChips(meta.tracking);
+
+        // Invoice links — collect all unique non-empty links across all rows for this PO
+        var invoiceLinkSet = {};
+        g.items.forEach(function (r) {
+            (r.invoiceLinks || []).forEach(function (lnk) {
+                if (lnk) invoiceLinkSet[lnk] = true;
+            });
+        });
+        var invoiceLinks = Object.keys(invoiceLinkSet);
+
+        html += '<div class="order-card">';
+
+        // ── Summary row (clickable to expand) ──
+        html += '<div class="order-summary" onclick="toggleDetail(\'' + escId(po) + '\')">';
+        html += '<div class="summary-field"><label>PO Number</label><div class="val mono">' + highlightMatch(po, q) + '</div></div>';
+        html += '<div class="summary-field"><label>Order Date</label><div class="val">' + esc(formatDate(meta.timestamp)) + '</div></div>';
+        html += '<div class="summary-field"><label>Facility</label><div class="val">' + highlightMatch(meta.locationName || meta.facilityId || '—', q) + '</div></div>';
+        html += '<div class="summary-field"><label>Ship Window</label><div class="val">' + esc(formatDate(meta.beginShip)) + ' → ' + esc(formatDate(meta.shipBy)) + '</div></div>';
+        html += '<div class="summary-field"><label>Items / Qty</label><div class="val">' + lineItems.length + ' SKUs &nbsp;·&nbsp; ' + totalQty + ' units</div></div>';
+        html += '<span class="status-badge ' + statusClass + '">' + statusLabel + '</span>';
+        html += '<button class="expand-btn" id="btn-' + escId(po) + '">▾</button>';
+        html += '</div>';
+
+        // ── Tracking bar — always visible, only rendered when numbers exist ──
+        if (trackingChipsHtml) {
+            html += '<div class="tracking-bar" onclick="event.stopPropagation()">';
+            html += '<span class="tracking-bar-label">🚚 Tracking</span>';
+            html += '<div class="tracking-chips">' + trackingChipsHtml + '</div>';
+            html += '</div>';
+        }
+
+        // ── Invoice bar — only rendered when PDF link(s) exist ──
+        if (invoiceLinks.length > 0) {
+            html += '<div class="invoice-bar" onclick="event.stopPropagation()">';
+            html += '<span class="invoice-bar-label">📄 Invoice</span>';
+            html += '<div class="invoice-links">';
+            invoiceLinks.forEach(function (lnk, idx) {
+                var label = invoiceLinks.length > 1 ? 'View Invoice ' + (idx + 1) : 'View Invoice';
+                html += '<a href="' + esc(lnk) + '" target="_blank" rel="noopener" class="invoice-link-btn">'
+                      + '<span class="inv-icon">📄</span>' + label + '</a>';
+            });
+            html += '</div></div>';
+        }
+
+        // ── Fixture signs bar — always shown ──
+        var fixtureUrl = 'fixture-request.html?po=' + encodeURIComponent(po);
+        html += '<div class="fixture-bar" onclick="event.stopPropagation()">';
+        html += '<span class="fixture-bar-label">🪧 Signs</span>';
+        html += '<a href="' + esc(fixtureUrl) + '" class="fixture-signs-btn">🪧 Request Fixture Signs</a>';
+        html += '</div>';
+
+        // ── Expanded detail panel ── (auto-open if search is active)
+        var detailOpen = '';
+        html += '<div class="order-detail' + detailOpen + '" id="detail-' + escId(po) + '">';
+        if (detailOpen) { $('#btn-' + escId(po)).addClass('open'); }
+        html += '<div class="detail-meta">';
+        html += '<div class="detail-meta-item"><label>Rep Name</label><span>'    + esc(meta.repName    || '—') + '</span></div>';
+        html += '<div class="detail-meta-item"><label>Rep Email</label><span>'   + esc(meta.repEmail   || '—') + '</span></div>';
+        html += '<div class="detail-meta-item"><label>Facility ID</label><span>' + esc(meta.facilityId || '—') + '</span></div>';
+        html += '<div class="detail-meta-item"><label>Begin Ship</label><span>'  + esc(formatDate(meta.beginShip)) + '</span></div>';
+        html += '<div class="detail-meta-item"><label>Ship By</label><span>'     + esc(formatDate(meta.shipBy))    + '</span></div>';
+        if (meta.brand) html += '<div class="detail-meta-item"><label>Brand</label><span>' + esc(meta.brand) + '</span></div>';
+        if (g.source === 'archived' && meta.exportDate)
+            html += '<div class="detail-meta-item"><label>Imported Date</label><span>' + esc(formatDate(meta.exportDate)) + '</span></div>';
+        html += '</div>';
+
+        if (lineItems.length > 0) {
+            html += '<table class="items-table"><thead><tr>';
+            html += '<th>SKU</th><th>Description / Comments</th><th>Qty</th><th>Retail Price</th><th>UPC</th>';
+            html += '</tr></thead><tbody>';
+            lineItems.forEach(function (item) {
+                html += '<tr>';
+                html += '<td class="sku-col">' + highlightMatch(item.sku, q) + '</td>';
+                html += '<td>' + esc(item.comments || item.explodedKit || '—') + '</td>';
+                html += '<td class="qty-col">' + esc(item.quantity || '—') + '</td>';
+                html += '<td>' + esc(item.retailPrice || '—') + '</td>';
+                html += '<td class="sku-col">' + esc(item.upc || '—') + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+        } else {
+            html += '<p style="color:var(--text-muted);font-size:13px;">No line item details available.</p>';
+        }
+
+        html += '<div class="detail-footer"><span class="total-items"><strong>' + lineItems.length + '</strong> SKU(s) &nbsp;·&nbsp; <strong>' + totalQty + '</strong> total units</span></div>';
+        html += '</div></div>';
+    });
+    html += '</div>';
+    $('#contentArea').html(html);
+    // Apply open class to expand buttons after DOM update when searching
+    if (q) { $('.order-detail.open').each(function () { var id = this.id.replace('detail-', ''); $('#btn-' + id).addClass('open'); }); }
+}
+
+function toggleDetail(poId) {
+    var $d = $('#detail-' + poId), $b = $('#btn-' + poId);
+    $d.toggleClass('open'); $b.toggleClass('open');
+}
+
+// ── Drinkware ────────────────────────────────────────────────────────────────
+function loadDrinkwareOrders() {
+    if (DRINKWARE_CSV_URL === 'YOUR_DRINKWARE_GOOGLE_SHEET_CSV_URL_HERE') {
+        $('#dwContentArea').html('<div class="state-box"><div class="icon">⚙️</div><p>Set <strong>DRINKWARE_CSV_URL</strong> in the script.</p></div>');
+        return;
+    }
+    $('#dwContentArea').html('<div class="state-box"><div class="spinner"></div><p>Loading drinkware history…</p></div>');
+    $.ajax({
+        url: DRINKWARE_CSV_URL, method: 'GET', dataType: 'text',
+        success: function (csv) {
+            parseDrinkwareCSV(csv);
+            dwLoaded = true;
+            $('#dwFilterBar').show();
+            applyDwFilter('all', $('#dwFilterBar .filter-btn[data-dwfilter="all"]')[0]);
+        },
+        error: function () {
+            $('#dwContentArea').html('<div class="state-box"><div class="icon">⚠️</div><p>Could not load drinkware orders. Check the CSV URL and sheet publish settings.</p></div>');
+        }
+    });
+}
+
+function parseDrinkwareCSV(csv) {
+    allDwOrders = [];
+    var rows = csv.split('\n');
+    for (var i = 1; i < rows.length; i++) {
+        if (!rows[i].trim()) continue;
+        var cols = parseCSVRow(rows[i]);
+        var email = (cols[DW_COL.repEmail] || '').toLowerCase().trim();
+        if (email !== repEmailGlobal) continue;
+        allDwOrders.push({
+            salesOrderNo: (cols[DW_COL.salesOrderNo] || '').trim(),
+            customPO:     (cols[DW_COL.customPO]     || '').trim(),
+            orderDate:    (cols[DW_COL.orderDate]    || '').trim(),
+            shipTo:       (cols[DW_COL.shipTo]       || '').trim(),
+            reqDelivery:  (cols[DW_COL.reqDelivery]  || '').trim(),
+            repEmail:     email,
+            sku:          (cols[DW_COL.sku]          || '').trim(),
+            skuDesc:      (cols[DW_COL.skuDesc]      || '').trim(),
+            color:        (cols[DW_COL.color]        || '').trim(),
+            quantity:     (cols[DW_COL.quantity]     || '').trim(),
+            artNumber:    (cols[DW_COL.artNumber]    || '').trim(),
+            imprintColor: (cols[DW_COL.imprintColor] || '').trim(),
+            comments:     (cols[DW_COL.comments]     || '').trim()
+        });
+    }
+}
+
+function applyDwFilter(filter, btn) {
+    $('#dwFilterBar .filter-btn').removeClass('active');
+    $(btn).addClass('active');
+    triggerDwRender();
+}
+
+function renderDrinkwareOrders(rows) {
+    var grouped = {}, soOrder = [];
+    rows.forEach(function (r) {
+        var so = r.salesOrderNo || '—';
+        if (!grouped[so]) { grouped[so] = { meta: r, lines: [] }; soOrder.push(so); }
+        grouped[so].lines.push(r);
+    });
+
+    // Apply search filter at the group level
+    var q = searchQuery;
+    if (q) {
+        soOrder = soOrder.filter(function (so) { return dwMatchesSearch(grouped[so], q); });
+    }
+
+    if (soOrder.length === 0) {
+        var msg = q
+            ? 'No drinkware orders match <strong>' + esc(q) + '</strong>.'
+            : 'No drinkware orders found for this time period.';
+        $('#dwContentArea').html('<div class="state-box"><div class="icon">☕</div><p>' + msg + '</p></div>');
+        $('#dwOrderCount').text('');
+        return;
+    }
+    $('#dwOrderCount').text(soOrder.length + ' order' + (soOrder.length !== 1 ? 's' : '') + (q ? ' matching <em>' + esc(q) + '</em>' : ''));
+    var html = '<div class="orders-list">';
+    soOrder.forEach(function (so) {
+        var g = grouped[so], meta = g.meta;
+        var totalQty = g.lines.reduce(function (s, r) { return s + (parseInt(r.quantity) || 0); }, 0);
+        var soId = 'dw_' + escId(so);
+        var detailOpen = '';
+        html += '<div class="order-card">';
+        html += '<div class="dw-summary" onclick="toggleDwDetail(\'' + soId + '\')">';
+        html += dwField('Sales Order', so, true);
+        html += '<div class="summary-field"><label>Custom PO</label><div class="val mono">' + highlightMatch(meta.customPO || '—', q) + '</div></div>';
+        html += dwField('Order Date', formatDate(meta.orderDate));
+        html += '<div class="summary-field"><label>Ship To</label><div class="val">' + highlightMatch(meta.shipTo || '—', q) + '</div></div>';
+        html += dwField('Req. Delivery', formatDate(meta.reqDelivery));
+        html += '<div class="summary-field"><label>Lines / Qty</label><div class="val">' + g.lines.length + ' lines &nbsp;·&nbsp; ' + totalQty + ' units</div></div>';
+        html += '<span class="status-badge status-drinkware">☕ Drinkware</span>';
+        html += '<button class="expand-btn" id="dwbtn-' + soId + (detailOpen ? ' open' : '') + '">▾</button>';
+        html += '</div>';
+        html += '<div class="dw-detail' + detailOpen + '" id="dwdetail-' + soId + '">';
+        html += '<div class="dw-meta">';
+        html += dwMeta('Sales Order No', so);
+        html += dwMeta('Custom PO', meta.customPO || '—');
+        html += dwMeta('Order Date', formatDate(meta.orderDate));
+        html += dwMeta('Ship To', meta.shipTo || '—');
+        html += dwMeta('Req. Delivery', formatDate(meta.reqDelivery));
+        html += dwMeta('Rep Email', meta.repEmail || '—');
+        html += '</div>';
+        html += '<table class="dw-table"><thead><tr>';
+        html += '<th>SKU</th><th>Description</th><th>Color</th><th>Qty</th><th>Art Number</th><th>Imprint Color(s)</th><th>Comments</th>';
+        html += '</tr></thead><tbody>';
+        g.lines.forEach(function (line) {
+            html += '<tr>';
+            html += '<td class="mono">' + highlightMatch(line.sku || '—', q) + '</td>';
+            html += '<td>' + highlightMatch(line.skuDesc || '—', q) + '</td>';
+            html += '<td>' + (line.color ? '<span class="color-chip">' + esc(line.color) + '</span>' : '—') + '</td>';
+            html += '<td class="qty">' + esc(line.quantity || '—') + '</td>';
+            html += '<td>' + (line.artNumber ? '<span class="art-chip">' + esc(line.artNumber) + '</span>' : '—') + '</td>';
+            html += '<td>' + esc(line.imprintColor || '—') + '</td>';
+            html += '<td style="color:var(--text-muted);font-size:12px;">' + esc(line.comments || '—') + '</td>';
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div class="detail-footer"><span class="total-items"><strong>' + g.lines.length + '</strong> line(s) &nbsp;·&nbsp; <strong>' + totalQty + '</strong> total units</span></div>';
+        html += '</div></div>';
+    });
+    html += '</div>';
+    $('#dwContentArea').html(html);
+    if (q) { $('.dw-detail.open').each(function () { var id = this.id.replace('dwdetail-', ''); $('#dwbtn-' + id).addClass('open'); }); }
+}
+
+function toggleDwDetail(soId) {
+    $('#dwdetail-' + soId).toggleClass('open');
+    $('#dwbtn-'    + soId).toggleClass('open');
+}
+
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function dwField(label, val, mono) {
+    return '<div class="summary-field"><label>' + esc(label) + '</label>'
+         + '<div class="val' + (mono ? ' mono' : '') + '">' + esc(val) + '</div></div>';
+}
+function dwMeta(label, val) {
+    return '<div class="detail-meta-item"><label>' + esc(label) + '</label><span>' + esc(val) + '</span></div>';
+}
+function formatDate(val) {
+    if (!val) return '—';
+    var d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
+}
+function parseCSVRow(row) {
+    var cols = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+        var ch = row[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return cols;
+}
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escId(str) {
+    return String(str).replace(/[^a-zA-Z0-9]/g, '_');
+}
+</script>
+
+</body>
+</html>
+</body>
+</html>
