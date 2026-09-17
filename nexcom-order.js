@@ -112,27 +112,42 @@ function loadEverything() {
     colorData = DEMO_COLOR_DATA;
     artIndex = DEMO_ART_INDEX;
 
-    var tasks = [];
+    // Products render on their own timeline — the tab bar and every card
+    // depend only on this, not on colors or art, so there's no reason to
+    // make them wait on each other (and doing so was the previous bug).
+    var productsTask = CFG.productsCsvUrl
+        ? $.get(CFG.productsCsvUrl).then(function (text) { buildProducts(parseCSV(text)); })
+        : $.Deferred(function (d) { buildProducts(DEMO_PRODUCT_ROWS); d.resolve(); }).promise();
+    productsTask.always(function () { renderCatalog(); });
 
-    tasks.push(CFG.productsCsvUrl
-        ? $.get(CFG.productsCsvUrl).done(function (text) { buildProducts(parseCSV(text)); })
-        : $.Deferred(function (d) { buildProducts(DEMO_PRODUCT_ROWS); d.resolve(); }).promise());
-
+    // Colors and art load in parallel, independently. Note: .then(success, failure)
+    // here, not .done().fail() — jQuery's .fail() runs as a side effect but does NOT
+    // change the underlying request's rejected state, so a fast 404 on this fetch was
+    // previously short-circuiting $.when() before the (slower) products fetch finished.
+    // .then(success, failure) genuinely recovers to a resolved state when the failure
+    // handler doesn't rethrow, which is what "fall back to demo data" actually needs.
+    var sideTasks = [];
     if (CFG.colorsJsonUrl) {
-        tasks.push($.getJSON(CFG.colorsJsonUrl)
-            .done(function (json) { colorData = json; })
-            .fail(function () { console.warn('garment-colors.json failed to load — using embedded demo colors instead.'); }));
+        sideTasks.push($.getJSON(CFG.colorsJsonUrl).then(
+            function (json) { colorData = json; },
+            function () { console.warn('garment-colors.json failed to load — using embedded demo colors instead.'); }
+        ));
     }
-
     if (CFG.artCsvUrl) {
-        tasks.push($.get(CFG.artCsvUrl)
-            .done(function (text) { artIndex = buildArtIndex(parseCSV(text)); })
-            .fail(function () { console.warn('art-index.csv failed to load — using embedded demo art list instead.'); }));
+        sideTasks.push($.get(CFG.artCsvUrl).then(
+            function (text) { artIndex = buildArtIndex(parseCSV(text)); },
+            function () { console.warn('art-index.csv failed to load — using embedded demo art list instead.'); }
+        ));
     }
-
-    $.when.apply($, tasks).always(function () {
-        renderCatalog();
-    });
+    if (sideTasks.length) {
+        $.when.apply($, sideTasks).always(function () {
+            // Colors/art may land after the catalog's first paint (e.g. a big
+            // product list is still the slowest fetch) — refresh whichever tab
+            // is currently open so real colors/art show without a manual click.
+            var active = $('.cat-tab.active').attr('data-cat') || 'APPAREL';
+            if ($('.cat-tab').length) selectCategory(active);
+        });
+    }
 }
 
 function buildProducts(rows) {
