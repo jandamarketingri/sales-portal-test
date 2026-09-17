@@ -169,6 +169,7 @@
 
     <!-- ===================== LOGIN PANEL ===================== -->
     <div id="loginPanel">
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
         <div class="form-group">
             <label>Email Address *</label>
             <input type="email" id="email" placeholder="your.email@company.com" autocomplete="email">
@@ -179,7 +180,8 @@
             <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
         </div>
 
-        <button id="loginBtn" onclick="handleLogin()">Log In</button>
+        <button id="loginBtn" type="submit">Log In</button>
+        </form>
 
         <button class="request-access-btn" onclick="window.location.href='request-access.html'">
             Request Access
@@ -190,6 +192,7 @@
 
     <!-- ============= FIRST-TIME PASSWORD SETUP PANEL ============= -->
     <div id="setupPanel">
+        <form id="setupForm" onsubmit="event.preventDefault(); handleSetPassword();">
         <div class="form-group">
             <label>Create a Password *</label>
             <input type="password" id="newPassword" placeholder="At least 8 characters" autocomplete="new-password">
@@ -199,7 +202,8 @@
             <input type="password" id="confirmPassword" placeholder="Re-enter password" autocomplete="new-password">
         </div>
 
-        <button id="setupBtn" onclick="handleSetPassword()">Set Password &amp; Log In</button>
+        <button id="setupBtn" type="submit">Set Password &amp; Log In</button>
+        </form>
         <a class="link-btn" onclick="showLoginPanel()">← Back to login</a>
     </div>
 
@@ -228,6 +232,67 @@
         }
     });
 
+    // ==========================================================
+    // Posts to Auth.gs via a hidden iframe instead of $.ajax/fetch.
+    // Apps Script's response to a cross-origin POST has no
+    // Access-Control-Allow-Origin header, so XHR/fetch can never read
+    // it — confirmed in testing, not just theory. A form submitted
+    // into a hidden iframe isn't subject to CORS at all, and Auth.gs's
+    // response (a tiny HTML page) posts the result back to us via
+    // postMessage from inside that iframe.
+    // ==========================================================
+    var authRequestCounter = 0;
+    function postToAuth(action, email, password, onResult) {
+        var reqId = ++authRequestCounter;
+        var iframeName = 'authFrame_' + reqId;
+
+        var iframe = document.createElement('iframe');
+        iframe.name = iframeName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        var settled = false;
+        var timeoutId = setTimeout(function () { finish(null); }, 10000);
+
+        function messageListener(event) {
+            if (event.source !== iframe.contentWindow) return; // ignore anything not from our own request
+            finish(event.data);
+        }
+        window.addEventListener('message', messageListener);
+
+        function finish(data) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutId);
+            window.removeEventListener('message', messageListener);
+            onResult(data);
+            setTimeout(function () {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                if (form.parentNode) form.parentNode.removeChild(form);
+            }, 500);
+        }
+
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = AUTH_SCRIPT_URL;
+        form.target = iframeName;
+        form.style.display = 'none';
+
+        function addField(name, value) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        }
+        addField('action', action);
+        addField('email', email);
+        if (password !== undefined && password !== null) addField('password', password);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function handleLogin() {
         var email = $('#email').val().trim();
         var password = $('#password').val();
@@ -241,27 +306,18 @@
         $('#loadingMsg').show();
         hideMessages();
 
-        // POST, not GET/JSONP — the password must never travel as a URL parameter.
-        $.ajax({
-            url: AUTH_SCRIPT_URL,
-            method: 'POST',
-            data: { action: 'login', email: email, password: password },
-            dataType: 'json',
-            timeout: 10000,
-            success: function (response) {
-                if (response && response.success) {
-                    completeLogin(email, response);
-                } else if (response && response.needsSetup) {
-                    pendingEmail = email;
-                    showInfo('No password set yet for this account. Create one below to continue.');
-                    showSetupPanel();
-                    resetLoginButton();
-                } else {
-                    showError((response && response.message) || 'Login failed');
-                    resetLoginButton();
-                }
-            },
-            error: function () {
+        postToAuth('login', email, password, function (response) {
+            if (response && response.success) {
+                completeLogin(email, response);
+            } else if (response && response.needsSetup) {
+                pendingEmail = email;
+                showInfo('No password set yet for this account. Create one below to continue.');
+                showSetupPanel();
+                resetLoginButton();
+            } else if (response) {
+                showError(response.message || 'Login failed');
+                resetLoginButton();
+            } else {
                 showError('Unable to reach authentication service');
                 resetLoginButton();
             }
@@ -278,21 +334,13 @@
         $('#setupBtn').prop('disabled', true).text('Setting up…');
         hideMessages();
 
-        $.ajax({
-            url: AUTH_SCRIPT_URL,
-            method: 'POST',
-            data: { action: 'setPassword', email: pendingEmail, password: newPassword },
-            dataType: 'json',
-            timeout: 10000,
-            success: function (response) {
-                if (response && response.success) {
-                    completeLogin(pendingEmail, response);
-                } else {
-                    showError((response && response.message) || 'Could not set password');
-                    $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
-                }
-            },
-            error: function () {
+        postToAuth('setPassword', pendingEmail, newPassword, function (response) {
+            if (response && response.success) {
+                completeLogin(pendingEmail, response);
+            } else if (response) {
+                showError(response.message || 'Could not set password');
+                $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
+            } else {
                 showError('Unable to reach authentication service');
                 $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
             }
@@ -331,9 +379,6 @@
         $('#loginBtn').prop('disabled', false).text('Log In');
         $('#loadingMsg').hide();
     }
-
-    $('#email, #password').keypress(function (e) { if (e.which === 13) handleLogin(); });
-    $('#newPassword, #confirmPassword').keypress(function (e) { if (e.which === 13) handleSetPassword(); });
 </script>
 
 </body>
