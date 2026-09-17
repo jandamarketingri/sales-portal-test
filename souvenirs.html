@@ -23,8 +23,23 @@
 
     #catalog { padding: 0 30px 60px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 28px; align-items: start; }
     @media (max-width: 480px) {
-        #catalog { grid-template-columns: 1fr; padding: 0 14px 60px 14px; gap: 24px; }
+        /* Horizontal swipeable row instead of a squeezed single column —
+           full-width, readable cards, but you see a sliver of the next
+           card so it's unmistakably a separate product, not a continuation. */
+        #catalog {
+            display: flex;
+            grid-template-columns: none;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding: 0 14px 30px 14px;
+            gap: 16px;
+        }
+        #catalog .sku-card {
+            flex: 0 0 88%;
+            scroll-snap-align: start;
+        }
         .rep-info-bar, .cat-tabs { margin-left: 14px; margin-right: 14px; }
+        .cat-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; }
     }
 
     .sku-card { background: white; border: 1px solid #ddd; border-top: 4px solid #764ba2; border-radius: 8px; padding: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.12); box-sizing: border-box; width: 100%; margin-bottom: 4px; }
