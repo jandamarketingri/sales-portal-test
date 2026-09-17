@@ -106,23 +106,29 @@ function parseCSV(text) {
 // so this same file also serves as a working preview.
 // ---------------------------------------------------------
 function loadEverything() {
+    // Defaults set eagerly, up front — real data (if it loads) overwrites
+    // these; any failure mode (404, CSP block, timeout, malformed JSON)
+    // just leaves the safe default in place instead of an empty {}/[].
+    colorData = DEMO_COLOR_DATA;
+    artIndex = DEMO_ART_INDEX;
+
     var tasks = [];
 
     tasks.push(CFG.productsCsvUrl
-        ? $.get(CFG.productsCsvUrl).then(function (text) { buildProducts(parseCSV(text)); })
+        ? $.get(CFG.productsCsvUrl).done(function (text) { buildProducts(parseCSV(text)); })
         : $.Deferred(function (d) { buildProducts(DEMO_PRODUCT_ROWS); d.resolve(); }).promise());
 
-    tasks.push((CFG.colorsJsonUrl
-        ? $.getJSON(CFG.colorsJsonUrl)
-        : $.Deferred().reject())
-        .then(function (json) { colorData = json; })
-        .fail(function () { colorData = DEMO_COLOR_DATA; }));
+    if (CFG.colorsJsonUrl) {
+        tasks.push($.getJSON(CFG.colorsJsonUrl)
+            .done(function (json) { colorData = json; })
+            .fail(function () { console.warn('garment-colors.json failed to load — using embedded demo colors instead.'); }));
+    }
 
-    tasks.push((CFG.artCsvUrl
-        ? $.get(CFG.artCsvUrl)
-        : $.Deferred().reject())
-        .then(function (text) { artIndex = buildArtIndex(parseCSV(text)); })
-        .fail(function () { artIndex = DEMO_ART_INDEX; }));
+    if (CFG.artCsvUrl) {
+        tasks.push($.get(CFG.artCsvUrl)
+            .done(function (text) { artIndex = buildArtIndex(parseCSV(text)); })
+            .fail(function () { console.warn('art-index.csv failed to load — using embedded demo art list instead.'); }));
+    }
 
     $.when.apply($, tasks).always(function () {
         renderCatalog();
