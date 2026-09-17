@@ -169,7 +169,7 @@
 
 <script>
     // 🔁 REPLACE WITH YOUR APPS SCRIPT WEB APP URL
-    var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCV58j5xPRPTng9c7WLuNJ1UopYkPBKdI_cZVTsGEyRSRDaLlf84T1kNU_AgQgjxP8/exec'; // TEST deployment
+    var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
 
     // Auto-redirect if already authenticated
     $(document).ready(function () {
@@ -199,31 +199,24 @@
         }
 
         $('#loginBtn').prop('disabled', true).text('Checking…');
-        $('#loadingMsg').show().text('Checking access…');
+        $('#loadingMsg').show();
         $('#errorMessage').hide();
 
-        attemptAuth(email, 0);
-    }
-
-    // Apps Script can take a few extra seconds to "wake up" after sitting
-    // idle — occasionally longer than one request's timeout. Rather than
-    // show an error the first time that happens, retry once, silently,
-    // before actually telling the person something's wrong.
-    function attemptAuth(email, attemptNumber) {
         $.ajax({
             url: AUTH_SCRIPT_URL +
                 '?action=authenticate&email=' + encodeURIComponent(email),
             method: 'GET',
             dataType: 'jsonp',
             jsonpCallback: 'authCallback',
-            timeout: 15000,
+            timeout: 10000,
             success: function (response) {
                 if (response && response.success) {
                     sessionStorage.setItem('salesPortalAuth', JSON.stringify({
                         email: email,
                         name: response.name || email.split('@')[0],
+                        repNumber: response.repNumber || '',
                         role: response.role || 'User',
-                        token: response.token,
+                        programs: response.programs || [],
                         timestamp: new Date().toISOString()
                     }));
 
@@ -234,13 +227,8 @@
                 }
             },
             error: function () {
-                if (attemptNumber === 0) {
-                    $('#loadingMsg').text('Still checking, one more try…');
-                    attemptAuth(email, 1);
-                } else {
-                    showError('Unable to reach authentication service. Please try again in a moment.');
-                    resetButton();
-                }
+                showError('Unable to reach authentication service');
+                resetButton();
             }
         });
     }
