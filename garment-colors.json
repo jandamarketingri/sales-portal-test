@@ -1,0 +1,276 @@
+{
+  "_notes": "Colors transcribed from JA-762_NEXCOM_DSD_Presentation_2.pdf (slides 2-4, 24). Hex values are visual approximations for UI swatches only \u2014 not Pantone-matched. Verify against vendor swatch cards before using for print/production color matching. Garment codes match the SKU material segment (e.g. SVNTEE1-2-1-S -> TEE).",
+
+  "TEE": {
+    "label": "Core Cotton Tee",
+    "fabric": "5.4 oz 100% cotton (98/2 cotton/poly for Ash; 90/10 for Athletic Heather; 50/50 for other heathers)",
+    "colors": [
+      {"name": "Ash", "hex": "#C8C9C7"},
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Athletic Maroon", "hex": "#6D2C3B"},
+      {"name": "Candy Pink", "hex": "#F2A9C4"},
+      {"name": "Carolina Blue", "hex": "#7BAFD4"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Clover Green", "hex": "#0B8A3E"},
+      {"name": "Coyote Brown", "hex": "#7C5B3E"},
+      {"name": "Dark Green", "hex": "#1C4A34"},
+      {"name": "Dk Hthr Grey", "hex": "#4B4B4D"},
+      {"name": "Duck Brown", "hex": "#5A4634"},
+      {"name": "Gold", "hex": "#FFC42E"},
+      {"name": "Graphite Heather", "hex": "#6C6D70"},
+      {"name": "Heather Royal", "hex": "#3E5FAE"},
+      {"name": "Heather Navy", "hex": "#2C3C57"},
+      {"name": "Jet Black", "hex": "#0A0A0A"},
+      {"name": "Laurel Green", "hex": "#4F7657"},
+      {"name": "Light Blue", "hex": "#A9D3E8"},
+      {"name": "Light Sand", "hex": "#D8CBAF"},
+      {"name": "Medium Grey", "hex": "#97999C"},
+      {"name": "Neptune Blue", "hex": "#2B5E78"},
+      {"name": "Oatmeal Heather", "hex": "#D8CBAE"},
+      {"name": "Olive Drab", "hex": "#4B5320"},
+      {"name": "Hthr Olive Drab", "hex": "#5C5E3E"},
+      {"name": "Pale Blush", "hex": "#F3D7D6"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "Sand", "hex": "#CBB88E"},
+      {"name": "Stonewash Blue", "hex": "#4C6C8A"},
+      {"name": "Team Purple", "hex": "#4B2E83"},
+      {"name": "Tenn Orange", "hex": "#F26522"},
+      {"name": "True Navy", "hex": "#1B2A4A"},
+      {"name": "Violet", "hex": "#8E6CAF"},
+      {"name": "White", "hex": "#FFFFFF"},
+      {"name": "Yellow", "hex": "#FFD200"},
+      {"name": "Zinnia", "hex": "#E85B62"}
+    ]
+  },
+
+  "LS": {
+    "label": "Long Sleeve Core Cotton Tee",
+    "fabric": "5.4 oz 100% cotton (blends vary by color, see Fleece Crewneck notes)",
+    "colors": [
+      {"name": "Aquatic Blue", "hex": "#3FA9D4"},
+      {"name": "Ash", "hex": "#C8C9C7"},
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Athletic Maroon", "hex": "#6D2C3B"},
+      {"name": "Carolina Blue", "hex": "#7BAFD4"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Clover Green", "hex": "#0B8A3E"},
+      {"name": "Coyote Brown", "hex": "#7C5B3E"},
+      {"name": "Dark Green", "hex": "#1C4A34"},
+      {"name": "Dark Heather Grey", "hex": "#4B4B4D"},
+      {"name": "Gold", "hex": "#FFC42E"},
+      {"name": "Graphite Heather", "hex": "#6C6D70"},
+      {"name": "Heather Navy", "hex": "#2C3C57"},
+      {"name": "Heather Royal", "hex": "#3E5FAE"},
+      {"name": "Jet Black", "hex": "#0A0A0A"},
+      {"name": "Kelly Green", "hex": "#4CBB17"},
+      {"name": "Light Blue", "hex": "#A9D3E8"},
+      {"name": "Lime", "hex": "#A0D22D"},
+      {"name": "Natural", "hex": "#EFE6D8"},
+      {"name": "Navy", "hex": "#1B2A4A"},
+      {"name": "Olive Drab Green", "hex": "#4B5320"},
+      {"name": "Orange", "hex": "#F2661D"},
+      {"name": "Purple", "hex": "#4B2E83"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "Safety Green", "hex": "#C6D62E"},
+      {"name": "Safety Orange", "hex": "#FF7900"},
+      {"name": "Sangria", "hex": "#92273A"},
+      {"name": "Steel Blue", "hex": "#4A6D8C"},
+      {"name": "True Navy", "hex": "#1B2A4A"},
+      {"name": "True Royal", "hex": "#1D4E9B"},
+      {"name": "White", "hex": "#FFFFFF"},
+      {"name": "Yellow", "hex": "#FFD200"}
+    ]
+  },
+
+  "MW": {
+    "label": "Performance Blend Tee (Moisture Wick)",
+    "fabric": "4.5 oz, 65/35 poly/cotton, Dry Zone moisture-wicking",
+    "colors": [
+      {"name": "Aquatic Blue", "hex": "#3FA9D4"},
+      {"name": "Athletic Maroon", "hex": "#6D2C3B"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Dark Green", "hex": "#1C4A34"},
+      {"name": "Deep Navy", "hex": "#12213E"},
+      {"name": "Gold", "hex": "#FFC42E"},
+      {"name": "Jet Black", "hex": "#0A0A0A"},
+      {"name": "Lime", "hex": "#A0D22D"},
+      {"name": "Medium Grey", "hex": "#97999C"},
+      {"name": "Orange", "hex": "#F2661D"},
+      {"name": "Purple", "hex": "#4B2E83"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "True Royal", "hex": "#1D4E9B"},
+      {"name": "White", "hex": "#FFFFFF"}
+    ]
+  },
+
+  "FLC": {
+    "label": "Fleece Crewneck Sweatshirt",
+    "fabric": "7.8 oz, 50/50 cotton/poly fleece, air jet yarn",
+    "colors": [
+      {"name": "Aquatic Blue", "hex": "#3FA9D4"},
+      {"name": "Ash", "hex": "#C8C9C7"},
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Athletic Maroon", "hex": "#6D2C3B"},
+      {"name": "Carolina Blue", "hex": "#7BAFD4"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Clover Green", "hex": "#0B8A3E"},
+      {"name": "Coyote Brown", "hex": "#7C5B3E"},
+      {"name": "Dark Green", "hex": "#1C4A34"},
+      {"name": "Dark Heather Grey", "hex": "#4B4B4D"},
+      {"name": "Gold", "hex": "#FFC42E"},
+      {"name": "Graphite Heather", "hex": "#6C6D70"},
+      {"name": "Heather Navy", "hex": "#2C3C57"},
+      {"name": "Heather Royal", "hex": "#3E5FAE"},
+      {"name": "Jet Black", "hex": "#0A0A0A"},
+      {"name": "Kelly Green", "hex": "#4CBB17"},
+      {"name": "Light Blue", "hex": "#A9D3E8"},
+      {"name": "Lime", "hex": "#A0D22D"},
+      {"name": "Natural", "hex": "#EFE6D8"},
+      {"name": "Navy", "hex": "#1B2A4A"},
+      {"name": "Olive Drab Green", "hex": "#4B5320"},
+      {"name": "Orange", "hex": "#F2661D"},
+      {"name": "Purple", "hex": "#4B2E83"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "Safety Green", "hex": "#C6D62E"},
+      {"name": "Safety Orange", "hex": "#FF7900"},
+      {"name": "Sangria", "hex": "#92273A"},
+      {"name": "Steel Blue", "hex": "#4A6D8C"},
+      {"name": "True Navy", "hex": "#1B2A4A"},
+      {"name": "True Royal", "hex": "#1D4E9B"},
+      {"name": "White", "hex": "#FFFFFF"},
+      {"name": "Yellow", "hex": "#FFD200"}
+    ]
+  },
+
+  "HDY": {
+    "label": "Fleece Pullover Hooded Sweatshirt",
+    "fabric": "6.8 oz cotton/poly fleece, unlined hood",
+    "colors": [
+      {"name": "Ash", "hex": "#C8C9C7"},
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Bright Aqua", "hex": "#00A99D"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Coyote Brown", "hex": "#7C5B3E"},
+      {"name": "Dark Green", "hex": "#1C4A34"},
+      {"name": "Dk Hthr Grey", "hex": "#4B4B4D"},
+      {"name": "Gold", "hex": "#FFC42E"},
+      {"name": "Heather Navy", "hex": "#2C3C57"},
+      {"name": "Heather Royal", "hex": "#3E5FAE"},
+      {"name": "Ice Blue", "hex": "#B9E1EA"},
+      {"name": "Ivory", "hex": "#F4F1E4"},
+      {"name": "Jet Black", "hex": "#0A0A0A"},
+      {"name": "Lavender", "hex": "#C6B4DA"},
+      {"name": "Light Sand", "hex": "#D8CBAF"},
+      {"name": "Natural", "hex": "#EFE6D8"},
+      {"name": "Olive Drab", "hex": "#4B5320"},
+      {"name": "Hthr Olive Drab", "hex": "#5C5E3E"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Sapphire", "hex": "#0F6FA1"},
+      {"name": "Spearmint", "hex": "#A7D9C0"},
+      {"name": "Steel Blue", "hex": "#4A6D8C"},
+      {"name": "Team Purple", "hex": "#4B2E83"},
+      {"name": "True Navy", "hex": "#1B2A4A"},
+      {"name": "True Royal", "hex": "#1D4E9B"},
+      {"name": "White", "hex": "#FFFFFF"}
+    ]
+  },
+
+  "MTNK": {
+    "label": "Core Cotton Tank Top (Men's)",
+    "fabric": "5.4 oz 100% cotton",
+    "colors": [
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Dark Heather Grey", "hex": "#4B4B4D"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Black", "hex": "#0A0A0A"},
+      {"name": "Navy", "hex": "#1B2A4A"},
+      {"name": "Neon Blue", "hex": "#0E8FB2"},
+      {"name": "Neon Pink", "hex": "#F0508C"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "White", "hex": "#FFFFFF"}
+    ]
+  },
+
+  "LTNK": {
+    "label": "Women's Core Cotton Tank Top",
+    "fabric": "5.4 oz 100% cotton",
+    "colors": [
+      {"name": "Athletic Heather", "hex": "#A9AAB0"},
+      {"name": "Charcoal", "hex": "#54565A"},
+      {"name": "Black", "hex": "#0A0A0A"},
+      {"name": "Navy", "hex": "#1B2A4A"},
+      {"name": "Neon Blue", "hex": "#0E8FB2"},
+      {"name": "Neon Pink", "hex": "#F0508C"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "White", "hex": "#FFFFFF"}
+    ]
+  },
+
+  "PLUSH_BEAR": {
+    "label": "Sitting Bear (Hoodie / Jersey, 6\"/10\"/12\")",
+    "attribute": "Bear Color",
+    "colors": [
+      {"name": "Beige", "hex": "#D9B99B"},
+      {"name": "Pink", "hex": "#F1B8C8"},
+      {"name": "Blue", "hex": "#7EC4E8"},
+      {"name": "Cream", "hex": "#E9E2D0"}
+    ]
+  },
+
+  "PLUSH_BANDANA": {
+    "label": "Character Plush (Border Collie, Tabby Kitty, Corgi, Siamese Kitty)",
+    "attribute": "Bandana Color",
+    "colors": [
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "White", "hex": "#FFFFFF"},
+      {"name": "Purple", "hex": "#4B2E83"},
+      {"name": "Royal Blue", "hex": "#2450A0"},
+      {"name": "Black", "hex": "#0A0A0A"},
+      {"name": "Kelly Green", "hex": "#4CBB17"}
+    ]
+  },
+
+  "PLUSH_BEANBUDDY": {
+    "label": "Bean Buddies with Tee (Frog, Beaver, Eagle)",
+    "attribute": "Tee Color",
+    "colors": [
+      {"name": "White", "hex": "#FFFFFF"},
+      {"name": "Red", "hex": "#CE202B"},
+      {"name": "Royal", "hex": "#2450A0"},
+      {"name": "Navy", "hex": "#1B2A4A"},
+      {"name": "Powder Blue", "hex": "#A8D0E6"},
+      {"name": "Orange", "hex": "#F2661D"},
+      {"name": "Forest", "hex": "#1C4A34"},
+      {"name": "Tangerine", "hex": "#F28C28"},
+      {"name": "Pink", "hex": "#F1B8C8"},
+      {"name": "Burgundy", "hex": "#6E1E32"},
+      {"name": "Purple", "hex": "#4B2E83"},
+      {"name": "Black", "hex": "#0A0A0A"},
+      {"name": "Rust", "hex": "#A5502D"},
+      {"name": "Yellow", "hex": "#FFD200"},
+      {"name": "Tan", "hex": "#D2B48C"},
+      {"name": "Kelly", "hex": "#4CBB17"},
+      {"name": "Teal", "hex": "#018E82"},
+      {"name": "Heather", "hex": "#A9AAB0"}
+    ]
+  },
+
+  "PATCH_CAP": {
+    "label": "Patch Cap \u2014 leather patch color",
+    "attribute": "Patch Color",
+    "colors": [
+      {"name": "Dk Brown", "hex": "#4A2E1E"},
+      {"name": "Oatmeal", "hex": "#D8CBAE"},
+      {"name": "Savannah", "hex": "#C9A876"},
+      {"name": "Stone", "hex": "#B7A98A"},
+      {"name": "Khaki", "hex": "#C3B091"},
+      {"name": "Cork", "hex": "#9C7A54"}
+    ],
+    "note": "Cap BODY/bill color combos are not published as a clean swatch chart in the deck \u2014 only finished product photos. Needs vendor confirmation before building a swatch picker for cap body color; Twill Cap (SVNTWLCAP/SVNTWL36CAP) has no color chart in the deck at all."
+  }
+}
