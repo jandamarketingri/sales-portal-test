@@ -3,7 +3,7 @@
 <head>
     <title>Sales Portal – Login</title>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 
     <style>
         body {
@@ -105,6 +105,18 @@
             background: #e5e7eb;
         }
 
+        .link-btn {
+            display: block;
+            text-align: center;
+            margin-top: 14px;
+            color: #667eea;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .link-btn:hover { text-decoration: underline; }
+
         .error {
             background-color: #ffebee;
             color: #c62828;
@@ -112,6 +124,17 @@
             border-radius: 6px;
             margin-bottom: 20px;
             text-align: center;
+            display: none;
+        }
+
+        .info-banner {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 13px;
             display: none;
         }
 
@@ -128,6 +151,8 @@
             font-size: 12px;
             margin-top: 20px;
         }
+
+        #setupPanel { display: none; }
     </style>
 </head>
 
@@ -137,30 +162,46 @@
     <img src="logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
 
     <h1>Sales Portal</h1>
-    <p class="subtitle">Enter your email to continue</p>
+    <p class="subtitle" id="subtitleText">Enter your email and password to continue</p>
 
     <div id="errorMessage" class="error"></div>
+    <div id="infoMessage" class="info-banner"></div>
 
-    <div class="form-group">
-        <label>Email Address *</label>
-        <input
-            type="email"
-            id="email"
-            placeholder="your.email@company.com"
-            autocomplete="email"
-        >
+    <!-- ===================== LOGIN PANEL ===================== -->
+    <div id="loginPanel">
+        <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" id="email" placeholder="your.email@company.com" autocomplete="email">
+        </div>
+
+        <div class="form-group">
+            <label>Password *</label>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+        </div>
+
+        <button id="loginBtn" onclick="handleLogin()">Log In</button>
+
+        <button class="request-access-btn" onclick="window.location.href='request-access.html'">
+            Request Access
+        </button>
+
+        <div class="loading" id="loadingMsg">Checking access…</div>
     </div>
 
-    <button id="loginBtn" onclick="handleLogin()">Access Portal</button>
+    <!-- ============= FIRST-TIME PASSWORD SETUP PANEL ============= -->
+    <div id="setupPanel">
+        <div class="form-group">
+            <label>Create a Password *</label>
+            <input type="password" id="newPassword" placeholder="At least 8 characters" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+            <label>Confirm Password *</label>
+            <input type="password" id="confirmPassword" placeholder="Re-enter password" autocomplete="new-password">
+        </div>
 
-    <button
-        class="request-access-btn"
-        onclick="window.location.href='request-access.html'"
-    >
-        Request Access
-    </button>
-
-    <div class="loading" id="loadingMsg">Checking access…</div>
+        <button id="setupBtn" onclick="handleSetPassword()">Set Password &amp; Log In</button>
+        <a class="link-btn" onclick="showLoginPanel()">← Back to login</a>
+    </div>
 
     <p class="help-text">
         Access is limited to approved email addresses.
@@ -168,8 +209,11 @@
 </div>
 
 <script>
-    // 🔁 REPLACE WITH YOUR APPS SCRIPT WEB APP URL
-    var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5Y9tuWxVDPVPjYnAztpNYqD5VnoqpBNFIX9SQXxb2rm8b_2O2M9eEcQF27EnpXdnfRA/exec';
+    // 🔁 Same deployment URL as before — just redeployed with the new
+    // password-aware Auth.gs code (Deploy > Manage deployments > Edit > New version).
+    var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+
+    var pendingEmail = ''; // carried from login attempt into the setup panel
 
     // Auto-redirect if already authenticated
     $(document).ready(function () {
@@ -186,67 +230,110 @@
 
     function handleLogin() {
         var email = $('#email').val().trim();
+        var password = $('#password').val();
 
-        if (!email) {
-            showError('Please enter your email address');
-            return;
-        }
-
+        if (!email) { showError('Please enter your email address'); return; }
         var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showError('Please enter a valid email address');
-            return;
-        }
+        if (!emailRegex.test(email)) { showError('Please enter a valid email address'); return; }
+        if (!password) { showError('Please enter your password'); return; }
 
         $('#loginBtn').prop('disabled', true).text('Checking…');
         $('#loadingMsg').show();
-        $('#errorMessage').hide();
+        hideMessages();
 
+        // POST, not GET/JSONP — the password must never travel as a URL parameter.
         $.ajax({
-            url: AUTH_SCRIPT_URL +
-                '?action=authenticate&email=' + encodeURIComponent(email),
-            method: 'GET',
-            dataType: 'jsonp',
-            jsonpCallback: 'authCallback',
+            url: AUTH_SCRIPT_URL,
+            method: 'POST',
+            data: { action: 'login', email: email, password: password },
+            dataType: 'json',
             timeout: 10000,
             success: function (response) {
                 if (response && response.success) {
-                    sessionStorage.setItem('salesPortalAuth', JSON.stringify({
-                        email: email,
-                        name: response.name || email.split('@')[0],
-                        repNumber: response.repNumber || '',
-                        role: response.role || 'User',
-                        programs: response.programs || [],
-                        timestamp: new Date().toISOString()
-                    }));
-
-                    window.location.href = 'index.html';
+                    completeLogin(email, response);
+                } else if (response && response.needsSetup) {
+                    pendingEmail = email;
+                    showInfo('No password set yet for this account. Create one below to continue.');
+                    showSetupPanel();
+                    resetLoginButton();
                 } else {
-                    showError(response.message || 'Email not authorized');
-                    resetButton();
+                    showError((response && response.message) || 'Login failed');
+                    resetLoginButton();
                 }
             },
             error: function () {
                 showError('Unable to reach authentication service');
-                resetButton();
+                resetLoginButton();
             }
         });
     }
 
-    function showError(message) {
-        $('#errorMessage').text(message).fadeIn();
+    function handleSetPassword() {
+        var newPassword = $('#newPassword').val();
+        var confirmPassword = $('#confirmPassword').val();
+
+        if (!newPassword || newPassword.length < 8) { showError('Password must be at least 8 characters'); return; }
+        if (newPassword !== confirmPassword) { showError('Passwords do not match'); return; }
+
+        $('#setupBtn').prop('disabled', true).text('Setting up…');
+        hideMessages();
+
+        $.ajax({
+            url: AUTH_SCRIPT_URL,
+            method: 'POST',
+            data: { action: 'setPassword', email: pendingEmail, password: newPassword },
+            dataType: 'json',
+            timeout: 10000,
+            success: function (response) {
+                if (response && response.success) {
+                    completeLogin(pendingEmail, response);
+                } else {
+                    showError((response && response.message) || 'Could not set password');
+                    $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
+                }
+            },
+            error: function () {
+                showError('Unable to reach authentication service');
+                $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
+            }
+        });
     }
 
-    function resetButton() {
-        $('#loginBtn').prop('disabled', false).text('Access Portal');
+    function completeLogin(email, response) {
+        sessionStorage.setItem('salesPortalAuth', JSON.stringify({
+            email: email,
+            name: response.name || email.split('@')[0],
+            repNumber: response.repNumber || '',
+            role: response.role || 'User',
+            programs: response.programs || [],
+            timestamp: new Date().toISOString()
+        }));
+        window.location.href = 'index.html';
+    }
+
+    function showSetupPanel() {
+        $('#loginPanel').hide();
+        $('#setupPanel').show();
+        $('#subtitleText').text('Set a password for ' + pendingEmail);
+    }
+    function showLoginPanel() {
+        $('#setupPanel').hide();
+        $('#loginPanel').show();
+        $('#subtitleText').text('Enter your email and password to continue');
+        hideMessages();
+    }
+
+    function showError(message) { $('#errorMessage').text(message).fadeIn(); $('#infoMessage').hide(); }
+    function showInfo(message) { $('#infoMessage').text(message).fadeIn(); $('#errorMessage').hide(); }
+    function hideMessages() { $('#errorMessage').hide(); $('#infoMessage').hide(); }
+
+    function resetLoginButton() {
+        $('#loginBtn').prop('disabled', false).text('Log In');
         $('#loadingMsg').hide();
     }
 
-    $('input').keypress(function (e) {
-        if (e.which === 13) {
-            handleLogin();
-        }
-    });
+    $('#email, #password').keypress(function (e) { if (e.which === 13) handleLogin(); });
+    $('#newPassword, #confirmPassword').keypress(function (e) { if (e.which === 13) handleSetPassword(); });
 </script>
 
 </body>
