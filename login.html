@@ -213,9 +213,8 @@
 </div>
 
 <script>
-    // 🔁 Same deployment URL as before — just redeployed with the new
-    // password-aware Auth.gs code (Deploy > Manage deployments > Edit > New version).
     var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+    var CLIENT_HASH_ITERATIONS = 1000; // sequential Web Crypto calls — fast enough (well under a second) to keep login snappy
 
     var pendingEmail = ''; // carried from login attempt into the setup panel
 
@@ -230,83 +229,49 @@
                 sessionStorage.removeItem('salesPortalAuth');
             }
         }
+        if (!window.crypto || !window.crypto.subtle) {
+            showError('This browser is missing required security features. Please use an up-to-date browser.');
+            $('#loginBtn, #setupBtn').prop('disabled', true);
+        }
     });
 
     // ==========================================================
-    // Posts to Auth.gs via a hidden iframe instead of $.ajax/fetch.
-    // Apps Script's response to a cross-origin POST has no
-    // Access-Control-Allow-Origin header, so XHR/fetch can never read
-    // it. A form submitted into a hidden iframe isn't subject to CORS,
-    // and Auth.gs's response posts the result back via postMessage.
-    //
-    // Matching is done by a unique request ID rather than comparing
-    // window/frame references — Apps Script can serve its response
-    // inside an extra Google-added wrapper frame, which makes strict
-    // event.source checks unreliable. A single persistent listener
-    // also cleanly ignores unrelated postMessage traffic (browser
-    // extensions are a common, harmless source of it).
+    // Client-side salted, iterated SHA-256 — the password itself
+    // never leaves the browser. Only this resulting hash travels
+    // to the server, over GET/JSONP (the transport actually
+    // confirmed working end-to-end for this deployment).
     // ==========================================================
-    var pendingAuthRequests = {};
-
-    window.addEventListener('message', function (event) {
-        var data = event.data;
-        if (!data || typeof data !== 'object' || !data.reqId) return; // not one of ours
-        var pending = pendingAuthRequests[data.reqId];
-        if (!pending) return;
-        delete pendingAuthRequests[data.reqId];
-        clearTimeout(pending.timeoutId);
-        pending.cleanup();
-        pending.onResult(data);
-    });
-
-    var authRequestCounter = 0;
-    function postToAuth(action, email, password, onResult) {
-        var reqId = 'req_' + Date.now() + '_' + (++authRequestCounter);
-        var iframeName = 'authFrame_' + reqId;
-
-        var iframe = document.createElement('iframe');
-        iframe.name = iframeName;
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = AUTH_SCRIPT_URL;
-        form.target = iframeName;
-        form.style.display = 'none';
-
-        function addField(name, value) {
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            form.appendChild(input);
+    async function sha256Hex(str) {
+        var enc = new TextEncoder().encode(str);
+        var hashBuffer = await window.crypto.subtle.digest('SHA-256', enc);
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+    async function hashPasswordClient(password, salt) {
+        var value = salt + ':' + password;
+        for (var i = 0; i < CLIENT_HASH_ITERATIONS; i++) {
+            value = await sha256Hex(value);
         }
-        addField('action', action);
-        addField('email', email);
-        addField('reqId', reqId);
-        if (password !== undefined && password !== null) addField('password', password);
-        document.body.appendChild(form);
-
-        function cleanup() {
-            setTimeout(function () {
-                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                if (form.parentNode) form.parentNode.removeChild(form);
-            }, 500);
-        }
-
-        var timeoutId = setTimeout(function () {
-            delete pendingAuthRequests[reqId];
-            cleanup();
-            onResult(null);
-        }, 10000);
-
-        pendingAuthRequests[reqId] = { onResult: onResult, timeoutId: timeoutId, cleanup: cleanup };
-
-        form.submit();
+        return value;
+    }
+    function generateSalt() {
+        var bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     }
 
-    function handleLogin() {
+    function callAuthJSONP(params, onResult) {
+        $.ajax({
+            url: AUTH_SCRIPT_URL,
+            data: params,
+            dataType: 'jsonp',
+            timeout: 10000,
+            success: function (response) { onResult(response); },
+            error: function () { onResult(null); }
+        });
+    }
+
+    async function handleLogin() {
         var email = $('#email').val().trim();
         var password = $('#password').val();
 
@@ -319,25 +284,44 @@
         $('#loadingMsg').show();
         hideMessages();
 
-        postToAuth('login', email, password, function (response) {
-            if (response && response.success) {
-                completeLogin(email, response);
-            } else if (response && response.needsSetup) {
+        callAuthJSONP({ action: 'getSalt', email: email }, async function (saltResponse) {
+            if (!saltResponse) { showError('Unable to reach authentication service'); resetLoginButton(); return; }
+
+            if (saltResponse.needsSetup) {
                 pendingEmail = email;
                 showInfo('No password set yet for this account. Create one below to continue.');
                 showSetupPanel();
                 resetLoginButton();
-            } else if (response) {
-                showError(response.message || 'Login failed');
-                resetLoginButton();
-            } else {
-                showError('Unable to reach authentication service');
-                resetLoginButton();
+                return;
             }
+            if (!saltResponse.success) {
+                showError(saltResponse.message || 'Login failed');
+                resetLoginButton();
+                return;
+            }
+
+            var hash = await hashPasswordClient(password, saltResponse.salt);
+            callAuthJSONP({ action: 'login', email: email, hash: hash }, function (loginResponse) {
+                if (loginResponse && loginResponse.success) {
+                    completeLogin(email, loginResponse);
+                } else if (loginResponse && loginResponse.needsSetup) {
+                    // Rare race: password got reset between the getSalt and login calls
+                    pendingEmail = email;
+                    showInfo('No password set yet for this account. Create one below to continue.');
+                    showSetupPanel();
+                    resetLoginButton();
+                } else if (loginResponse) {
+                    showError(loginResponse.message || 'Login failed');
+                    resetLoginButton();
+                } else {
+                    showError('Unable to reach authentication service');
+                    resetLoginButton();
+                }
+            });
         });
     }
 
-    function handleSetPassword() {
+    async function handleSetPassword() {
         var newPassword = $('#newPassword').val();
         var confirmPassword = $('#confirmPassword').val();
 
@@ -347,7 +331,10 @@
         $('#setupBtn').prop('disabled', true).text('Setting up…');
         hideMessages();
 
-        postToAuth('setPassword', pendingEmail, newPassword, function (response) {
+        var salt = generateSalt();
+        var hash = await hashPasswordClient(newPassword, salt);
+
+        callAuthJSONP({ action: 'setPassword', email: pendingEmail, salt: salt, hash: hash }, function (response) {
             if (response && response.success) {
                 completeLogin(pendingEmail, response);
             } else if (response) {
