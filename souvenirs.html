@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Souvenirs - NEXCOM Ordering</title>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; color: #333; }
+    .page-header { background: white; padding: 16px 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 14px; }
+    .page-header img { max-height: 50px; }
+    .page-header h1 { font-size: 22px; margin: 0; }
+    .cart-fab { position: fixed; bottom: 24px; right: 24px; background: #764ba2; color: white; border: none; border-radius: 50px; padding: 14px 22px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 900; }
+    #cartBadge { background: #dc3545; border-radius: 50%; padding: 2px 8px; margin-left: 6px; font-size: 12px; display:none; }
+
+    .rep-info-bar { background: white; margin: 20px 30px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .rep-info-bar div { display: flex; flex-direction: column; }
+    .rep-info-bar label { font-size: 12px; font-weight: 700; color: #555; margin-bottom: 4px; }
+    .rep-info-bar input { padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+
+    .cat-tabs { margin: 0 30px 16px 30px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .cat-tab { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .cat-tab.active { background: #764ba2; color: white; border-color: #764ba2; }
+
+    #catalog { padding: 0 30px 60px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; align-items: start; }
+
+    .sku-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 22px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+    .product-name { font-size: 18px; font-weight: 700; color: #222; }
+    .product-desc { color: #666; font-size: 13px; margin: 2px 0 14px 0; }
+    .section-label { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #444; margin: 16px 0 8px 0; display: flex; justify-content: space-between; align-items: center; }
+    .section-label .selected-value { text-transform: none; font-weight: 600; color: #764ba2; font-size: 12px; }
+
+    .tier-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tier-btn { padding: 7px 14px; border: 2px solid #ddd; background: white; border-radius: 18px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .tier-btn.active { border-color: #764ba2; background: #f1eaf7; color: #4a2e6b; }
+    .tier-price { display: block; font-weight: 400; font-size: 10px; color: #888; }
+
+    .swatch-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+    .swatch { width: 50px; text-align: center; cursor: pointer; }
+    .swatch-chip { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #ddd; margin: 0 auto 4px auto; position: relative; }
+    .swatch:hover .swatch-chip { transform: scale(1.08); }
+    .swatch.selected .swatch-chip { border-color: #764ba2; border-width: 3px; box-shadow: 0 0 0 2px white, 0 0 0 4px #764ba2; }
+    .swatch.selected .swatch-chip::after { content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; color:white; text-shadow:0 0 2px rgba(0,0,0,.6); }
+    .swatch-name { font-size: 9px; color: #555; line-height: 1.2; }
+
+    .art-picker-layout { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+    .art-combo { position: relative; flex: 1; min-width: 220px; }
+    .art-input { width: 100%; padding: 9px 32px 9px 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+    .art-input:focus { outline: none; border-color: #764ba2; }
+    .art-input.invalid { border-color: #f44336; background: #fff5f5; }
+    .art-input.confirmed { border-color: #4CAF50; background: #f1f8f4; }
+    .art-combo-icon { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #999; }
+    .art-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 240px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15); z-index: 20; display: none; }
+    .art-option { padding: 7px 9px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; }
+    .art-option:hover, .art-option.highlighted { background: #f1eaf7; }
+    .art-option-thumb { width: 30px; height: 30px; border-radius: 4px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .art-option-text { overflow: hidden; }
+    .art-option .art-id { font-weight: 700; color: #222; font-size: 11.5px; }
+    .art-option .art-desc { color: #666; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .art-empty { padding: 9px; font-size: 12px; color: #888; font-style: italic; }
+    .art-error { font-size: 11px; color: #c62828; margin-top: 4px; display: none; }
+    .art-preview { width: 200px; flex: none; display: flex; align-items: center; gap: 8px; border: 1px solid #eee; border-radius: 8px; padding: 7px 9px; background: #fafafa; }
+    .art-preview-thumb { width: 38px; height: 38px; flex: none; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: #ddd; }
+    .art-preview-id { font-size: 11px; font-weight: 700; }
+    .art-preview-desc { font-size: 10px; color: #666; }
+    .art-preview-empty { font-size: 10px; color: #999; }
+    .art-preview.locked { border-color: #4CAF50; background: #f1f8f4; }
+    .art-preview-status { font-size: 9px; color: #999; text-transform: uppercase; }
+    .art-preview.locked .art-preview-status { color: #2e7d32; font-weight: 700; }
+
+    .size-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .size-item { text-align: center; background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 6px 3px; }
+    .size-label { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 3px; }
+    .size-qty-input { width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px; text-align: center; box-sizing: border-box; }
+
+    .add-btn { margin-top: 16px; width: 100%; padding: 11px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .add-btn:hover { background: #43a047; }
+
+    #cartOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; z-index: 998; }
+    #cartOverlay.open { display: block; }
+    #cartDrawer { position: fixed; top: 0; right: -420px; width: 400px; height: 100%; background: white; box-shadow: -4px 0 12px rgba(0,0,0,.2); z-index: 999; transition: right .25s; display: flex; flex-direction: column; }
+    #cartDrawer.open { right: 0; }
+    .cart-drawer-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    #cartItems { flex: 1; overflow-y: auto; padding: 10px 20px; }
+    .cart-line { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .cart-footer { padding: 16px 20px; border-top: 1px solid #eee; }
+    .submit-order-btn { width: 100%; padding: 12px; background: #764ba2; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+    <img id="programLogo" src="" alt="Logo">
+    <h1 id="pageTitle">Souvenirs</h1>
+</div>
+
+<div class="rep-info-bar">
+    <div><label>Sales Rep Name *</label><input type="text" id="repName"></div>
+    <div><label>Email Address *</label><input type="email" id="repEmail"></div>
+    <div><label>Facility ID *</label><input type="text" id="facilityId" placeholder="7-digit ID"></div>
+    <div><label>Location Name *</label><input type="text" id="locationName"></div>
+    <div><label>Begin Ship Date *</label><input type="date" id="beginShipDate"></div>
+    <div><label>Ship By Date *</label><input type="date" id="shipByDate"></div>
+</div>
+
+<div class="cat-tabs" id="catTabs"></div>
+<div id="catalog"></div>
+
+<button class="cart-fab" onclick="openCart()">🛒 Cart <span id="cartBadge">0</span></button>
+
+<div id="cartOverlay" onclick="closeCart()"></div>
+<div id="cartDrawer">
+    <div class="cart-drawer-header"><h3 style="margin:0;">Your Order</h3><button onclick="closeCart()" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button></div>
+    <div id="cartItems"></div>
+    <div class="cart-footer">
+        <p style="font-size:13px;color:#666;">Total items: <b id="cartTotalQty">0</b></p>
+        <button class="submit-order-btn" onclick="submitOrder()">Submit Order</button>
+    </div>
+</div>
+
+<script>
+window.NEXCOM_CONFIG = {
+    customerLabel: 'Souvenirs',
+    prefix: 'SVN',
+    orderType: 'souvenirs',
+    poTypeCode: 'V',                 // TODO: confirm this doesn't collide with existing PO type codes
+    productsCsvUrl: '',              // TODO: paste the published-CSV URL for souvenirs-products.csv once it's in Google Sheets
+    colorsJsonUrl: 'garment-colors.json',
+    artCsvUrl: 'art-index.csv',      // TODO: build this once real art data exists — see art-index-template.csv
+    orderSubmissionUrl: '',          // TODO: same Apps Script /exec URL apparel.html posts to, once Post.gs has processSouvenirsOrder()
+    logo: 'nex-logo.jpg'
+};
+</script>
+<script src="nexcom-order.js"></script>
+
+</body>
+</html>
