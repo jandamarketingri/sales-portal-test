@@ -236,41 +236,38 @@
     // Posts to Auth.gs via a hidden iframe instead of $.ajax/fetch.
     // Apps Script's response to a cross-origin POST has no
     // Access-Control-Allow-Origin header, so XHR/fetch can never read
-    // it — confirmed in testing, not just theory. A form submitted
-    // into a hidden iframe isn't subject to CORS at all, and Auth.gs's
-    // response (a tiny HTML page) posts the result back to us via
-    // postMessage from inside that iframe.
+    // it. A form submitted into a hidden iframe isn't subject to CORS,
+    // and Auth.gs's response posts the result back via postMessage.
+    //
+    // Matching is done by a unique request ID rather than comparing
+    // window/frame references — Apps Script can serve its response
+    // inside an extra Google-added wrapper frame, which makes strict
+    // event.source checks unreliable. A single persistent listener
+    // also cleanly ignores unrelated postMessage traffic (browser
+    // extensions are a common, harmless source of it).
     // ==========================================================
+    var pendingAuthRequests = {};
+
+    window.addEventListener('message', function (event) {
+        var data = event.data;
+        if (!data || typeof data !== 'object' || !data.reqId) return; // not one of ours
+        var pending = pendingAuthRequests[data.reqId];
+        if (!pending) return;
+        delete pendingAuthRequests[data.reqId];
+        clearTimeout(pending.timeoutId);
+        pending.cleanup();
+        pending.onResult(data);
+    });
+
     var authRequestCounter = 0;
     function postToAuth(action, email, password, onResult) {
-        var reqId = ++authRequestCounter;
+        var reqId = 'req_' + Date.now() + '_' + (++authRequestCounter);
         var iframeName = 'authFrame_' + reqId;
 
         var iframe = document.createElement('iframe');
         iframe.name = iframeName;
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
-
-        var settled = false;
-        var timeoutId = setTimeout(function () { finish(null); }, 10000);
-
-        function messageListener(event) {
-            if (event.source !== iframe.contentWindow) return; // ignore anything not from our own request
-            finish(event.data);
-        }
-        window.addEventListener('message', messageListener);
-
-        function finish(data) {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timeoutId);
-            window.removeEventListener('message', messageListener);
-            onResult(data);
-            setTimeout(function () {
-                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                if (form.parentNode) form.parentNode.removeChild(form);
-            }, 500);
-        }
 
         var form = document.createElement('form');
         form.method = 'POST';
@@ -287,9 +284,25 @@
         }
         addField('action', action);
         addField('email', email);
+        addField('reqId', reqId);
         if (password !== undefined && password !== null) addField('password', password);
-
         document.body.appendChild(form);
+
+        function cleanup() {
+            setTimeout(function () {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                if (form.parentNode) form.parentNode.removeChild(form);
+            }, 500);
+        }
+
+        var timeoutId = setTimeout(function () {
+            delete pendingAuthRequests[reqId];
+            cleanup();
+            onResult(null);
+        }, 10000);
+
+        pendingAuthRequests[reqId] = { onResult: onResult, timeoutId: timeoutId, cleanup: cleanup };
+
         form.submit();
     }
 
