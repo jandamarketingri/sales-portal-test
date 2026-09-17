@@ -21,9 +21,13 @@
     .cat-tab { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; }
     .cat-tab.active { background: #764ba2; color: white; border-color: #764ba2; }
 
-    #catalog { padding: 0 30px 60px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; align-items: start; }
+    #catalog { padding: 0 30px 60px 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 28px; align-items: start; }
+    @media (max-width: 480px) {
+        #catalog { grid-template-columns: 1fr; padding: 0 14px 60px 14px; gap: 24px; }
+        .rep-info-bar, .cat-tabs { margin-left: 14px; margin-right: 14px; }
+    }
 
-    .sku-card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 22px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+    .sku-card { background: white; border: 1px solid #ddd; border-top: 4px solid #764ba2; border-radius: 8px; padding: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.12); box-sizing: border-box; width: 100%; margin-bottom: 4px; }
     .product-name { font-size: 18px; font-weight: 700; color: #222; }
     .product-desc { color: #666; font-size: 13px; margin: 2px 0 14px 0; }
     .section-label { font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #444; margin: 16px 0 8px 0; display: flex; justify-content: space-between; align-items: center; }
