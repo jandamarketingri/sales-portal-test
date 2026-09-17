@@ -1,0 +1,126 @@
+baseSKU,description,image1,image2,image3,price_S_OS,price_M,price_L,price_XL,price_2XL,keywords,isCustom,category,productType,garmentType,colorRange,locCount,colorAttribute,requiresArt,sku_S_OS,sku_M,sku_L,sku_XL,sku_2XL
+SVNTEE1-2-1,SVN 1-2 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,1-2,1,,YES,SVNTEE1-2-1-S,SVNTEE1-2-1-M,SVNTEE1-2-1-L,SVNTEE1-2-1-XL,SVNTEE1-2-1-XX
+SVNLS1-2-1,SVN 1-2 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,LS,1-2,1,,YES,SVNLS1-2-1-S,SVNLS1-2-1-M,SVNLS1-2-1-L,SVNLS1-2-1-XL,SVNLS1-2-1-XX
+SVNMW1-2-1,SVN 1-2 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,MW,1-2,1,,YES,SVNMW1-2-1-S,SVNMW1-2-1-M,SVNMW1-2-1-L,SVNMW1-2-1-XL,SVNMW1-2-1-XX
+SVNFLC1-2-1,SVN 1-2 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,1-2,1,,YES,SVNFLC1-2-1-S,SVNFLC1-2-1-M,SVNFLC1-2-1-L,SVNFLC1-2-1-XL,SVNFLC1-2-1-XX
+SVNHDY1-2-1,SVN 1-2 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,1-2,1,,YES,SVNHDY1-2-1-S,SVNHDY1-2-1-M,SVNHDY1-2-1-L,SVNHDY1-2-1-XL,SVNHDY1-2-1-XX
+SVNMTNK1-2-1,SVN 1-2 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,1-2,1,,YES,SVNMTNK1-2-1-S,SVNMTNK1-2-1-M,SVNMTNK1-2-1-L,SVNMTNK1-2-1-XL,SVNMTNK1-2-1-XX
+SVNLTNK1-2-1,SVN 1-2 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,1-2,1,,YES,SVNLTNK1-2-1-S,SVNLTNK1-2-1-M,SVNLTNK1-2-1-L,SVNLTNK1-2-1-XL,SVNLTNK1-2-1-XX
+SVNTEE1-2-2,SVN 1-2 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,1-2,2,,YES,SVNTEE1-2-2-S,SVNTEE1-2-2-M,SVNTEE1-2-2-L,SVNTEE1-2-2-XL,SVNTEE1-2-2-XX
+SVNLS1-2-2,SVN 1-2 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,LS,1-2,2,,YES,SVNLS1-2-2-S,SVNLS1-2-2-M,SVNLS1-2-2-L,SVNLS1-2-2-XL,SVNLS1-2-2-XX
+SVNMW1-2-2,SVN 1-2 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,MW,1-2,2,,YES,SVNMW1-2-2-S,SVNMW1-2-2-M,SVNMW1-2-2-L,SVNMW1-2-2-XL,SVNMW1-2-2-XX
+SVNFLC1-2-2,SVN 1-2 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,1-2,2,,YES,SVNFLC1-2-2-S,SVNFLC1-2-2-M,SVNFLC1-2-2-L,SVNFLC1-2-2-XL,SVNFLC1-2-2-XX
+SVNHDY1-2-2,SVN 1-2 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,1-2,2,,YES,SVNHDY1-2-2-S,SVNHDY1-2-2-M,SVNHDY1-2-2-L,SVNHDY1-2-2-XL,SVNHDY1-2-2-XX
+SVNMTNK1-2-2,SVN 1-2 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,1-2,2,,YES,SVNMTNK1-2-2-S,SVNMTNK1-2-2-M,SVNMTNK1-2-2-L,SVNMTNK1-2-2-XL,SVNMTNK1-2-2-XX
+SVNLTNK1-2-2,SVN 1-2 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,1-2,2,,YES,SVNLTNK1-2-2-S,SVNLTNK1-2-2-M,SVNLTNK1-2-2-L,SVNLTNK1-2-2-XL,SVNLTNK1-2-2-XX
+SVNTEE3-5-1,SVN 3-5 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,3-5,1,,YES,SVNTEE3-5-1-S,SVNTEE3-5-1-M,SVNTEE3-5-1-L,SVNTEE3-5-1-XL,SVNTEE3-5-1-XX
+SVNLS3-5-1,SVN 3-5 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,LS,3-5,1,,YES,SVNLS3-5-1-SM,,SVNLS3-5-1-L,SVNLS3-5-1-XL,SVNLS3-5-1-XX
+SVNMW3-5-1,SVN 3-5 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,MW,3-5,1,,YES,SVNMW3-5-1-S,SVNMW3-5-1-M,SVNMW3-5-1-L,SVNMW3-5-1-XL,SVNMW3-5-1-XX
+SVNFLC3-5-1,SVN 3-5 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,3-5,1,,YES,SVNFLC3-5-1-S,SVNFLC3-5-1-M,SVNFLC3-5-1-L,SVNFLC3-5-1-XL,SVNFLC3-5-1-XX
+SVNHDY3-5-1,SVN 3-5 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,3-5,1,,YES,SVNHDY3-5-1-S,SVNHDY3-5-1-M,SVNHDY3-5-1-L,SVNHDY3-5-1-XL,SVNHDY3-5-1-XX
+SVNMTNK3-5-1,SVN 3-5 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,3-5,1,,YES,SVNMTNK3-5-1-S,SVNMTNK3-5-1-M,SVNMTNK3-5-1-L,SVNMTNK3-5-1-XL,SVNMTNK3-5-1-XX
+SVNLTNK3-5-1,SVN 3-5 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,3-5,1,,YES,SVNLTNK3-5-1-S,SVNLTNK3-5-1-M,SVNLTNK3-5-1-L,SVNLTNK3-5-1-XL,SVNLTNK3-5-1-XX
+SVNTEE3-5-2,SVN 3-5 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,3-5,2,,YES,SVNTEE3-5-2-S,SVNTEE3-5-2-M,SVNTEE3-5-2-L,SVNTEE3-5-2-XL,SVNTEE3-5-2-XX
+SVNLS3-5-2,SVN 3-5 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,LS,3-5,2,,YES,SVNLS3-5-2-S,SVNLS3-5-2-M,SVNLS3-5-2-L,SVNLS3-5-2-XL,SVNLS3-5-2-XX
+SVNMW3-5-2,SVN 3-5 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,MW,3-5,2,,YES,SVNMW3-5-2-S,SVNMW3-5-2-M,SVNMW3-5-2-L,SVNMW3-5-2-XL,SVNMW3-5-2-XX
+SVNFLC3-5-2,SVN 3-5 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,3-5,2,,YES,SVNFLC3-5-2-S,SVNFLC3-5-2-M,SVNFLC3-5-2-L,SVNFLC3-5-2-XL,SVNFLC3-5-2-XX
+SVNHDY3-5-2,SVN 3-5 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,3-5,2,,YES,SVNHDY3-5-2-S,SVNHDY3-5-2-M,SVNHDY3-5-2-L,SVNHDY3-5-2-XL,SVNHDY3-5-2-XX
+SVNMTNK3-5-2,SVN 3-5 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,3-5,2,,YES,SVNMTNK3-5-2-S,SVNMTNK3-5-2-M,SVNMTNK3-5-2-L,SVNMTNK3-5-2-XL,SVNMTNK3-5-2-XX
+SVNLTNK3-5-2,SVN 3-5 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,3-5,2,,YES,SVNLTNK3-5-2-S,SVNLTNK3-5-2-M,SVNLTNK3-5-2-L,SVNLTNK3-5-2-XL,SVNLTNK3-5-2-XX
+SVNTEE6-9-1,SVN 6-9 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,6-9,1,,YES,SVNTEE6-9-1-S,SVNTEE6-9-1-M,SVNTEE6-9-1-L,SVNTEE6-9-1-XL,SVNTEE6-9-1-XX
+SVNLS6-9-1,SVN 6-9 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,LS,6-9,1,,YES,SVNLS6-9-1-S,SVNLS6-9-1-M,SVNLS6-9-1-L,SVNLS6-9-1-XL,SVNLS6-9-1-XX
+SVNMW6-9-1,SVN 6-9 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,MW,6-9,1,,YES,SVNMW6-9-1-S,SVNMW6-9-1-M,SVNMW6-9-1-L,SVNMW6-9-1-XL,SVNMW6-9-1-XX
+SVNFLC6-9-1,SVN 6-9 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,6-9,1,,YES,SVNFLC6-9-1-S,SVNFLC6-9-1-M,SVNFLC6-9-1-L,SVNFLC6-9-1-XL,SVNFLC6-9-1-XX
+SVNHDY6-9-1,SVN 6-9 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,6-9,1,,YES,SVNHDY6-9-1-S,SVNHDY6-9-1-M,SVNHDY6-9-1-L,SVNHDY6-9-1-XL,SVNHDY6-9-1-XX
+SVNMTNK6-9-1,SVN 6-9 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,6-9,1,,YES,SVNMTNK6-9-1-S,SVNMTNK6-9-1-M,SVNMTNK6-9-1-L,SVNMTNK6-9-1-XL,SVNMTNK6-9-1-XX
+SVNLTNK6-9-1,SVN 6-9 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,6-9,1,,YES,SVNLTNK6-9-1-S,SVNLTNK6-9-1-M,SVNLTNK6-9-1-L,SVNLTNK6-9-1-XL,SVNLTNK6-9-1-XX
+SVNTEE6-9-2,SVN 6-9 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,6-9,2,,YES,SVNTEE6-9-2-S,SVNTEE6-9-2-M,SVNTEE6-9-2-L,SVNTEE6-9-2-XL,SVNTEE6-9-2-XX
+SVNLS6-9-2,SVN 6-9 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,LS,6-9,2,,YES,SVNLS6-9-2-S,SVNLS6-9-2-M,SVNLS6-9-2-L,SVNLS6-9-2-XL,SVNLS6-9-2-XX
+SVNMW6-9-2,SVN 6-9 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,MW,6-9,2,,YES,SVNMW6-9-2-S,SVNMW6-9-2-M,SVNMW6-9-2-L,SVNMW6-9-2-XL,SVNMW6-9-2-XX
+SVNFLC6-9-2,SVN 6-9 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,6-9,2,,YES,SVNFLC6-9-2-S,SVNFLC6-9-2-M,SVNFLC6-9-2-L,SVNFLC6-9-2-XL,SVNFLC6-9-2-XX
+SVNHDY6-9-2,SVN 6-9 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,6-9,2,,YES,SVNHDY6-9-2-S,SVNHDY6-9-2-M,SVNHDY6-9-2-L,SVNHDY6-9-2-XL,SVNHDY6-9-2-XX
+SVNMTNK6-9-2,SVN 6-9 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,6-9,2,,YES,SVNMTNK6-9-2-S,SVNMTNK6-9-2-M,SVNMTNK6-9-2-L,SVNMTNK6-9-2-XL,SVNMTNK6-9-2-XX
+SVNLTNK6-9-2,SVN 6-9 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,6-9,2,,YES,SVNLTNK6-9-2-S,SVNLTNK6-9-2-M,SVNLTNK6-9-2-L,SVNLTNK6-9-2-XL,SVNLTNK6-9-2-XX
+SVNPTCHCAP,SVN PATCH CAP,,,,,,,,,svn patch cap,YES,CAPS,HARDGOOD,,,,PATCH_CAP,YES,SVNPTCHCAP,,,,
+SVNTWLCAP,SVN FULL TWILL CAP 144 PIECE,,,,,,,,,svn full twill cap 144 piece,YES,CAPS,HARDGOOD,,,,,YES,SVNTWLCAP,,,,
+SVNTWL36CAP,SVN FULL TWILL CAP 36 PIECE,,,,,,,,,svn full twill cap 36 piece,YES,CAPS,HARDGOOD,,,,,YES,SVNTWL36CAP,,,,
+SVNJ35-1,"SVN 8"" OREO THE BORDER COLLIE",,,,,,,,,"svn 8"" oreo the border collie",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,SVNJ35-1,,,,
+SVNJ34-9,"SVN 8"" MITTY THE TABBY KITTY",,,,,,,,,"svn 8"" mitty the tabby kitty",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,SVNJ34-9,,,,
+SVNJ35-2,"SVN 8"" BUTTERSCOTCH THE CORGI",,,,,,,,,"svn 8"" butterscotch the corgi",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,SVNJ35-2,,,,
+SVNJ34-8,"SVN 8"" MOCHI THE SIAMESE KITTY",,,,,,,,,"svn 8"" mochi the siamese kitty",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,SVNJ34-8,,,,
+SVNJ32-1,"SVN 8"" FROG WITH TEE",,,,,,,,,"svn 8"" frog with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,SVNJ32-1,,,,
+SVNJ60-1,"SVN 12"" FROG WITH TEE",,,,,,,,,"svn 12"" frog with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,SVNJ60-1,,,,
+SVNJ31-1,"SVN 8"" BEAVER WITH TEE",,,,,,,,,"svn 8"" beaver with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,SVNJ31-1,,,,
+SVNJ31-6,"SVN 8"" EAGLE WITH TEE",,,,,,,,,"svn 8"" eagle with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,SVNJ31-6,,,,
+SVNJ59-1,"SVN 12"" BEAVER WITH TEE",,,,,,,,,"svn 12"" beaver with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,SVNJ59-1,,,,
+SVNJ37-T,"SVN 4"" EAGLE KEY CHAIN",,,,,,,,,"svn 4"" eagle key chain",YES,PLUSH,HARDGOOD,,,,,YES,SVNJ37-T,,,,
+SVNJ37-MAG,"SVN 4"" EAGLE MAGNET",,,,,,,,,"svn 4"" eagle magnet",YES,PLUSH,HARDGOOD,,,,,YES,SVNJ37-MAG,,,,
+SVNBEAR10,"SVN 10"" SITTING BEAR WITH JERSEY",,,,,,,,,"svn 10"" sitting bear with jersey",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,SVNBEAR10,,,,
+SVNBEAR12,"SVN 12"" SITTING BEAR WITH JERSEY CHOCOLATE",,,,,,,,,"svn 12"" sitting bear with jersey chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,SVNBEAR12,,,,
+SVNBEAR6,"SVN 6"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"svn 6"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,SVNBEAR6,,,,
+SVNBEAR10HD,"SVN 10"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"svn 10"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,SVNBEAR10HD,,,,
+SVNBEAR12HD,"SVN 12"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"svn 12"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,SVNBEAR12HD,,,,
+SVN632JD,"SVN 3/4"" LANYARD W/ BUCKLE & RING",,,,,,,,,"svn 3/4"" lanyard w/ buckle & ring",YES,LANYARDS,HARDGOOD,,,,,YES,SVN632JD,,,,
+SVN634JD,"SVN 3/4"" WRISTLET W/ SPLIT RING",,,,,,,,,"svn 3/4"" wristlet w/ split ring",YES,LANYARDS,HARDGOOD,,,,,YES,SVN634JD,,,,
+SVN632JDBA,"SVN 3/4"" LANYARD W/ BUCKLE & SPLIT RING WITH BREAKAWAY",,,,,,,,,"svn 3/4"" lanyard w/ buckle & split ring with breakaway",YES,LANYARDS,HARDGOOD,,,,,YES,SVN632JDBA,,,,
+SVN212030BH,"SVN RETRACTABLE BADGE HOLDER, OPAQUE COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER",,,,,,,,,"svn retractable badge holder, opaque combo w/ blank soft flexible clear vinyl vertical badge holder",YES,ID HOLDERS,HARDGOOD,,,,,YES,SVN212030BH,,,,
+SVN212036BH,"SVN RETRACTABLE BADGE HOLDER, TRANSLUCENT COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER",,,,,,,,,"svn retractable badge holder, translucent combo w/ blank soft flexible clear vinyl vertical badge holder",YES,ID HOLDERS,HARDGOOD,,,,,YES,SVN212036BH,,,,
+SVN600TS,"SVN COMBO 3/4"" WOVEN LANYARD W/ BLACK VERTICAL ID HOLDER, CLEAR",,,,,,,,,"svn combo 3/4"" woven lanyard w/ black vertical id holder, clear",YES,ID HOLDERS,HARDGOOD,,,,,YES,SVN600TS,,,,
+SVN600HS,"SVN COMBO 3/4"" WOVEN LANYARD W/ BLACK HORIZONTAL ID HOLDER, CLEAR",,,,,,,,,"svn combo 3/4"" woven lanyard w/ black horizontal id holder, clear",YES,ID HOLDERS,HARDGOOD,,,,,YES,SVN600HS,,,,
+SVNVD3.5,"SVN 3.5"" X 3.5"" VINYL DECAL",,,,,,,,,"svn 3.5"" x 3.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD3.5,,,,
+SVNVD6,"SVN 6"" X 6"" VINYL DECAL",,,,,,,,,"svn 6"" x 6"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD6,,,,
+SVNVD6X2,"SVN 6.5"" X 2.5"" VINYL DECAL",,,,,,,,,"svn 6.5"" x 2.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD6X2,,,,
+SVNVD10,"SVN 10"" X 3.5"" VINYL DECAL",,,,,,,,,"svn 10"" x 3.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD10,,,,
+SVNVD12x6,"SVN 12"" X 6"" VINYL DECAL",,,,,,,,,"svn 12"" x 6"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD12x6,,,,
+SVNVD12x12,"SVN 12"" X 12"" VINYL DECAL",,,,,,,,,"svn 12"" x 12"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD12x12,,,,
+SVNVD20T,"SVN 20"" X 2.5"" VINYL DECAL",,,,,,,,,"svn 20"" x 2.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD20T,,,,
+SVNVD3SM,"SVN 3"" X 3"" SPECIALTY MATERIAL DECAL",,,,,,,,,"svn 3"" x 3"" specialty material decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD3SM,,,,
+SVNVD6SM,"SVN 6"" X 6"" SPECIALTY MATERIAL DECAL",,,,,,,,,"svn 6"" x 6"" specialty material decal",YES,DECALS,HARDGOOD,,,,,YES,SVNVD6SM,,,,
+SVNMAG-SM,"SVN 3.5"" X 3.5"" FLAT MAGNET",,,,,,,,,"svn 3.5"" x 3.5"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAG-SM,,,,
+SVNMAG6,"SVN 6"" X 6"" FLAT MAGNET",,,,,,,,,"svn 6"" x 6"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAG6,,,,
+SVNMAG8,"SVN 8"" X 8"" FLAT MAGNET",,,,,,,,,"svn 8"" x 8"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAG8,,,,
+SVNMAGEURO,"SVN 6"" X 4"" FLAT MAGNET",,,,,,,,,"svn 6"" x 4"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAGEURO,,,,
+SVNMAG10T,"SVN 10"" X 3"" FLAT MAGNET",,,,,,,,,"svn 10"" x 3"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAG10T,,,,
+SVNMAG12,"SVN 12"" X 12"" FLAT MAGNET",,,,,,,,,"svn 12"" x 12"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,SVNMAG12,,,,
+SVNTS2,"SVN 2"" X 2"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"svn 2"" x 2"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,SVNTS2,,,,
+SVNTS3,"SVN 3"" X 3"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"svn 3"" x 3"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,SVNTS3,,,,
+SVNTS5,"SVN 5"" X 5"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"svn 5"" x 5"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,SVNTS5,,,,
+SVNCL3,"SVN 3"" X 3"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"svn 3"" x 3"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,SVNCL3,,,,
+SVNCL5,"SVN 5"" X 5"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"svn 5"" x 5"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,SVNCL5,,,,
+SVNCL6X2,"SVN 6"" X 2"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"svn 6"" x 2"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,SVNCL6X2,,,,
+SVNCL16,"SVN 16"" X 2"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"svn 16"" x 2"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,SVNCL16,,,,
+SVNSS1,SVN STICKER SHEET,,,,,,,,,svn sticker sheet,YES,WINDOW CLINGS,HARDGOOD,,,,,YES,SVNSS1,,,,
+SVN3071,SVN POLYESTER DRAWSTRING SPORTSPACK (210D) - CINCHING ROPE CLOSURE,,,,,,,,,svn polyester drawstring sportspack (210d) - cinching rope closure,YES,SACK / TOTE,HARDGOOD,,,,,YES,SVN3071,,,,
+SVN3220,"SVN 12OZ. COTTON CANVAS TOTE - 27"" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5"" X 13"" X 7""",,,,,,,,,"svn 12oz. cotton canvas tote - 27"" handles with front pocket and grommet accents - 20.5"" x 13"" x 7""",YES,SACK / TOTE,HARDGOOD,,,,,YES,SVN3220,,,,
+SVN3220E,"SVN 12OZ. COTTON CANVAS TOTE - 27"" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5"" X 13"" X 7""",,,,,,,,,"svn 12oz. cotton canvas tote - 27"" handles with front pocket and grommet accents - 20.5"" x 13"" x 7""",YES,SACK / TOTE,HARDGOOD,,,,,YES,SVN3220E,,,,
+SVN300JD,SVN SPINNER KEY TAG - GOLD OR SILVER FINISH,,,,,,,,,svn spinner key tag - gold or silver finish,YES,KEY CHAINS,HARDGOOD,,,,,YES,SVN300JD,,,,
+SVN301JD,"SVN 2"" BRASS KEY TAG",,,,,,,,,"svn 2"" brass key tag",YES,KEY CHAINS,HARDGOOD,,,,,YES,SVN301JD,,,,
+SVN301LG,"SVN 2"" GRAND BRASS KEY TAG - GOLD, SILVER, OR BLACK NICKEL PLATED",,,,,,,,,"svn 2"" grand brass key tag - gold, silver, or black nickel plated",YES,KEY CHAINS,HARDGOOD,,,,,YES,SVN301LG,,,,
+SVNBOK01,"SVN 1.25"" X 3.75"" BOTTLE OPENER KEYCHAIN",,,,,,,,,"svn 1.25"" x 3.75"" bottle opener keychain",YES,KEY CHAINS,HARDGOOD,,,,,YES,SVNBOK01,,,,
+SVNKCSTRP-100,"SVN 1.75"" X 10"" OVERSIZED STRAP KEYCHAIN WITH CARABINER AND KEYRING",,,,,,,,,"svn 1.75"" x 10"" oversized strap keychain with carabiner and keyring",YES,KEY CHAINS,HARDGOOD,,,,,YES,SVNKCSTRP-100,,,,
+SVNPCSS,"SVN STANDARD PACKAGING 2.5"" X 3.5"" FULL COLOR PLAYING CARDS",,,,,,,,,"svn standard packaging 2.5"" x 3.5"" full color playing cards",YES,PLAYING CARDS,HARDGOOD,,,,,YES,SVNPCSS,,,,
+SVNPCC,"SVN CUSTOM PACKAGING 2.5"" X 3.5"" FULL COLOR PLAYING CARDS",,,,,,,,,"svn custom packaging 2.5"" x 3.5"" full color playing cards",YES,PLAYING CARDS,HARDGOOD,,,,,YES,SVNPCC,,,,
+SVNJCUBE,"SVN 2.25"" PUZZLE CUBE",,,,,,,,,"svn 2.25"" puzzle cube",YES,CUBE,HARDGOOD,,,,,YES,SVNJCUBE,,,,
+SVNCUBE-KC,"SVN 1.4"" PUZZLE CUBE KEY CHAIN",,,,,,,,,"svn 1.4"" puzzle cube key chain",YES,CUBE,HARDGOOD,,,,,YES,SVNCUBE-KC,,,,
+SVN1081103,"SVN 4"" X 4.5"" SNOWMAN XMAS ORNAMENT",,,,,,,,,"svn 4"" x 4.5"" snowman xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081103,,,,
+SVN1081105,"SVN 4"" X 5"" SEASONS GREETINGS XMAS ORNAMENT",,,,,,,,,"svn 4"" x 5"" seasons greetings xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081105,,,,
+SVN1081100,"SVN 4"" X 4"" MERRY CHRISTMAS BADGE XMAS ORNAMENT",,,,,,,,,"svn 4"" x 4"" merry christmas badge xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081100,,,,
+SVN1081101,"SVN 4"" X 5"" CHRISTMAS TREE TRUCK XMAS ORNAMENT",,,,,,,,,"svn 4"" x 5"" christmas tree truck xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081101,,,,
+SVN1081104,"SVN 4"" X 5"" GNOME XMAS ORNAMENT",,,,,,,,,"svn 4"" x 5"" gnome xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081104,,,,
+SVN1081102,"SVN 4"" X 5"" LOGO BULB XMAS ORNAMENT",,,,,,,,,"svn 4"" x 5"" logo bulb xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,SVN1081102,,,,
+SVN003-7898-DE,SVN ETCHED WINE GLASS - 12 OZ,,,,,,,,,svn etched wine glass - 12 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-7898-DE,,,,
+SVN003-4585-DE,SVN ETCHED WINE GLASS - 16 OZ,,,,,,,,,svn etched wine glass - 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-4585-DE,,,,
+SVN003-4584-DE,SVN ETCHED WINE GLASS - 19 OZ,,,,,,,,,svn etched wine glass - 19 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-4584-DE,,,,
+SVN003-0012-DE,SVN ETCHED CLASSIC DOUBLE OLD FASHION GLASS - 14 OZ,,,,,,,,,svn etched classic double old fashion glass - 14 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-0012-DE,,,,
+SVN003-2163-DE,SVN ETCHED SLIM HIGHBALL GLASS - 15 OZ,,,,,,,,,svn etched slim highball glass - 15 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-2163-DE,,,,
+SVN003-5166-DE,"SVN ETCHED SHOT GLASS, 2 OZ",,,,,,,,,"svn etched shot glass, 2 oz",YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-5166-DE,,,,
+SVN024-6146 ASST,SVN ETCHED 16 OZ,,,,,,,,,svn etched 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN024-6146 ASST,,,,
+SVN003-6416-DE,SVN ETCHED CLASSIC PUB GLASS - 16 OZ,,,,,,,,,svn etched classic pub glass - 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,SVN003-6416-DE,,,,
+SVNPC06,SVN 22 OZ. POLAR CAMEL STAINLESS SKINNY TUMBLER WITH SLIDER LID,,,,,,,,,svn 22 oz. polar camel stainless skinny tumbler with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNPC06,,,,
+SVNPC09,SVN 20 OZ. POLAR CAMEL STAINLESS PILSNER WITH LID,,,,,,,,,svn 20 oz. polar camel stainless pilsner with lid,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNPC09,,,,
+SVNPC10,SVN 16 OZ. POLAR CAMEL STAINLESS PINT WITH SLIDER LID,,,,,,,,,svn 16 oz. polar camel stainless pint with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNPC10,,,,
+SVNPC11,SVN 15 OZ. POLAR CAMEL STAINLESS MUG WITH SLIDER LID,,,,,,,,,svn 15 oz. polar camel stainless mug with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNPC11,,,,
+SVNPC13,SVN 15 OZ.POLAR CAMEL STAINLESS SLIM BEVERAGE HOLDER,,,,,,,,,svn 15 oz.polar camel stainless slim beverage holder,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNPC13,,,,
+SVNTC701,SVN 32 OZ NALGENE WIDEMOUTH,,,,,,,,,svn 32 oz nalgene widemouth,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNTC701,,,,
+SVNTC704,SVN 16 OZ ATOLL NALGENE WIDE MOUTH BOTTLE,,,,,,,,,svn 16 oz atoll nalgene wide mouth bottle,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNTC704,,,,
+SVNTC825-WH,SVN 15 OZ T COLORS WHITE MIGHTY MUG,,,,,,,,,svn 15 oz t colors white mighty mug,YES,GLASSWARE,HARDGOOD,,,,,YES,SVNTC825-WH,,,,

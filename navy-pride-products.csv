@@ -1,0 +1,126 @@
+baseSKU,description,image1,image2,image3,price_S_OS,price_M,price_L,price_XL,price_2XL,keywords,isCustom,category,productType,garmentType,colorRange,locCount,colorAttribute,requiresArt,sku_S_OS,sku_M,sku_L,sku_XL,sku_2XL
+LNPTEE1-2-1,LNP 1-2 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,1-2,1,,YES,LNPTEE1-2-1-S,LNPTEE1-2-1-M,LNPTEE1-2-1-L,LNPTEE1-2-1-XL,LNPTEE1-2-1-XX
+LNPLS1-2-1,LNP 1-2 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,LS,1-2,1,,YES,LNPLS1-2-1-S,LNPLS1-2-1-M,LNPLS1-2-1-L,LNPLS1-2-1-XL,LNPLS1-2-1-XX
+LNPMW1-2-1,LNP 1-2 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,MW,1-2,1,,YES,LNPMW1-2-1-S,LNPMW1-2-1-M,LNPMW1-2-1-L,LNPMW1-2-1-XL,LNPMW1-2-1-XX
+LNPFLC1-2-1,LNP 1-2 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,1-2,1,,YES,LNPFLC1-2-1-S,LNPFLC1-2-1-M,LNPFLC1-2-1-L,LNPFLC1-2-1-XL,LNPFLC1-2-1-XX
+LNPHDY1-2-1,LNP 1-2 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,1-2,1,,YES,LNPHDY1-2-1-S,LNPHDY1-2-1-M,LNPHDY1-2-1-L,LNPHDY1-2-1-XL,LNPHDY1-2-1-XX
+LNPMTNK1-2-1,LNP 1-2 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,1-2,1,,YES,LNPMTNK1-2-1-S,LNPMTNK1-2-1-M,LNPMTNK1-2-1-L,LNPMTNK1-2-1-XL,LNPMTNK1-2-1-XX
+LNPLTNK1-2-1,LNP 1-2 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 1-2 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,1-2,1,,YES,LNPLTNK1-2-1-S,LNPLTNK1-2-1-M,LNPLTNK1-2-1-L,LNPLTNK1-2-1-XL,LNPLTNK1-2-1-XX
+LNPTEE1-2-2,LNP 1-2 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,1-2,2,,YES,LNPTEE1-2-2-S,LNPTEE1-2-2-M,LNPTEE1-2-2-L,LNPTEE1-2-2-XL,LNPTEE1-2-2-XX
+LNPLS1-2-2,LNP 1-2 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,LS,1-2,2,,YES,LNPLS1-2-2-S,LNPLS1-2-2-M,LNPLS1-2-2-L,LNPLS1-2-2-XL,LNPLS1-2-2-XX
+LNPMW1-2-2,LNP 1-2 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,MW,1-2,2,,YES,LNPMW1-2-2-S,LNPMW1-2-2-M,LNPMW1-2-2-L,LNPMW1-2-2-XL,LNPMW1-2-2-XX
+LNPFLC1-2-2,LNP 1-2 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,1-2,2,,YES,LNPFLC1-2-2-S,LNPFLC1-2-2-M,LNPFLC1-2-2-L,LNPFLC1-2-2-XL,LNPFLC1-2-2-XX
+LNPHDY1-2-2,LNP 1-2 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,1-2,2,,YES,LNPHDY1-2-2-S,LNPHDY1-2-2-M,LNPHDY1-2-2-L,LNPHDY1-2-2-XL,LNPHDY1-2-2-XX
+LNPMTNK1-2-2,LNP 1-2 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,1-2,2,,YES,LNPMTNK1-2-2-S,LNPMTNK1-2-2-M,LNPMTNK1-2-2-L,LNPMTNK1-2-2-XL,LNPMTNK1-2-2-XX
+LNPLTNK1-2-2,LNP 1-2 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 1-2 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,1-2,2,,YES,LNPLTNK1-2-2-S,LNPLTNK1-2-2-M,LNPLTNK1-2-2-L,LNPLTNK1-2-2-XL,LNPLTNK1-2-2-XX
+LNPTEE3-5-1,LNP 3-5 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,3-5,1,,YES,LNPTEE3-5-1-S,LNPTEE3-5-1-M,LNPTEE3-5-1-L,LNPTEE3-5-1-XL,LNPTEE3-5-1-XX
+LNPLS3-5-1,LNP 3-5 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,LS,3-5,1,,YES,LNPLS3-5-1-SM,,LNPLS3-5-1-L,LNPLS3-5-1-XL,LNPLS3-5-1-XX
+LNPMW3-5-1,LNP 3-5 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,MW,3-5,1,,YES,LNPMW3-5-1-S,LNPMW3-5-1-M,LNPMW3-5-1-L,LNPMW3-5-1-XL,LNPMW3-5-1-XX
+LNPFLC3-5-1,LNP 3-5 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,3-5,1,,YES,LNPFLC3-5-1-S,LNPFLC3-5-1-M,LNPFLC3-5-1-L,LNPFLC3-5-1-XL,LNPFLC3-5-1-XX
+LNPHDY3-5-1,LNP 3-5 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,3-5,1,,YES,LNPHDY3-5-1-S,LNPHDY3-5-1-M,LNPHDY3-5-1-L,LNPHDY3-5-1-XL,LNPHDY3-5-1-XX
+LNPMTNK3-5-1,LNP 3-5 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,3-5,1,,YES,LNPMTNK3-5-1-S,LNPMTNK3-5-1-M,LNPMTNK3-5-1-L,LNPMTNK3-5-1-XL,LNPMTNK3-5-1-XX
+LNPLTNK3-5-1,LNP 3-5 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 3-5 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,3-5,1,,YES,LNPLTNK3-5-1-S,LNPLTNK3-5-1-M,LNPLTNK3-5-1-L,LNPLTNK3-5-1-XL,LNPLTNK3-5-1-XX
+LNPTEE3-5-2,LNP 3-5 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,3-5,2,,YES,LNPTEE3-5-2-S,LNPTEE3-5-2-M,LNPTEE3-5-2-L,LNPTEE3-5-2-XL,LNPTEE3-5-2-XX
+LNPLS3-5-2,LNP 3-5 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,LS,3-5,2,,YES,LNPLS3-5-2-S,LNPLS3-5-2-M,LNPLS3-5-2-L,LNPLS3-5-2-XL,LNPLS3-5-2-XX
+LNPMW3-5-2,LNP 3-5 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,MW,3-5,2,,YES,LNPMW3-5-2-S,LNPMW3-5-2-M,LNPMW3-5-2-L,LNPMW3-5-2-XL,LNPMW3-5-2-XX
+LNPFLC3-5-2,LNP 3-5 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,3-5,2,,YES,LNPFLC3-5-2-S,LNPFLC3-5-2-M,LNPFLC3-5-2-L,LNPFLC3-5-2-XL,LNPFLC3-5-2-XX
+LNPHDY3-5-2,LNP 3-5 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,3-5,2,,YES,LNPHDY3-5-2-S,LNPHDY3-5-2-M,LNPHDY3-5-2-L,LNPHDY3-5-2-XL,LNPHDY3-5-2-XX
+LNPMTNK3-5-2,LNP 3-5 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,3-5,2,,YES,LNPMTNK3-5-2-S,LNPMTNK3-5-2-M,LNPMTNK3-5-2-L,LNPMTNK3-5-2-XL,LNPMTNK3-5-2-XX
+LNPLTNK3-5-2,LNP 3-5 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 3-5 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,3-5,2,,YES,LNPLTNK3-5-2-S,LNPLTNK3-5-2-M,LNPLTNK3-5-2-L,LNPLTNK3-5-2-XL,LNPLTNK3-5-2-XX
+LNPTEE6-9-1,LNP 6-9 Color 1 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,TEE,6-9,1,,YES,LNPTEE6-9-1-S,LNPTEE6-9-1-M,LNPTEE6-9-1-L,LNPTEE6-9-1-XL,LNPTEE6-9-1-XX
+LNPLS6-9-1,LNP 6-9 Color 1 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,LS,6-9,1,,YES,LNPLS6-9-1-S,LNPLS6-9-1-M,LNPLS6-9-1-L,LNPLS6-9-1-XL,LNPLS6-9-1-XX
+LNPMW6-9-1,LNP 6-9 Color 1 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,MW,6-9,1,,YES,LNPMW6-9-1-S,LNPMW6-9-1-M,LNPMW6-9-1-L,LNPMW6-9-1-XL,LNPMW6-9-1-XX
+LNPFLC6-9-1,LNP 6-9 Color 1 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,FLC,6-9,1,,YES,LNPFLC6-9-1-S,LNPFLC6-9-1-M,LNPFLC6-9-1-L,LNPFLC6-9-1-XL,LNPFLC6-9-1-XX
+LNPHDY6-9-1,LNP 6-9 Color 1 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,HDY,6-9,1,,YES,LNPHDY6-9-1-S,LNPHDY6-9-1-M,LNPHDY6-9-1-L,LNPHDY6-9-1-XL,LNPHDY6-9-1-XX
+LNPMTNK6-9-1,LNP 6-9 Color 1 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,MTNK,6-9,1,,YES,LNPMTNK6-9-1-S,LNPMTNK6-9-1-M,LNPMTNK6-9-1-L,LNPMTNK6-9-1-XL,LNPMTNK6-9-1-XX
+LNPLTNK6-9-1,LNP 6-9 Color 1 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 6-9 color, 1 loc",YES,APPAREL,GRID_TEE,LTNK,6-9,1,,YES,LNPLTNK6-9-1-S,LNPLTNK6-9-1-M,LNPLTNK6-9-1-L,LNPLTNK6-9-1-XL,LNPLTNK6-9-1-XX
+LNPTEE6-9-2,LNP 6-9 Color 2 Loc Core Cotton Tee,,,,,,,,,"core cotton tee 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,TEE,6-9,2,,YES,LNPTEE6-9-2-S,LNPTEE6-9-2-M,LNPTEE6-9-2-L,LNPTEE6-9-2-XL,LNPTEE6-9-2-XX
+LNPLS6-9-2,LNP 6-9 Color 2 Loc Long Sleeve Core Cotton Tee,,,,,,,,,"long sleeve core cotton tee 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,LS,6-9,2,,YES,LNPLS6-9-2-S,LNPLS6-9-2-M,LNPLS6-9-2-L,LNPLS6-9-2-XL,LNPLS6-9-2-XX
+LNPMW6-9-2,LNP 6-9 Color 2 Loc Performance Blend Tee (Moisture Wick),,,,,,,,,"performance blend tee (moisture wick) 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,MW,6-9,2,,YES,LNPMW6-9-2-S,LNPMW6-9-2-M,LNPMW6-9-2-L,LNPMW6-9-2-XL,LNPMW6-9-2-XX
+LNPFLC6-9-2,LNP 6-9 Color 2 Loc Fleece Crewneck Sweatshirt,,,,,,,,,"fleece crewneck sweatshirt 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,FLC,6-9,2,,YES,LNPFLC6-9-2-S,LNPFLC6-9-2-M,LNPFLC6-9-2-L,LNPFLC6-9-2-XL,LNPFLC6-9-2-XX
+LNPHDY6-9-2,LNP 6-9 Color 2 Loc Fleece Pullover Hooded Sweatshirt,,,,,,,,,"fleece pullover hooded sweatshirt 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,HDY,6-9,2,,YES,LNPHDY6-9-2-S,LNPHDY6-9-2-M,LNPHDY6-9-2-L,LNPHDY6-9-2-XL,LNPHDY6-9-2-XX
+LNPMTNK6-9-2,LNP 6-9 Color 2 Loc Core Cotton Tank Top (Men's),,,,,,,,,"core cotton tank top (men's) 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,MTNK,6-9,2,,YES,LNPMTNK6-9-2-S,LNPMTNK6-9-2-M,LNPMTNK6-9-2-L,LNPMTNK6-9-2-XL,LNPMTNK6-9-2-XX
+LNPLTNK6-9-2,LNP 6-9 Color 2 Loc Women's Core Cotton Tank Top,,,,,,,,,"women's core cotton tank top 6-9 color, 2 loc",YES,APPAREL,GRID_TEE,LTNK,6-9,2,,YES,LNPLTNK6-9-2-S,LNPLTNK6-9-2-M,LNPLTNK6-9-2-L,LNPLTNK6-9-2-XL,LNPLTNK6-9-2-XX
+LNPPTCHCAP,LNP PATCH CAP,,,,,,,,,lnp patch cap,YES,CAPS,HARDGOOD,,,,PATCH_CAP,YES,LNPPTCHCAP,,,,
+LNPTWLCAP,LNP FULL TWILL CAP 144 PIECE,,,,,,,,,lnp full twill cap 144 piece,YES,CAPS,HARDGOOD,,,,,YES,LNPTWLCAP,,,,
+LNPTWL36CAP,LNP FULL TWILL CAP 36 PIECE,,,,,,,,,lnp full twill cap 36 piece,YES,CAPS,HARDGOOD,,,,,YES,LNPTWL36CAP,,,,
+LNPJ35-1,"LNP 8"" OREO THE BORDER COLLIE",,,,,,,,,"lnp 8"" oreo the border collie",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,LNPJ35-1,,,,
+LNPJ34-9,"LNP 8"" MITTY THE TABBY KITTY",,,,,,,,,"lnp 8"" mitty the tabby kitty",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,LNPJ34-9,,,,
+LNPJ35-2,"LNP 8"" BUTTERSCOTCH THE CORGI",,,,,,,,,"lnp 8"" butterscotch the corgi",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,LNPJ35-2,,,,
+LNPJ34-8,"LNP 8"" MOCHI THE SIAMESE KITTY",,,,,,,,,"lnp 8"" mochi the siamese kitty",YES,PLUSH,HARDGOOD,,,,PLUSH_BANDANA,YES,LNPJ34-8,,,,
+LNPJ32-1,"LNP 8"" FROG WITH TEE",,,,,,,,,"lnp 8"" frog with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,LNPJ32-1,,,,
+LNPJ60-1,"LNP 12"" FROG WITH TEE",,,,,,,,,"lnp 12"" frog with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,LNPJ60-1,,,,
+LNPJ31-1,"LNP 8"" BEAVER WITH TEE",,,,,,,,,"lnp 8"" beaver with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,LNPJ31-1,,,,
+LNPJ31-6,"LNP 8"" EAGLE WITH TEE",,,,,,,,,"lnp 8"" eagle with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,LNPJ31-6,,,,
+LNPJ59-1,"LNP 12"" BEAVER WITH TEE",,,,,,,,,"lnp 12"" beaver with tee",YES,PLUSH,HARDGOOD,,,,PLUSH_BEANBUDDY,YES,LNPJ59-1,,,,
+LNPJ37-T,"LNP 4"" EAGLE KEY CHAIN",,,,,,,,,"lnp 4"" eagle key chain",YES,PLUSH,HARDGOOD,,,,,YES,LNPJ37-T,,,,
+LNPJ37-MAG,"LNP 4"" EAGLE MAGNET",,,,,,,,,"lnp 4"" eagle magnet",YES,PLUSH,HARDGOOD,,,,,YES,LNPJ37-MAG,,,,
+LNPBEAR10,"LNP 10"" SITTING BEAR WITH JERSEY",,,,,,,,,"lnp 10"" sitting bear with jersey",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,LNPBEAR10,,,,
+LNPBEAR12,"LNP 12"" SITTING BEAR WITH JERSEY CHOCOLATE",,,,,,,,,"lnp 12"" sitting bear with jersey chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,LNPBEAR12,,,,
+LNPBEAR6,"LNP 6"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"lnp 6"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,LNPBEAR6,,,,
+LNPBEAR10HD,"LNP 10"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"lnp 10"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,LNPBEAR10HD,,,,
+LNPBEAR12HD,"LNP 12"" SITTING BEAR WITH HOODIE CHOCOLATE",,,,,,,,,"lnp 12"" sitting bear with hoodie chocolate",YES,PLUSH,HARDGOOD,,,,PLUSH_BEAR,YES,LNPBEAR12HD,,,,
+LNP632JD,"LNP 3/4"" LANYARD W/ BUCKLE & RING",,,,,,,,,"lnp 3/4"" lanyard w/ buckle & ring",YES,LANYARDS,HARDGOOD,,,,,YES,LNP632JD,,,,
+LNP634JD,"LNP 3/4"" WRISTLET W/ SPLIT RING",,,,,,,,,"lnp 3/4"" wristlet w/ split ring",YES,LANYARDS,HARDGOOD,,,,,YES,LNP634JD,,,,
+LNP632JDBA,"LNP 3/4"" LANYARD W/ BUCKLE & SPLIT RING WITH BREAKAWAY",,,,,,,,,"lnp 3/4"" lanyard w/ buckle & split ring with breakaway",YES,LANYARDS,HARDGOOD,,,,,YES,LNP632JDBA,,,,
+LNP212030BH,"LNP RETRACTABLE BADGE HOLDER, OPAQUE COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER",,,,,,,,,"lnp retractable badge holder, opaque combo w/ blank soft flexible clear vinyl vertical badge holder",YES,ID HOLDERS,HARDGOOD,,,,,YES,LNP212030BH,,,,
+LNP212036BH,"LNP RETRACTABLE BADGE HOLDER, TRANSLUCENT COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER",,,,,,,,,"lnp retractable badge holder, translucent combo w/ blank soft flexible clear vinyl vertical badge holder",YES,ID HOLDERS,HARDGOOD,,,,,YES,LNP212036BH,,,,
+LNP600TS,"LNP COMBO 3/4"" WOVEN LANYARD W/ BLACK VERTICAL ID HOLDER, CLEAR",,,,,,,,,"lnp combo 3/4"" woven lanyard w/ black vertical id holder, clear",YES,ID HOLDERS,HARDGOOD,,,,,YES,LNP600TS,,,,
+LNP600HS,"LNP COMBO 3/4"" WOVEN LANYARD W/ BLACK HORIZONTAL ID HOLDER, CLEAR",,,,,,,,,"lnp combo 3/4"" woven lanyard w/ black horizontal id holder, clear",YES,ID HOLDERS,HARDGOOD,,,,,YES,LNP600HS,,,,
+LNPVD3.5,"LNP 3.5"" X 3.5"" VINYL DECAL",,,,,,,,,"lnp 3.5"" x 3.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD3.5,,,,
+LNPVD6,"LNP 6"" X 6"" VINYL DECAL",,,,,,,,,"lnp 6"" x 6"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD6,,,,
+LNPVD6X2,"LNP 6.5"" X 2.5"" VINYL DECAL",,,,,,,,,"lnp 6.5"" x 2.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD6X2,,,,
+LNPVD10,"LNP 10"" X 3.5"" VINYL DECAL",,,,,,,,,"lnp 10"" x 3.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD10,,,,
+LNPVD12x6,"LNP 12"" X 6"" VINYL DECAL",,,,,,,,,"lnp 12"" x 6"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD12x6,,,,
+LNPVD12x12,"LNP 12"" X 12"" VINYL DECAL",,,,,,,,,"lnp 12"" x 12"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD12x12,,,,
+LNPVD20T,"LNP 20"" X 2.5"" VINYL DECAL",,,,,,,,,"lnp 20"" x 2.5"" vinyl decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD20T,,,,
+LNPVD3SM,"LNP 3"" X 3"" SPECIALTY MATERIAL DECAL",,,,,,,,,"lnp 3"" x 3"" specialty material decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD3SM,,,,
+LNPVD6SM,"LNP 6"" X 6"" SPECIALTY MATERIAL DECAL",,,,,,,,,"lnp 6"" x 6"" specialty material decal",YES,DECALS,HARDGOOD,,,,,YES,LNPVD6SM,,,,
+LNPMAG-SM,"LNP 3.5"" X 3.5"" FLAT MAGNET",,,,,,,,,"lnp 3.5"" x 3.5"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAG-SM,,,,
+LNPMAG6,"LNP 6"" X 6"" FLAT MAGNET",,,,,,,,,"lnp 6"" x 6"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAG6,,,,
+LNPMAG8,"LNP 8"" X 8"" FLAT MAGNET",,,,,,,,,"lnp 8"" x 8"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAG8,,,,
+LNPMAGEURO,"LNP 6"" X 4"" FLAT MAGNET",,,,,,,,,"lnp 6"" x 4"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAGEURO,,,,
+LNPMAG10T,"LNP 10"" X 3"" FLAT MAGNET",,,,,,,,,"lnp 10"" x 3"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAG10T,,,,
+LNPMAG12,"LNP 12"" X 12"" FLAT MAGNET",,,,,,,,,"lnp 12"" x 12"" flat magnet",YES,MAGNETS,HARDGOOD,,,,,YES,LNPMAG12,,,,
+LNPTS2,"LNP 2"" X 2"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"lnp 2"" x 2"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,LNPTS2,,,,
+LNPTS3,"LNP 3"" X 3"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"lnp 3"" x 3"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,LNPTS3,,,,
+LNPTS5,"LNP 5"" X 5"" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF",,,,,,,,,"lnp 5"" x 5"" textured sticker - waterproof & scratch proof",YES,STICKERS,HARDGOOD,,,,,YES,LNPTS5,,,,
+LNPCL3,"LNP 3"" X 3"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"lnp 3"" x 3"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,LNPCL3,,,,
+LNPCL5,"LNP 5"" X 5"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"lnp 5"" x 5"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,LNPCL5,,,,
+LNPCL6X2,"LNP 6"" X 2"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"lnp 6"" x 2"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,LNPCL6X2,,,,
+LNPCL16,"LNP 16"" X 2"" INSIDE APPLICATION WINDOW CLING",,,,,,,,,"lnp 16"" x 2"" inside application window cling",YES,WINDOW CLINGS,HARDGOOD,,,,,YES,LNPCL16,,,,
+LNPSS1,LNP STICKER SHEET,,,,,,,,,lnp sticker sheet,YES,WINDOW CLINGS,HARDGOOD,,,,,YES,LNPSS1,,,,
+LNP3071,LNP POLYESTER DRAWSTRING SPORTSPACK (210D) - CINCHING ROPE CLOSURE,,,,,,,,,lnp polyester drawstring sportspack (210d) - cinching rope closure,YES,SACK / TOTE,HARDGOOD,,,,,YES,LNP3071,,,,
+LNP3220,"LNP 12OZ. COTTON CANVAS TOTE - 27"" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5"" X 13"" X 7""",,,,,,,,,"lnp 12oz. cotton canvas tote - 27"" handles with front pocket and grommet accents - 20.5"" x 13"" x 7""",YES,SACK / TOTE,HARDGOOD,,,,,YES,LNP3220,,,,
+LNP3220E,"LNP 12OZ. COTTON CANVAS TOTE - 27"" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5"" X 13"" X 7""",,,,,,,,,"lnp 12oz. cotton canvas tote - 27"" handles with front pocket and grommet accents - 20.5"" x 13"" x 7""",YES,SACK / TOTE,HARDGOOD,,,,,YES,LNP3220E,,,,
+LNP300JD,LNP SPINNER KEY TAG - GOLD OR SILVER FINISH,,,,,,,,,lnp spinner key tag - gold or silver finish,YES,KEY CHAINS,HARDGOOD,,,,,YES,LNP300JD,,,,
+LNP301JD,"LNP 2"" BRASS KEY TAG",,,,,,,,,"lnp 2"" brass key tag",YES,KEY CHAINS,HARDGOOD,,,,,YES,LNP301JD,,,,
+LNP301LG,"LNP 2"" GRAND BRASS KEY TAG - GOLD, SILVER, OR BLACK NICKEL PLATED",,,,,,,,,"lnp 2"" grand brass key tag - gold, silver, or black nickel plated",YES,KEY CHAINS,HARDGOOD,,,,,YES,LNP301LG,,,,
+LNPBOK01,"LNP 1.25"" X 3.75"" BOTTLE OPENER KEYCHAIN",,,,,,,,,"lnp 1.25"" x 3.75"" bottle opener keychain",YES,KEY CHAINS,HARDGOOD,,,,,YES,LNPBOK01,,,,
+LNPKCSTRP-100,"LNP 1.75"" X 10"" OVERSIZED STRAP KEYCHAIN WITH CARABINER AND KEYRING",,,,,,,,,"lnp 1.75"" x 10"" oversized strap keychain with carabiner and keyring",YES,KEY CHAINS,HARDGOOD,,,,,YES,LNPKCSTRP-100,,,,
+LNPPCSS,"LNP STANDARD PACKAGING 2.5"" X 3.5"" FULL COLOR PLAYING CARDS",,,,,,,,,"lnp standard packaging 2.5"" x 3.5"" full color playing cards",YES,PLAYING CARDS,HARDGOOD,,,,,YES,LNPPCSS,,,,
+LNPPCC,"LNP CUSTOM PACKAGING 2.5"" X 3.5"" FULL COLOR PLAYING CARDS",,,,,,,,,"lnp custom packaging 2.5"" x 3.5"" full color playing cards",YES,PLAYING CARDS,HARDGOOD,,,,,YES,LNPPCC,,,,
+LNPJCUBE,"LNP 2.25"" PUZZLE CUBE",,,,,,,,,"lnp 2.25"" puzzle cube",YES,CUBE,HARDGOOD,,,,,YES,LNPJCUBE,,,,
+LNPCUBE-KC,"LNP 1.4"" PUZZLE CUBE KEY CHAIN",,,,,,,,,"lnp 1.4"" puzzle cube key chain",YES,CUBE,HARDGOOD,,,,,YES,LNPCUBE-KC,,,,
+LNP1081103,"LNP 4"" X 4.5"" SNOWMAN XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 4.5"" snowman xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081103,,,,
+LNP1081105,"LNP 4"" X 5"" SEASONS GREETINGS XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 5"" seasons greetings xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081105,,,,
+LNP1081100,"LNP 4"" X 4"" MERRY CHRISTMAS BADGE XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 4"" merry christmas badge xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081100,,,,
+LNP1081101,"LNP 4"" X 5"" CHRISTMAS TREE TRUCK XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 5"" christmas tree truck xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081101,,,,
+LNP1081104,"LNP 4"" X 5"" GNOME XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 5"" gnome xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081104,,,,
+LNP1081102,"LNP 4"" X 5"" LOGO BULB XMAS ORNAMENT",,,,,,,,,"lnp 4"" x 5"" logo bulb xmas ornament",YES,ORNAMENTS,HARDGOOD,,,,,YES,LNP1081102,,,,
+LNP003-7898-DE,LNP ETCHED WINE GLASS - 12 OZ,,,,,,,,,lnp etched wine glass - 12 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-7898-DE,,,,
+LNP003-4585-DE,LNP ETCHED WINE GLASS - 16 OZ,,,,,,,,,lnp etched wine glass - 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-4585-DE,,,,
+LNP003-4584-DE,LNP ETCHED WINE GLASS - 19 OZ,,,,,,,,,lnp etched wine glass - 19 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-4584-DE,,,,
+LNP003-0012-DE,LNP ETCHED CLASSIC DOUBLE OLD FASHION GLASS - 14 OZ,,,,,,,,,lnp etched classic double old fashion glass - 14 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-0012-DE,,,,
+LNP003-2163-DE,LNP ETCHED SLIM HIGHBALL GLASS - 15 OZ,,,,,,,,,lnp etched slim highball glass - 15 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-2163-DE,,,,
+LNP003-5166-DE,"LNP ETCHED SHOT GLASS, 2 OZ",,,,,,,,,"lnp etched shot glass, 2 oz",YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-5166-DE,,,,
+LNP024-6146 ASST,LNP ETCHED 16 OZ,,,,,,,,,lnp etched 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP024-6146 ASST,,,,
+LNP003-6416-DE,LNP ETCHED CLASSIC PUB GLASS - 16 OZ,,,,,,,,,lnp etched classic pub glass - 16 oz,YES,GLASSWARE,HARDGOOD,,,,,YES,LNP003-6416-DE,,,,
+LNPPC06,LNP 22 OZ. POLAR CAMEL STAINLESS SKINNY TUMBLER WITH SLIDER LID,,,,,,,,,lnp 22 oz. polar camel stainless skinny tumbler with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPPC06,,,,
+LNPPC09,LNP 20 OZ. POLAR CAMEL STAINLESS PILSNER WITH LID,,,,,,,,,lnp 20 oz. polar camel stainless pilsner with lid,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPPC09,,,,
+LNPPC10,LNP 16 OZ. POLAR CAMEL STAINLESS PINT WITH SLIDER LID,,,,,,,,,lnp 16 oz. polar camel stainless pint with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPPC10,,,,
+LNPPC11,LNP 15 OZ. POLAR CAMEL STAINLESS MUG WITH SLIDER LID,,,,,,,,,lnp 15 oz. polar camel stainless mug with slider lid,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPPC11,,,,
+LNPPC13,LNP 15 OZ.POLAR CAMEL STAINLESS SLIM BEVERAGE HOLDER,,,,,,,,,lnp 15 oz.polar camel stainless slim beverage holder,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPPC13,,,,
+LNPTC701,LNP 32 OZ NALGENE WIDEMOUTH,,,,,,,,,lnp 32 oz nalgene widemouth,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPTC701,,,,
+LNPTC704,LNP 16 OZ ATOLL NALGENE WIDE MOUTH BOTTLE,,,,,,,,,lnp 16 oz atoll nalgene wide mouth bottle,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPTC704,,,,
+LNPTC825-WH,LNP 15 OZ T COLORS WHITE MIGHTY MUG,,,,,,,,,lnp 15 oz t colors white mighty mug,YES,GLASSWARE,HARDGOOD,,,,,YES,LNPTC825-WH,,,,
