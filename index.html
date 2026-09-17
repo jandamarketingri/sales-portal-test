@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sales Portal - Main Page</title>
+    <title>Sales Portal - Select Program</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,110 +42,82 @@
             margin-bottom: 40px;
             font-size: 18px;
         }
-        .nav-grid {
+        .program-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
             margin-top: 30px;
         }
-        .nav-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 8px;
-            padding: 30px;
+        .program-card {
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 30px 24px;
             text-align: center;
             text-decoration: none;
-            color: white;
-            transition: transform 0.3s, box-shadow 0.3s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            color: #333;
+            transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .nav-card:hover {
+        .program-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.15);
+            border-color: #764ba2;
         }
-        .nav-card h2 {
-            margin: 0 0 10px 0;
-            font-size: 24px;
+        .program-logo {
+            height: 90px;
+            max-width: 200px;
+            object-fit: contain;
+            margin-bottom: 18px;
         }
-        .nav-card p {
+        .program-card h2 {
+            margin: 0 0 8px 0;
+            font-size: 22px;
+            color: #222;
+        }
+        .program-card p {
             margin: 0;
-            opacity: 0.9;
+            color: #666;
             font-size: 14px;
-        }
-        .icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            line-height: 1.4;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <img src="logo.png" alt="Company Logo" class="logo">
+    <img src="logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none'">
     <h1>Sales Portal</h1>
-    <p class="subtitle">Select a tool to get started</p>
+    <p class="subtitle">Select a program to continue</p>
 
-    <h3 style="text-align: center; margin-top: 40px;">Order Entry</h3>
-    <div class="nav-grid">
-        <a href="apparel.html" class="nav-card">
-            <div class="icon">👕</div>
-            <h2>Apparel</h2>
-            <p>T-shirts, hoodies, and clothing</p>
-        </a>
-        
-        <a href="signs.html" class="nav-card">
-            <div class="icon">🪧</div>
-            <h2>Signs</h2>
-            <p>Signage and display materials</p>
+    <div class="program-grid" id="programGrid">
+        <a href="aafes-hub.html" class="program-card" id="aafesCard">
+            <img src="aafes-logo.png" alt="AAFES Logo" class="program-logo">
+            <h2>AAFES</h2>
+            <p>Apparel, signs, afghans &amp; drinkware for Army &amp; Air Force Exchange Service</p>
         </a>
 
-        <!--
-        <a href="drinkware.html" class="nav-card">
-            <div class="icon">☕</div>
-            <h2>Drinkware</h2>
-            <p>Cups, mugs, and bottles</p>
-        </a>
-        -->
-        
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLScYWm-P1QBRaSwpYzNtoqphc6i5TRCISRVPqCNQsAosZjsuIw/viewform" class="nav-card">
-            <div class="icon">🧶</div>
-            <h2>Custom Afghans</h2>
-            <p>Blankets and throws</p>
-        </a>
-
-        <a href="afghans.html" class="nav-card">
-            <div class="icon">🧵</div>
-            <h2>Stock Afghans</h2>
-            <p>Blankets and throws</p>
+        <a href="nexcom-hub.html" class="program-card" id="nexcomCard">
+            <img src="nex-logo.jpg" alt="Navy Exchange Logo" class="program-logo">
+            <h2>NEXCOM</h2>
+            <p>Souvenirs &amp; Local Navy Pride ordering for Navy Exchange</p>
         </a>
     </div>
 
-    <!--
-    <h3 style="text-align: center; margin-top: 40px;">Credit Requests</h3>
-    <div class="nav-grid">
-        <a href="gfsi-markdown.html" class="nav-card">
-            <div class="icon">📊</div>
-            <h2>GFSI Markdown</h2>
-            <p>Markdown requests and promotions</p>
-        </a>
-    </div>
-    -->
-
-    <h3 style="text-align: center; margin-top: 40px;">Pending Selections</h3>
-    <div class="nav-grid">
-        <a href="drinkware-orders.html" class="nav-card">
-            <div class="icon">☕</div>
-            <h2>Drinkware Orders</h2>
-            <p>Choose colors &amp; styles for assigned orders</p>
-        </a>
-    </div>
+    <p id="noProgramsMessage" style="display:none; text-align:center; color:#c62828; background:#ffebee; padding:16px; border-radius:8px; margin-top:20px;">
+        Your account isn't currently approved for any program. Contact your administrator to be added to AAFES and/or NEXCOM.
+    </p>
 
     <div id="adminSection" style="display:none;">
         <h3 style="text-align: center; margin-top: 40px;">Admin</h3>
-        <div class="nav-grid" id="adminNavGrid">
-            <a href="admin.html" class="nav-card">
-                <div class="icon">⚙️</div>
-                <h2>Admin Panel</h2>
-                <p>Manage styles and settings</p>
+        <div class="nav-grid" id="adminNavGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;">
+            <a href="admin.html" class="nav-card" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:8px;padding:30px;text-align:center;text-decoration:none;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size:48px;margin-bottom:15px;">⚙️</div>
+                <h2 style="margin:0 0 10px 0;font-size:24px;">Admin Panel</h2>
+                <p style="margin:0;opacity:0.9;font-size:14px;">Manage styles and settings</p>
             </a>
         </div>
     </div>
@@ -157,31 +129,46 @@
 $(document).ready(function(){
     // Check if user is authenticated
     var authData = sessionStorage.getItem('salesPortalAuth');
-    
+
     if(!authData){
         // Not logged in, redirect to login
         window.location.href = 'login.html';
         return;
     }
-    
+
     // User is logged in, show their info with logout button
     try {
         var auth = JSON.parse(authData);
-        
+
         var userInfo = '<div style="position:fixed;top:20px;right:20px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;gap:10px;align-items:center;z-index:1000;">' +
             '<span style="color:#666;font-size:14px;">👤 ' + auth.name + '</span>' +
             '<a href="help.html" style="background:#28a745;color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;text-decoration:none;font-size:14px;">🆘 Need Help</a>' +
             '<a href="my-orders.html" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;text-decoration:none;font-size:14px;">📋 My Orders</a>' +
             '<button onclick="logout()" style="background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Logout</button>' +
             '</div>';
-        
+
         $('body').append(userInfo);
 
         // Show admin-only section for Admin role
-        if (auth.role === 'Admin') {
+        var isAdmin = auth.role === 'Admin';
+        if (isAdmin) {
             $('#adminSection').show();
         }
-        
+
+        // Gate program cards to what this rep is actually approved for.
+        // Admins see everything regardless of the Programs column.
+        var programs = auth.programs || [];
+        var hasAAFES = isAdmin || programs.indexOf('AAFES') !== -1;
+        var hasNEXCOM = isAdmin || programs.indexOf('NEXCOM') !== -1;
+
+        if (!hasAAFES) $('#aafesCard').remove();
+        if (!hasNEXCOM) $('#nexcomCard').remove();
+
+        if (!hasAAFES && !hasNEXCOM) {
+            $('#programGrid').hide();
+            $('#noProgramsMessage').show();
+        }
+
     } catch(e){
         // Invalid auth data
         sessionStorage.removeItem('salesPortalAuth');
@@ -196,6 +183,6 @@ function logout() {
     }
 }
 </script>
-    
+
 </body>
 </html>
