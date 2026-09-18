@@ -213,7 +213,7 @@
 </div>
 
 <script>
-    var AUTH_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+    var RELAY_URL = 'https://blue-silence-0a95.will1298.workers.dev';
     var CLIENT_HASH_ITERATIONS = 1000; // sequential Web Crypto calls — fast enough (well under a second) to keep login snappy
 
     var pendingEmail = ''; // carried from login attempt into the setup panel
@@ -238,7 +238,7 @@
     // ==========================================================
     // Client-side salted, iterated SHA-256 — the password itself
     // never leaves the browser. Only this resulting hash travels
-    // to the server, via a popup window (see below for why).
+    // to the server.
     // ==========================================================
     async function sha256Hex(str) {
         var enc = new TextEncoder().encode(str);
@@ -259,52 +259,20 @@
         return Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     }
 
-    // ==========================================================
-    // Popup + postMessage — fourth transport attempt, after three
-    // confirmed dead ends (see password-auth-README.md for the full
-    // story): plain CORS POST (blocked, no Access-Control-Allow-Origin),
-    // iframe + postMessage (blocked, X-Frame-Options: SAMEORIGIN), and
-    // GET+JSONP (blocked, ORB). A popup is neither an embedded frame nor
-    // a subresource load, so none of those three restrictions apply to it.
-    //
-    // The popup must open SYNCHRONOUSLY, inside the click handler, before
-    // any `await` — otherwise the browser no longer considers it tied to
-    // a real user action and popup blockers kill it. It's then reused
-    // (navigated more than once) across a login's two round-trips, since
-    // navigating an *already-open* window isn't subject to that same
-    // timing restriction — only opening a new one is.
-    // ==========================================================
-    function openAuthPopup() {
-        return window.open('', 'authPopup_' + Date.now(), 'width=100,height=100,left=-2000,top=-2000');
+    // A Cloudflare Worker relay now sits between this page and Auth.gs
+    // (see auth-relay-worker.js) — so this is just a normal fetch() to a
+    // same-purpose endpoint we control, the way any ordinary website talks
+    // to its own backend. No popups, iframes, or JSONP needed anymore.
+    function callAuth(params) {
+        var query = Object.keys(params).map(function (k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        }).join('&');
+        return fetch(RELAY_URL + '?' + query)
+            .then(function (res) { return res.json(); })
+            .catch(function () { return null; });
     }
 
-    function popupRequest(popup, params) {
-        return new Promise(function (resolve) {
-            var reqId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-            var fullParams = Object.assign({}, params, { reqId: reqId });
-
-            var timeoutId = setTimeout(function () {
-                window.removeEventListener('message', listener);
-                resolve(null);
-            }, 15000);
-
-            function listener(event) {
-                var data = event.data;
-                if (!data || typeof data !== 'object' || data.reqId !== reqId) return; // not our response
-                clearTimeout(timeoutId);
-                window.removeEventListener('message', listener);
-                resolve(data);
-            }
-            window.addEventListener('message', listener);
-
-            var query = Object.keys(fullParams).map(function (k) {
-                return encodeURIComponent(k) + '=' + encodeURIComponent(fullParams[k]);
-            }).join('&');
-            popup.location.href = AUTH_SCRIPT_URL + '?' + query;
-        });
-    }
-
-    function handleLogin() {
+    async function handleLogin() {
         var email = $('#email').val().trim();
         var password = $('#password').val();
 
@@ -313,33 +281,24 @@
         if (!emailRegex.test(email)) { showError('Please enter a valid email address'); return; }
         if (!password) { showError('Please enter your password'); return; }
 
-        var popup = openAuthPopup(); // must happen here, synchronously — not inside runLoginFlow
-        if (!popup) { showError('Please allow popups for this site to log in.'); return; }
-
         $('#loginBtn').prop('disabled', true).text('Checking…');
         $('#loadingMsg').show();
         hideMessages();
 
-        runLoginFlow(email, password, popup);
-    }
-
-    async function runLoginFlow(email, password, popup) {
-        var saltResponse = await popupRequest(popup, { action: 'getSalt', email: email });
-        if (!saltResponse) { popup.close(); showError('Unable to reach authentication service'); resetLoginButton(); return; }
+        var saltResponse = await callAuth({ action: 'getSalt', email: email });
+        if (!saltResponse) { showError('Unable to reach authentication service'); resetLoginButton(); return; }
 
         if (saltResponse.needsSetup) {
-            popup.close();
             pendingEmail = email;
             showInfo('No password set yet for this account. Create one below to continue.');
             showSetupPanel();
             resetLoginButton();
             return;
         }
-        if (!saltResponse.success) { popup.close(); showError(saltResponse.message || 'Login failed'); resetLoginButton(); return; }
+        if (!saltResponse.success) { showError(saltResponse.message || 'Login failed'); resetLoginButton(); return; }
 
         var hash = await hashPasswordClient(password, saltResponse.salt);
-        var loginResponse = await popupRequest(popup, { action: 'login', email: email, hash: hash });
-        popup.close();
+        var loginResponse = await callAuth({ action: 'login', email: email, hash: hash });
 
         if (loginResponse && loginResponse.success) {
             completeLogin(email, loginResponse);
@@ -357,27 +316,19 @@
         }
     }
 
-    function handleSetPassword() {
+    async function handleSetPassword() {
         var newPassword = $('#newPassword').val();
         var confirmPassword = $('#confirmPassword').val();
 
         if (!newPassword || newPassword.length < 8) { showError('Password must be at least 8 characters'); return; }
         if (newPassword !== confirmPassword) { showError('Passwords do not match'); return; }
 
-        var popup = openAuthPopup();
-        if (!popup) { showError('Please allow popups for this site to log in.'); return; }
-
         $('#setupBtn').prop('disabled', true).text('Setting up…');
         hideMessages();
 
-        runSetupFlow(newPassword, popup);
-    }
-
-    async function runSetupFlow(newPassword, popup) {
         var salt = generateSalt();
         var hash = await hashPasswordClient(newPassword, salt);
-        var response = await popupRequest(popup, { action: 'setPassword', email: pendingEmail, salt: salt, hash: hash });
-        popup.close();
+        var response = await callAuth({ action: 'setPassword', email: pendingEmail, salt: salt, hash: hash });
 
         if (response && response.success) {
             completeLogin(pendingEmail, response);
