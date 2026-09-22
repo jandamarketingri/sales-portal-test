@@ -336,10 +336,33 @@ function initArtComboFor(key) {
     input.on('blur', function () {
         setTimeout(function () {
             $('#artDropdown-' + key).hide();
-            if (!artComboState[key].confirmed && input.val().trim() !== '') {
-                input.addClass('invalid'); $('#artError-' + key).show();
-            }
+            if (artComboState[key].confirmed) return;
+            var typed = input.val().trim().toLowerCase();
+            if (!typed) return;
+            // Typing an art # exactly (or the full "ID — Label" text) counts as picking it
+            var exact = artIndex.filter(function (a) {
+                return a.id.toLowerCase() === typed || (a.id + ' — ' + a.label).toLowerCase() === typed;
+            });
+            if (exact.length === 1) { selectArt(key, exact[0]); return; }
+            input.addClass('invalid'); $('#artError-' + key).show();
         }, 150);
+    });
+
+    // Picking from the list: mousedown (not click) with preventDefault, so the
+    // input never blurs mid-click, and hovering only moves the highlight
+    // instead of redrawing the list out from under the mouse.
+    var dd = $('#artDropdown-' + key);
+    dd.on('mousedown', '.art-option', function (e) {
+        e.preventDefault();
+        var art = artComboState[key].filtered[parseInt($(this).attr('data-i'), 10)];
+        if (art) selectArt(key, art);
+    });
+    dd.on('mouseenter', '.art-option', function () {
+        var i = parseInt($(this).attr('data-i'), 10);
+        artComboState[key].highlight = i;
+        dd.find('.art-option').removeClass('highlighted');
+        $(this).addClass('highlighted');
+        showArtPreview(key, artComboState[key].filtered[i], false);
     });
 }
 function renderArtDropdown(key) {
@@ -347,7 +370,7 @@ function renderArtDropdown(key) {
     var dd = $('#artDropdown-' + key);
     if (!st.filtered.length) { dd.html('<div class="art-empty">No approved designs match that.</div>').show(); return; }
     var html = st.filtered.map(function (a, i) {
-        return '<div class="art-option' + (i === st.highlight ? ' highlighted' : '') + '" onmouseenter="artHover(\'' + key + '\',' + i + ')" onclick="artPick(\'' + key + '\',' + i + ')">' +
+        return '<div class="art-option' + (i === st.highlight ? ' highlighted' : '') + '" data-i="' + i + '">' +
             '<div class="art-option-thumb" style="background:#888;">🖼️</div>' +
             '<div class="art-option-text"><div class="art-id">' + a.id + '</div><div class="art-desc">' + a.label + '</div></div></div>';
     }).join('');
