@@ -260,6 +260,37 @@
         .icon-btn:disabled { opacity: 0.3; cursor: default; }
         .icon-btn:disabled:hover { border-color: var(--border); color: var(--text-muted); }
 
+        .garment-row { grid-template-columns: 28px 2fr 1fr 34px; align-items: start; }
+        .garment-row .idx, .garment-row .icon-btn { margin-top: 0; }
+        .garment-row .idx { line-height: 40px; }
+        @media (max-width: 600px) {
+            .garment-row { grid-template-columns: 22px 1fr 34px; }
+            .garment-row .js-color { grid-column: 2; }
+            .garment-row .icon-btn { grid-column: 3; grid-row: 1; }
+        }
+
+        /* Item picker */
+        .item-combo { position: relative; min-width: 0; }
+        .item-combo input.picked { border-color: #a5d6a7; background: #f5fbf5; font-weight: 600; }
+        .item-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; min-height: 0; }
+        .item-meta:empty { display: none; }
+        .item-meta .code { font-family: 'DM Mono', monospace; color: var(--text); }
+        .tier-chip { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: var(--accent-soft); color: #3a4a9a; }
+        .cat-chip { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 8px; background: #eeede8; color: var(--text-muted); }
+        .item-dropdown {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 60; background: var(--surface);
+            border: 1.5px solid var(--accent); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,0.14);
+            max-height: 320px; overflow-y: auto; display: none;
+        }
+        .item-dropdown.open { display: block; }
+        .item-group { padding: 8px 12px 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); background: var(--surface-2); position: sticky; top: 0; }
+        .item-opt { padding: 8px 12px; cursor: pointer; border-top: 1px solid #f2f1ec; }
+        .item-opt:hover, .item-opt.hl { background: var(--accent-soft); }
+        .item-opt .d { font-size: 13px; font-weight: 600; color: var(--text); }
+        .item-opt .c { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-top: 1px; }
+        .item-opt mark { background: #ffe58a; color: inherit; border-radius: 2px; padding: 0; }
+        .item-empty { padding: 14px; font-size: 13px; color: var(--text-muted); text-align: center; }
+
         /* Omit / Add */
         .swap-layout { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; }
         @media (max-width: 760px) { .swap-layout { grid-template-columns: 1fr; } }
@@ -423,7 +454,7 @@
         <div class="form-row single">
             <div class="form-group">
                 <label>Project Title <span class="required">*</span> <span class="hint-inline">— appears on the cover page of your PDF, so choose wisely</span></label>
-                <input type="text" id="projectTitle" placeholder="e.g. NEXCOM DSD Catalog – CS3050 Base Name Drop" maxlength="120">
+                <input type="text" id="projectTitle" placeholder="e.g. NAS Jacksonville – Fall Hoodie Refresh" maxlength="120">
             </div>
         </div>
 
@@ -504,7 +535,7 @@
     <div class="submit-inner">
         <div class="submit-stats">
             <div class="stat"><span class="num" id="sumSketches">0</span><span class="lbl">Sketches</span></div>
-            <div class="stat hide-sm"><span class="num" id="sumGarments">0</span><span class="lbl">Garments</span></div>
+            <div class="stat hide-sm"><span class="num" id="sumGarments">0</span><span class="lbl">Items</span></div>
             <div class="stat hide-sm"><span class="num" id="sumLicensing">0</span><span class="lbl">Need Licensing</span></div>
             <div class="stat"><span class="num" id="sumDue">—</span><span class="lbl">Projected</span></div>
         </div>
@@ -544,6 +575,24 @@ var PROCESSES = ['Screen Print', 'Embroidery', 'DTG', 'Heat Transfer', 'Sublimat
 // to pre-tick the licensing box — the rep can always change it.
 var LICENSING_HINTS = /\b(navy|nas|nsa|nb|naval|jb|jbphh|nws|nsf|base|station|fleet|usn|marine|usmc|army|air force|coast guard|seabee)\b/i;
 
+// ── Item catalog ──────────────────────────────────────────────────────────────
+// Items come from the same published CSVs the Souvenirs / Navy Pride order
+// pages use (the "Souveniers" and "Local Navy Pride" tabs of All Items).
+// If a URL is blank or the fetch fails, the built-in list below is used.
+var CATALOG_CSV = {
+    'Souvenir':         'https://docs.google.com/spreadsheets/d/e/2PACX-1vR6mbHyJVqR_mY0pkeWmzsszNgF84q4bG62F5K8fU-MbPlz7p7XHGDD5Ol5K1VHoSVfFgsWmYCJLRN_/pub?gid=35806549&single=true&output=csv',
+    'Local Navy Pride': ''   // TODO: same URL as navy-pride.html's productsCsvUrl once it's published
+};
+var ACCOUNT_PREFIX = { 'Souvenir': 'SVN', 'Local Navy Pride': 'LNP' };
+var CATEGORY_ORDER = ['Apparel', 'Headwear', 'Plush', 'Decals, Magnets & Stickers', 'Drinkware',
+                      'Lanyards & Badge Holders', 'Keychains', 'Bags', 'Ornaments', 'Games & Novelty', 'Other'];
+
+// Built-in fallback: [style, description, category] — generated from All Items.xlsx (Sep 2026)
+var BUILTIN_CATALOG = {"Souvenir":[["SVNTEE1-2-1","1 - 2 COLOR 1 LOC TEE","Apparel"],["SVNLS1-2-1","1 - 2 COLOR 1 LOC LONG SLEEVE","Apparel"],["SVNMW1-2-1","1 - 2 COLOR 1 LOC MOISTURE WICK","Apparel"],["SVNFLC1-2-1","1 - 2 COLOR 1 LOC FLEECE","Apparel"],["SVNHDY1-2-1","1 - 2 COLOR 1 LOC HOODIE","Apparel"],["SVNMTNK1-2-1","1 - 2 COLOR 1 LOC MEN'S TANK","Apparel"],["SVNLTNK1-2-1","1 - 2 COLOR 1 LOC LADIES TANK","Apparel"],["SVNTEE1-2-2","1 - 2 COLOR 2 LOC TEE","Apparel"],["SVNLS1-2-2","1 - 2 COLOR 2 LOC LONG SLEEVE","Apparel"],["SVNMW1-2-2","1 - 2 COLOR 2 LOC MOISTURE WICK","Apparel"],["SVNFLC1-2-2","1 - 2 COLOR 2 LOC FLEECE","Apparel"],["SVNHDY1-2-2","1 - 2 COLOR 2 LOC HOODIE","Apparel"],["SVNMTNK1-2-2","1 - 2 COLOR 2 LOC MEN'S TANK","Apparel"],["SVNLTNK1-2-2","1 - 2 COLOR 2 LOC LADIES TANK","Apparel"],["SVNTEE3-5-1","3 - 5 COLOR 1 LOC TEE","Apparel"],["SVNLS3-5-1","3 - 5 COLOR 1 LOC LS","Apparel"],["SVNMW3-5-1","3 - 5 COLOR 1 LOC MW","Apparel"],["SVNFLC3-5-1","3 - 5 COLOR 1 LOC FL","Apparel"],["SVNHDY3-5-1","3 - 5 COLOR 1 LOC HD","Apparel"],["SVNMTNK3-5-1","3 - 5 COLOR 1 LOC MEN'S TANK","Apparel"],["SVNLTNK3-5-1","3 - 5 COLOR 1 LOC LADIES TANK","Apparel"],["SVNTEE3-5-2","3 - 5 COLOR 2 LOC TEE","Apparel"],["SVNLS3-5-2","3 - 5 COLOR 2 LOC LS","Apparel"],["SVNMW3-5-2","3 - 5 COLOR 2 LOC MW","Apparel"],["SVNFLC3-5-2","3 - 5 COLOR 2 LOC FL","Apparel"],["SVNHDY3-5-2","3 - 5 COLOR 2 LOC HD","Apparel"],["SVNMTNK3-5-2","3 - 5 COLOR 2 LOC MEN'S TANK","Apparel"],["SVNLTNK3-5-2","3 - 5 COLOR 2 LOC LADIES TANK","Apparel"],["SVNTEE6-9-1","6 - 9 COLOR 1 LOC TEE","Apparel"],["SVNLS6-9-1","6 - 9 COLOR 1 LOC LS","Apparel"],["SVNMW6-9-1","6 - 9 COLOR 1 LOC MW","Apparel"],["SVNFLC6-9-1","6 - 9 COLOR 1 LOC FL","Apparel"],["SVNHDY6-9-1","6 - 9 COLOR 1 LOC HD","Apparel"],["SVNMTNK6-9-1","6 - 9 COLOR 1 LOC MEN'S TANK","Apparel"],["SVNLTNK6-9-1","6 - 9 COLOR 1 LOC LADIES TANK","Apparel"],["SVNTEE6-9-2","6 - 9 COLOR 2 LOC TEE","Apparel"],["SVNLS6-9-2","6 - 9 COLOR 2 LOC LS","Apparel"],["SVNMW6-9-2","6 - 9 COLOR 2 LOC MW","Apparel"],["SVNFLC6-9-2","6 - 9 COLOR 2 LOC FL","Apparel"],["SVNHDY6-9-2","6 - 9 COLOR 2 LOC HD","Apparel"],["SVNMTNK6-9-2","6 - 9 COLOR 2 LOC MEN'S TANK","Apparel"],["SVNLTNK6-9-2","6 - 9 COLOR 2 LOC LADIES TANK","Apparel"],["SVNPTCHCAP","PATCH CAP","Headwear"],["SVNTWLCAP","FULL TWILL CAP 144 PIECE","Headwear"],["SVNTWL36CAP","FULL TWILL CAP 36 PIECE","Headwear"],["SVNJ35-1","8\" OREO THE BORDER COLLIE","Plush"],["SVNJ34-9","8\" MITTY THE TABBY KITTY","Plush"],["SVNJ35-2","8\" BUTTERSCOTCH THE CORGI","Plush"],["SVNJ34-8","8\" MOCHI THE SIAMESE KITTY","Plush"],["SVNJ32-1","8\" FROG WITH TEE","Plush"],["SVNJ60-1","12\" FROG WITH TEE","Plush"],["SVNJ31-1","8\" BEAVER WITH TEE","Plush"],["SVNJ31-6","8\" EAGLE WITH TEE","Plush"],["SVNJ59-1","12\" BEAVER WITH TEE","Plush"],["SVNJ37-T","4\" EAGLE KEY CHAIN","Keychains"],["SVNJ37-MAG","4\" EAGLE MAGNET","Decals, Magnets & Stickers"],["SVNBEAR10","10\" SITTING BEAR WITH JERSEY","Plush"],["SVNBEAR12","12\" SITTING BEAR WITH JERSEY CHOCOLATE","Plush"],["SVNBEAR6","6\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["SVNBEAR10HD","10\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["SVNBEAR12HD","12\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["SVN632JD","3/4\" LANYARD W/ BUCKLE & RING","Lanyards & Badge Holders"],["SVN634JD","3/4\" WRISTLET W/ SPLIT RING","Lanyards & Badge Holders"],["SVN632JDBA","3/4\" LANYARD W/ BUCKLE & SPLIT RING WITH BREAKAWAY","Lanyards & Badge Holders"],["SVN212030BH","RETRACTABLE BADGE HOLDER, OPAQUE COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER","Lanyards & Badge Holders"],["SVN212036BH","RETRACTABLE BADGE HOLDER, TRANSLUCENT COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER","Lanyards & Badge Holders"],["SVN600TS","COMBO 3/4\" WOVEN LANYARD W/ BLACK VERTICAL ID HOLDER, CLEAR","Lanyards & Badge Holders"],["SVN600HS","COMBO 3/4\" WOVEN LANYARD W/ BLACK HORIZONTAL ID HOLDER, CLEAR","Lanyards & Badge Holders"],["SVNVD3.5","3.5\" X 3.5\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD6","6\" X 6\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD6X2","6.5\" X 2.5\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD10","10\" X 3.5\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD12x6","12\" X 6\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD12x12","12\" X 12\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD20T","20\" X 2.5\" VINYL DECAL","Decals, Magnets & Stickers"],["SVNVD3SM","3\" X 3\" SPECIALTY MATERIAL DECAL","Decals, Magnets & Stickers"],["SVNVD6SM","6\" X 6\" SPECIALTY MATERIAL DECAL","Decals, Magnets & Stickers"],["SVNMAG","3.5\" X 3.5\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNMAG6","6\" X 6\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNMAG8","8\" X 8\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNMAGEURO","6\" X 4\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNMAG10T","10\" X 3\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNMAG12","12\" X 12\" FLAT MAGNET","Decals, Magnets & Stickers"],["SVNTS2","2\" X 2\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["SVNTS3","3\" X 3\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["SVNTS5","5\" X 5\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["SVNCL3","3\" X 3\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["SVNCL5","5\" X 5\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["SVNCL6X2","6\" X 2\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["SVNCL16","16\" X 2\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["SVNSS1","STICKER SHEET","Decals, Magnets & Stickers"],["SVN3071","POLYESTER DRAWSTRING SPORTSPACK (210D) - CINCHING ROPE CLOSURE","Bags"],["SVN3220","12OZ. COTTON CANVAS TOTE - 27\" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5\" X 13\" X 7\"","Bags"],["SVN3220E","12OZ. COTTON CANVAS TOTE - 27\" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5\" X 13\" X 7\"","Bags"],["SVN300JD","SPINNER KEY TAG - GOLD OR SILVER FINISH","Keychains"],["SVN301JD","2\" BRASS KEY TAG","Keychains"],["SVN301LG","2\" GRAND BRASS KEY TAG - GOLD, SILVER, OR BLACK NICKEL PLATED","Keychains"],["SVNBOK01","1.25\" X 3.75\" BOTTLE OPENER KEYCHAIN","Keychains"],["SVNKCSTRP-100","1.75\" X 10\" OVERSIZED STRAP KEYCHAIN WITH CARABINER AND KEYRING","Keychains"],["SVNPCSS","STANDARD PACKAGING 2.5\" X 3.5\" FULL COLOR PLAYING CARDS","Games & Novelty"],["SVNPCC","CUSTOM PACKAGING 2.5\" X 3.5\" FULL COLOR PLAYING CARDS","Games & Novelty"],["SVNJCUBE","2.25\" PUZZLE CUBE","Games & Novelty"],["SVNCUBE-KC","1.4\" PUZZLE CUBE KEY CHAIN","Keychains"],["SVN1081103","4\" X 4.5\" SNOWMAN XMAS ORNAMENT","Ornaments"],["SVN1081105","4\" X 5\" SEASONS GREETINGS XMAS ORNAMENT","Ornaments"],["SVN1081100","4\" X 4\" MERRY CHRISTMAS BADGE XMAS ORNAMENT","Lanyards & Badge Holders"],["SVN1081101","4\" X 5\" CHRISTMAS TREE TRUCK XMAS ORNAMENT","Ornaments"],["SVN1081104","4\" X 5\" GNOME XMAS ORNAMENT","Ornaments"],["SVN1081102","4\" X 5\" LOGO BULB XMAS ORNAMENT","Ornaments"],["SVN003-7898-DE","ETCHED WINE GLASS - 12 OZ","Drinkware"],["SVN003-4585-DE","ETCHED WINE GLASS - 16 OZ","Drinkware"],["SVN003-4584-DE","ETCHED WINE GLASS - 19 OZ","Drinkware"],["SVN003-0012-DE","ETCHED CLASSIC DOUBLE OLD FASHION GLASS - 14 OZ","Drinkware"],["SVN003-2163-DE","ETCHED SLIM HIGHBALL GLASS - 15 OZ","Drinkware"],["SVN003-5166-DE","ETCHED SHOT GLASS, 2 OZ","Drinkware"],["SVN024-6146 ASST","ETCHED 16 OZ","Drinkware"],["SVN003-6416-DE","ETCHED CLASSIC PUB GLASS - 16 OZ","Drinkware"],["SVNPC06","22 OZ. POLAR CAMEL STAINLESS SKINNY TUMBLER WITH SLIDER LID","Drinkware"],["SVNPC09","20 OZ. POLAR CAMEL STAINLESS PILSNER WITH LID","Drinkware"],["SVNPC10","16 OZ. POLAR CAMEL STAINLESS PINT WITH SLIDER LID","Drinkware"],["SVNPC11","15 OZ. POLAR CAMEL STAINLESS MUG WITH SLIDER LID","Drinkware"],["SVNPC13","15 OZ.POLAR CAMEL STAINLESS SLIM BEVERAGE HOLDER","Drinkware"],["SVNTC701","32 OZ NALGENE WIDEMOUTH","Drinkware"],["SVNTC704","16 OZ ATOLL NALGENE WIDE MOUTH BOTTLE","Drinkware"],["SVNTC825-WH","15 OZ T COLORS WHITE MIGHTY MUG","Drinkware"]],"Local Navy Pride":[["LNPTEE1-2-1","1 - 2 COLOR 1 LOC TEE","Apparel"],["LNPLS1-2-1","1 - 2 COLOR 1 LOC LONG SLEEVE","Apparel"],["LNPMW1-2-1","1 - 2 COLOR 1 LOC MOISTURE WICK","Apparel"],["LNPFLC1-2-1","1 - 2 COLOR 1 LOC FLEECE","Apparel"],["LNPHDY1-2-1","1 - 2 COLOR 1 LOC HOODIE","Apparel"],["LNPMTNK1-2-1","1 - 2 COLOR 1 LOC MEN'S TANK","Apparel"],["LNPLTNK1-2-1","1 - 2 COLOR 1 LOC LADIES TANK","Apparel"],["LNPTEE1-2-2","1 - 2 COLOR 2 LOC TEE","Apparel"],["LNPLS1-2-2","1 - 2 COLOR 2 LOC LONG SLEEVE","Apparel"],["LNPMW1-2-2","1 - 2 COLOR 2 LOC MOISTURE WICK","Apparel"],["LNPFLC1-2-2","1 - 2 COLOR 2 LOC FLEECE","Apparel"],["LNPHDY1-2-2","1 - 2 COLOR 2 LOC HOODIE","Apparel"],["LNPMTNK1-2-2","1 - 2 COLOR 2 LOC MEN'S TANK","Apparel"],["LNPLTNK1-2-2","1 - 2 COLOR 2 LOC LADIES TANK","Apparel"],["LNPTEE3-5-1","3 - 5 COLOR 1 LOC TEE","Apparel"],["LNPLS3-5-1","3 - 5 COLOR 1 LOC LS","Apparel"],["LNPMW3-5-1","3 - 5 COLOR 1 LOC MW","Apparel"],["LNPFLC3-5-1","3 - 5 COLOR 1 LOC FL","Apparel"],["LNPHDY3-5-1","3 - 5 COLOR 1 LOC HD","Apparel"],["LNPMTNK3-5-1","3 - 5 COLOR 1 LOC MEN'S TANK","Apparel"],["LNPLTNK3-5-1","3 - 5 COLOR 1 LOC LADIES TANK","Apparel"],["LNPTEE3-5-2","3 - 5 COLOR 2 LOC TEE","Apparel"],["LNPLS3-5-2","3 - 5 COLOR 2 LOC LS","Apparel"],["LNPMW3-5-2","3 - 5 COLOR 2 LOC MW","Apparel"],["LNPFLC3-5-2","3 - 5 COLOR 2 LOC FL","Apparel"],["LNPHDY3-5-2","3 - 5 COLOR 2 LOC HD","Apparel"],["LNPMTNK3-5-2","3 - 5 COLOR 2 LOC MEN'S TANK","Apparel"],["LNPLTNK3-5-2","3 - 5 COLOR 2 LOC LADIES TANK","Apparel"],["LNPTEE6-9-1","6 - 9 COLOR 1 LOC TEE","Apparel"],["LNPLS6-9-1","6 - 9 COLOR 1 LOC LS","Apparel"],["LNPMW6-9-1","6 - 9 COLOR 1 LOC MW","Apparel"],["LNPFLC6-9-1","6 - 9 COLOR 1 LOC FL","Apparel"],["LNPHDY6-9-1","6 - 9 COLOR 1 LOC HD","Apparel"],["LNPMTNK6-9-1","6 - 9 COLOR 1 LOC MEN'S TANK","Apparel"],["LNPLTNK6-9-1","6 - 9 COLOR 1 LOC LADIES TANK","Apparel"],["LNPTEE6-9-2","6 - 9 COLOR 2 LOC TEE","Apparel"],["LNPLS6-9-2","6 - 9 COLOR 2 LOC LS","Apparel"],["LNPMW6-9-2","6 - 9 COLOR 2 LOC MW","Apparel"],["LNPFLC6-9-2","6 - 9 COLOR 2 LOC FL","Apparel"],["LNPHDY6-9-2","6 - 9 COLOR 2 LOC HD","Apparel"],["LNPMTNK6-9-2","6 - 9 COLOR 2 LOC MEN'S TANK","Apparel"],["LNPLTNK6-9-2","6 - 9 COLOR 2 LOC LADIES TANK","Apparel"],["LNPPTCHCAP","PATCH CAP","Headwear"],["LNPTWLCAP","FULL TWILL CAP 144 PIECE","Headwear"],["LNPTWL36CAP","FULL TWILL CAP 36 PIECE","Headwear"],["LNPJ35-1","8\" OREO THE BORDER COLLIE","Plush"],["LNPJ34-9","8\" MITTY THE TABBY KITTY","Plush"],["LNPJ35-2","8\" BUTTERSCOTCH THE CORGI","Plush"],["LNPJ34-8","8\" MOCHI THE SIAMESE KITTY","Plush"],["LNPJ32-1","8\" FROG WITH TEE","Plush"],["LNPJ60-1","12\" FROG WITH TEE","Plush"],["LNPJ31-1","8\" BEAVER WITH TEE","Plush"],["LNPJ31-6","8\" EAGLE WITH TEE","Plush"],["LNPJ59-1","12\" BEAVER WITH TEE","Plush"],["LNPJ37-T","4\" EAGLE KEY CHAIN","Keychains"],["LNPJ37-MAG","4\" EAGLE MAGNET","Decals, Magnets & Stickers"],["LNPBEAR10","10\" SITTING BEAR WITH JERSEY","Plush"],["LNPBEAR12","12\" SITTING BEAR WITH JERSEY CHOCOLATE","Plush"],["LNPBEAR6","6\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["LNPBEAR10HD","10\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["LNPBEAR12HD","12\" SITTING BEAR WITH HOODIE CHOCOLATE","Plush"],["LNP632JD","3/4\" LANYARD W/ BUCKLE & RING","Lanyards & Badge Holders"],["LNP634JD","3/4\" WRISTLET W/ SPLIT RING","Lanyards & Badge Holders"],["LNP632JDBA","3/4\" LANYARD W/ BUCKLE & SPLIT RING WITH BREAKAWAY","Lanyards & Badge Holders"],["LNP212030BH","RETRACTABLE BADGE HOLDER, OPAQUE COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER","Lanyards & Badge Holders"],["LNP212036BH","RETRACTABLE BADGE HOLDER, TRANSLUCENT COMBO W/ BLANK SOFT FLEXIBLE CLEAR VINYL VERTICAL BADGE HOLDER","Lanyards & Badge Holders"],["LNP600TS","COMBO 3/4\" WOVEN LANYARD W/ BLACK VERTICAL ID HOLDER, CLEAR","Lanyards & Badge Holders"],["LNP600HS","COMBO 3/4\" WOVEN LANYARD W/ BLACK HORIZONTAL ID HOLDER, CLEAR","Lanyards & Badge Holders"],["LNPVD3.5","3.5\" X 3.5\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD6","6\" X 6\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD6X2","6.5\" X 2.5\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD10","10\" X 3.5\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD12x6","12\" X 6\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD12x12","12\" X 12\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD20T","20\" X 2.5\" VINYL DECAL","Decals, Magnets & Stickers"],["LNPVD3SM","3\" X 3\" SPECIALTY MATERIAL DECAL","Decals, Magnets & Stickers"],["LNPVD6SM","6\" X 6\" SPECIALTY MATERIAL DECAL","Decals, Magnets & Stickers"],["LNPMAG","3.5\" X 3.5\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPMAG6","6\" X 6\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPMAG8","8\" X 8\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPMAGEURO","6\" X 4\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPMAG10T","10\" X 3\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPMAG12","12\" X 12\" FLAT MAGNET","Decals, Magnets & Stickers"],["LNPTS2","2\" X 2\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["LNPTS3","3\" X 3\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["LNPTS5","5\" X 5\" TEXTURED STICKER - WATERPROOF & SCRATCH PROOF","Decals, Magnets & Stickers"],["LNPCL3","3\" X 3\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["LNPCL5","5\" X 5\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["LNPCL6X2","6\" X 2\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["LNPCL16","16\" X 2\" INSIDE APPLICATION WINDOW CLING","Decals, Magnets & Stickers"],["LNPSS1","STICKER SHEET","Decals, Magnets & Stickers"],["LNP3071","POLYESTER DRAWSTRING SPORTSPACK (210D) - CINCHING ROPE CLOSURE","Bags"],["LNP3220","12OZ. COTTON CANVAS TOTE - 27\" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5\" X 13\" X 7\"","Bags"],["LNP3220E","12OZ. COTTON CANVAS TOTE - 27\" HANDLES WITH FRONT POCKET AND GROMMET ACCENTS - 20.5\" X 13\" X 7\"","Bags"],["LNP300JD","SPINNER KEY TAG - GOLD OR SILVER FINISH","Keychains"],["LNP301JD","2\" BRASS KEY TAG","Keychains"],["LNP301LG","2\" GRAND BRASS KEY TAG - GOLD, SILVER, OR BLACK NICKEL PLATED","Keychains"],["LNPBOK01","1.25\" X 3.75\" BOTTLE OPENER KEYCHAIN","Keychains"],["LNPKCSTRP-100","1.75\" X 10\" OVERSIZED STRAP KEYCHAIN WITH CARABINER AND KEYRING","Keychains"],["LNPPCSS","STANDARD PACKAGING 2.5\" X 3.5\" FULL COLOR PLAYING CARDS","Games & Novelty"],["LNPPCC","CUSTOM PACKAGING 2.5\" X 3.5\" FULL COLOR PLAYING CARDS","Games & Novelty"],["LNPJCUBE","2.25\" PUZZLE CUBE","Games & Novelty"],["LNPCUBE-KC","1.4\" PUZZLE CUBE KEY CHAIN","Keychains"],["LNP1081103","4\" X 4.5\" SNOWMAN XMAS ORNAMENT","Ornaments"],["LNP1081105","4\" X 5\" SEASONS GREETINGS XMAS ORNAMENT","Ornaments"],["LNP1081100","4\" X 4\" MERRY CHRISTMAS BADGE XMAS ORNAMENT","Lanyards & Badge Holders"],["LNP1081101","4\" X 5\" CHRISTMAS TREE TRUCK XMAS ORNAMENT","Ornaments"],["LNP1081104","4\" X 5\" GNOME XMAS ORNAMENT","Ornaments"],["LNP1081102","4\" X 5\" LOGO BULB XMAS ORNAMENT","Ornaments"],["LNP003-7898-DE","ETCHED WINE GLASS - 12 OZ","Drinkware"],["LNP003-4585-DE","ETCHED WINE GLASS - 16 OZ","Drinkware"],["LNP003-4584-DE","ETCHED WINE GLASS - 19 OZ","Drinkware"],["LNP003-0012-DE","ETCHED CLASSIC DOUBLE OLD FASHION GLASS - 14 OZ","Drinkware"],["LNP003-2163-DE","ETCHED SLIM HIGHBALL GLASS - 15 OZ","Drinkware"],["LNP003-5166-DE","ETCHED SHOT GLASS, 2 OZ","Drinkware"],["LNP024-6146 ASST","ETCHED 16 OZ","Drinkware"],["LNP003-6416-DE","ETCHED CLASSIC PUB GLASS - 16 OZ","Drinkware"],["LNPPC06","22 OZ. POLAR CAMEL STAINLESS SKINNY TUMBLER WITH SLIDER LID","Drinkware"],["LNPPC09","20 OZ. POLAR CAMEL STAINLESS PILSNER WITH LID","Drinkware"],["LNPPC10","16 OZ. POLAR CAMEL STAINLESS PINT WITH SLIDER LID","Drinkware"],["LNPPC11","15 OZ. POLAR CAMEL STAINLESS MUG WITH SLIDER LID","Drinkware"],["LNPPC13","15 OZ.POLAR CAMEL STAINLESS SLIM BEVERAGE HOLDER","Drinkware"],["LNPTC701","32 OZ NALGENE WIDEMOUTH","Drinkware"],["LNPTC704","16 OZ ATOLL NALGENE WIDE MOUTH BOTTLE","Drinkware"],["LNPTC825-WH","15 OZ T COLORS WHITE MIGHTY MUG","Drinkware"]]};
+
+var catalog = {};        // account → [{ style, desc, cat, tier }]
+var catalogByStyle = {}; // style → item (both accounts)
+
 // ── State ─────────────────────────────────────────────────────────────────────
 var state = {
     account: null,
@@ -570,11 +619,18 @@ $(function () {
 
     // Account
     $('#accountGroup').on('click', '.seg-btn', function () {
+        var next = $(this).data('account');
+        if (next === state.account) return;
         $('#accountGroup .seg-btn').removeClass('selected');
         $(this).addClass('selected');
-        state.account = $(this).data('account');
+        var prev = state.account;
+        state.account = next;
         $('#accountGroup').removeClass('field-error-group');
+        onAccountChanged(prev, next);
     });
+
+    loadCatalogs();
+    bindItemPicker();
 
     // Sketch pack
     $('#packGrid').on('click', '.pack-card', function () {
@@ -666,9 +722,9 @@ function buildSketch(num) {
         '<div class="form-card sketch-card">' +
           '<div class="sketch-head">' +
             '<div class="sketch-num"></div>' +
-            '<div><div class="sketch-title"></div><div class="sketch-sub">Garment, art reference and changes</div></div>' +
+            '<div><div class="sketch-title"></div><div class="sketch-sub">Items, art reference and changes</div></div>' +
             '<div class="sketch-actions">' +
-              (num > 1 ? '<button type="button" class="btn-ghost js-copy">⧉ Copy garments from Sketch 1</button>' : '') +
+              (num > 1 ? '<button type="button" class="btn-ghost js-copy">⧉ Copy items from Sketch 1</button>' : '') +
             '</div>' +
           '</div>' +
           '<div class="sketch-body">' +
@@ -677,7 +733,7 @@ function buildSketch(num) {
             '<div class="form-row">' +
               '<div class="form-group">' +
                 '<label>Refer-to-Art # <span class="hint-inline">— from the art archive, if starting from existing art</span></label>' +
-                '<input type="text" class="js-refer" placeholder="e.g. APC03760915" style="font-family:\'DM Mono\',monospace;">' +
+                '<input type="text" class="js-refer" placeholder="e.g. SVN-00123" style="font-family:\'DM Mono\',monospace;">' +
               '</div>' +
               '<div class="form-group">' +
                 '<label>Attachments</label>' +
@@ -693,9 +749,9 @@ function buildSketch(num) {
               '<div class="form-group"><label>Process</label><select class="js-process">' + procOpts + '</select></div>' +
             '</div>' +
 
-            '<div class="sub-label">Garments</div>' +
+            '<div class="sub-label">Items</div>' +
             '<div class="garment-list"></div>' +
-            '<button type="button" class="btn-link js-add-garment">+ Add another garment</button>' +
+            '<button type="button" class="btn-link js-add-garment">+ Add another item</button>' +
 
             '<div class="sub-label">Changes</div>' +
             '<div class="swap-layout">' +
@@ -741,18 +797,24 @@ function setSketchNumber($card, num) {
     $card.find('.sketch-title').text('Sketch ' + num);
 }
 
+// ── Items (picked from the account's catalog) ────────────────────────────────
 function addGarmentRow($card, style, color) {
     var $row = $(
         '<div class="garment-row">' +
           '<span class="idx"></span>' +
-          '<input type="text" class="js-style" placeholder="Style, e.g. CS3050">' +
-          '<input type="text" class="js-color" placeholder="Color, e.g. 940">' +
-          '<button type="button" class="icon-btn js-remove-garment" title="Remove garment">✕</button>' +
+          '<div class="item-combo">' +
+            '<input type="text" class="js-item" autocomplete="off">' +
+            '<div class="item-dropdown"></div>' +
+            '<div class="item-meta"></div>' +
+          '</div>' +
+          '<input type="text" class="js-color">' +
+          '<button type="button" class="icon-btn js-remove-garment" title="Remove item">✕</button>' +
         '</div>'
     );
-    if (style) $row.find('.js-style').val(style);
-    if (color) $row.find('.js-color').val(color);
     $card.find('.garment-list').append($row);
+    setRowItem($row, style ? catalogByStyle[style] : null);
+    if (color) $row.find('.js-color').val(color);
+    refreshPickerState($row);
     renumberGarments($card);
 }
 
@@ -766,16 +828,254 @@ function copyGarmentsFromFirst($card) {
     var $first = $('#sketches .sketch-card').first();
     var rows = [];
     $first.find('.garment-row').each(function () {
-        var s = $(this).find('.js-style').val().trim(), c = $(this).find('.js-color').val().trim();
-        if (s || c) rows.push([s, c]);
+        var s = $(this).data('style'), c = $(this).find('.js-color').val().trim();
+        if (s) rows.push([s, c]);
     });
-    if (!rows.length) { alert('Sketch 1 has no garments entered yet.'); return; }
+    if (!rows.length) { alert('Sketch 1 has no items picked yet.'); return; }
     $card.find('.garment-list').empty();
     rows.forEach(function (r) { addGarmentRow($card, r[0], r[1]); });
     var loc = $first.find('.js-location').val(), proc = $first.find('.js-process').val();
     if (loc && !$card.find('.js-location').val()) $card.find('.js-location').val(loc);
     if (proc && !$card.find('.js-process').val()) $card.find('.js-process').val(proc);
     updateSummary();
+}
+
+// Put an item (or nothing) into a row and update its label, chips and color hint
+function setRowItem($row, item) {
+    var $in = $row.find('.js-item'), $meta = $row.find('.item-meta'), $color = $row.find('.js-color');
+    $row.data('style', item ? item.style : null);
+    if (item) {
+        $in.val(item.desc).addClass('picked').removeClass('field-error');
+        $meta.html('<span class="code">' + esc(item.style) + '</span>' +
+            (item.tier ? '<span class="tier-chip">' + esc(item.tier) + '</span>' : '') +
+            '<span class="cat-chip">' + esc(item.cat) + '</span>');
+    } else {
+        $in.removeClass('picked');
+        $meta.empty();
+    }
+    var apparel = item && item.cat === 'Apparel';
+    $color.attr('placeholder', apparel ? 'Garment color' : 'Color / finish (optional)');
+    $row.data('needsColor', !!apparel);
+}
+
+function refreshPickerState($row) {
+    var $in = $row.find('.js-item');
+    if (!state.account) {
+        $in.prop('disabled', true).attr('placeholder', 'Choose an account above first');
+    } else {
+        $in.prop('disabled', false).attr('placeholder', 'Search ' + state.account + ' items — e.g. hoodie, decal, tumbler');
+    }
+}
+
+// Switching accounts: SVN ↔ LNP items mirror each other, so carry picks across
+function onAccountChanged(prev, next) {
+    var moved = 0, cleared = 0;
+    $('#sketches .garment-row').each(function () {
+        var $row = $(this), style = $row.data('style');
+        refreshPickerState($row);
+        if (!style || !prev) return;
+        var swapped = ACCOUNT_PREFIX[next] + style.slice(ACCOUNT_PREFIX[prev].length);
+        var item = catalogByStyle[swapped];
+        if (item && style.indexOf(ACCOUNT_PREFIX[prev]) === 0) { setRowItem($row, item); moved++; }
+        else { setRowItem($row, null); $row.find('.js-item').val(''); cleared++; }
+    });
+    if (cleared) alert(cleared + ' item' + (cleared > 1 ? 's' : '') + ' had no ' + next + ' match and were cleared.');
+}
+
+function searchItems(query) {
+    var list = catalog[state.account] || [];
+    var tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return list;
+    return list.filter(function (it) {
+        var hay = (it.desc + ' ' + it.style).toLowerCase();
+        return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
+    });
+}
+
+function highlight(text, query) {
+    var out = esc(text);
+    query.split(/\s+/).filter(Boolean).forEach(function (t) {
+        out = out.replace(new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&/g, '&amp;') + ')', 'ig'), '<mark>$1</mark>');
+    });
+    return out;
+}
+
+function renderItemDropdown($row) {
+    var $dd = $row.find('.item-dropdown');
+    var q = $row.data('style') ? '' : $row.find('.js-item').val().trim();
+    var hits = searchItems(q);
+    if (!hits.length) {
+        $dd.html('<div class="item-empty">No ' + esc(state.account) + ' items match “' + esc(q) + '”</div>').addClass('open');
+        $row.data('hits', []);
+        return;
+    }
+    var byCat = {};
+    hits.forEach(function (it) { (byCat[it.cat] = byCat[it.cat] || []).push(it); });
+    var ordered = [], html = '';
+    CATEGORY_ORDER.forEach(function (c) {
+        if (!byCat[c]) return;
+        html += '<div class="item-group">' + esc(c) + ' · ' + byCat[c].length + '</div>';
+        byCat[c].forEach(function (it) {
+            html += '<div class="item-opt" data-i="' + ordered.length + '"><div class="d">' + highlight(it.desc, q) +
+                    '</div><div class="c">' + esc(it.style) + '</div></div>';
+            ordered.push(it);
+        });
+    });
+    $row.data('hits', ordered).data('hl', 0);
+    $dd.html(html).addClass('open');
+    $dd.scrollTop(0);
+    $dd.find('.item-opt').first().addClass('hl');
+}
+
+function bindItemPicker() {
+    $(document).on('focus', '.js-item', function () {
+        var $row = $(this).closest('.garment-row');
+        if ($row.data('style')) this.select();
+        renderItemDropdown($row);
+    });
+    $(document).on('input', '.js-item', function () {
+        var $row = $(this).closest('.garment-row');
+        if ($row.data('style')) setRowItem($row, null);
+        renderItemDropdown($row);
+        updateSummary();
+    });
+    $(document).on('keydown', '.js-item', function (e) {
+        var $row = $(this).closest('.garment-row'), $dd = $row.find('.item-dropdown');
+        var hits = $row.data('hits') || [], hl = $row.data('hl') || 0;
+        if (!$dd.hasClass('open')) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            hl = e.key === 'ArrowDown' ? Math.min(hl + 1, hits.length - 1) : Math.max(hl - 1, 0);
+            $row.data('hl', hl);
+            var $opts = $dd.find('.item-opt').removeClass('hl'), $o = $opts.eq(hl).addClass('hl');
+            if ($o.length) $o[0].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (hits[hl]) pickItem($row, hits[hl]);
+        } else if (e.key === 'Escape') {
+            $dd.removeClass('open');
+        }
+    });
+    $(document).on('blur', '.js-item', function () {
+        var $row = $(this).closest('.garment-row'), el = this;
+        setTimeout(function () {
+            $row.find('.item-dropdown').removeClass('open');
+            if (!$row.data('style') && $(el).val().trim()) $(el).addClass('field-error');
+        }, 150);
+    });
+    $(document).on('mousedown', '.item-opt', function (e) {
+        e.preventDefault();
+        var $row = $(this).closest('.garment-row');
+        pickItem($row, ($row.data('hits') || [])[+$(this).data('i')]);
+    });
+}
+
+function pickItem($row, item) {
+    if (!item) return;
+    setRowItem($row, item);
+    $row.find('.item-dropdown').removeClass('open');
+    var $color = $row.find('.js-color');
+    if (item.cat === 'Apparel') $color.focus(); else $row.find('.js-item').blur();
+    updateSummary();
+}
+
+// ── Catalog loading ──────────────────────────────────────────────────────────
+function makeItem(style, desc, cat) {
+    var m = /(\d+)\s*-\s*(\d+)\s*COLOR\s*(\d+)\s*LOC/i.exec(desc);
+    var tier = m ? m[1] + '–' + m[2] + ' ink colors · ' + m[3] + ' location' + (m[3] === '1' ? '' : 's') : '';
+    return { style: style, desc: prettyDesc(desc), cat: cat, tier: tier };
+}
+
+// "1 - 2 COLOR 1 LOC HOODIE" → "Hoodie (1–2 Color, 1 Loc)"; everything else → Title Case
+function prettyDesc(d) {
+    var ABBR = { LS: 'Long Sleeve', MW: 'Moisture Wick', FL: 'Fleece', HD: 'Hoodie' };
+    var m = /^(\d+)\s*-\s*(\d+)\s*COLOR\s*(\d+)\s*LOC\s+(.+)$/i.exec(d);
+    if (m) {
+        var g = ABBR[m[4].toUpperCase()] || titleCase(m[4]);
+        return g + ' (' + m[1] + '–' + m[2] + ' Color, ' + m[3] + ' Loc)';
+    }
+    return titleCase(d);
+}
+function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s\-\/(])([a-z])/g, function (_, a, b) { return a + b.toUpperCase(); })
+            .replace(/\b(Oz|Id|Xmas)\b/gi, function (w) { return w.toUpperCase(); })
+            .replace(/(\d)X(\d)/gi, '$1×$2').replace(/(\d)" X (\d)/gi, '$1" × $2')
+            .replace(/\b(W\/|With|And|Or|Of|The)\b/g, function (w) { return w.toLowerCase(); });
+}
+
+function setCatalog(account, items) {
+    catalog[account] = items;
+    items.forEach(function (it) { catalogByStyle[it.style] = it; });
+}
+
+function loadCatalogs() {
+    Object.keys(BUILTIN_CATALOG).forEach(function (acct) {
+        setCatalog(acct, BUILTIN_CATALOG[acct].map(function (r) { return makeItem(r[0], r[1], r[2]); }));
+    });
+    Object.keys(CATALOG_CSV).forEach(function (acct) {
+        var url = CATALOG_CSV[acct];
+        if (!url) return;
+        $.ajax({ url: url, method: 'GET', dataType: 'text', cache: false, timeout: 15000 })
+            .done(function (csv) {
+                var items = parseCatalogCsv(csv, acct);
+                if (items.length) setCatalog(acct, items);
+            })
+            .fail(function () { console.warn('Using built-in item list for ' + acct + ' (CSV unavailable)'); });
+    });
+}
+
+// Reads the order-template layout: finds the "Vendor Style #" header row, then
+// collapses the per-size rows into one entry per style.
+function parseCatalogCsv(csv, account) {
+    var lines = csv.split(/\r?\n/), styleCol = -1, descCol = -1, start = -1;
+    for (var i = 0; i < lines.length && start < 0; i++) {
+        var cols = parseCSVRow(lines[i]);
+        for (var c = 0; c < cols.length; c++) {
+            if (/^vendor style/i.test(cols[c])) { styleCol = c; start = i + 1; }
+            if (/^item description/i.test(cols[c])) descCol = c;
+        }
+    }
+    if (start < 0 || descCol < 0) return [];
+    var prefix = ACCOUNT_PREFIX[account], seen = {}, out = [];
+    var SIZE = /-(XS|S|M|L|XL|XX|XXL|2X|3X|XXX|3XL|4X|OS|OSFA|OSFM|YS|YM|YL|YXL|SM|MD|LG)$/i;
+    for (var j = start; j < lines.length; j++) {
+        var r = parseCSVRow(lines[j]);
+        var sku = (r[styleCol] || '').trim(), desc = (r[descCol] || '').trim();
+        if (!sku || !desc) continue;
+        var style = sku.replace(SIZE, '');
+        if (seen[style]) continue;
+        seen[style] = true;
+        desc = desc.replace(SIZE, '').replace(new RegExp('^' + prefix + '\\s+', 'i'), '').trim();
+        out.push(makeItem(style, desc, categorize(desc)));
+    }
+    return out;
+}
+
+function categorize(d) {
+    var u = d.toUpperCase();
+    if (/COLOR \d LOC/.test(u)) return 'Apparel';
+    if (/CAP/.test(u)) return 'Headwear';
+    if (/KEY ?(TAG|CHAIN)|KEYCHAIN|BOTTLE OPENER/.test(u)) return 'Keychains';
+    if (/DECAL|MAGNET|STICKER|CLING/.test(u)) return 'Decals, Magnets & Stickers';
+    if (/LANYARD|WRISTLET|BADGE/.test(u)) return 'Lanyards & Badge Holders';
+    if (/BEAR|WITH TEE|\bTHE /.test(u)) return 'Plush';
+    if (/TOTE|SPORTSPACK|\bBAG/.test(u)) return 'Bags';
+    if (/GLASS|ETCHED|TUMBLER|PILSNER|PINT|MUG|NALGENE|BOTTLE|BEVERAGE/.test(u)) return 'Drinkware';
+    if (/ORNAMENT/.test(u)) return 'Ornaments';
+    if (/CARDS|CUBE/.test(u)) return 'Games & Novelty';
+    return 'Other';
+}
+
+function parseCSVRow(row) {
+    var cols = [], cur = '', inQ = false;
+    for (var i = 0; i < row.length; i++) {
+        var ch = row[i];
+        if (ch === '"') { if (inQ && row[i + 1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += ch;
+    }
+    cols.push(cur.trim());
+    return cols;
 }
 
 function autoDetectLicensing($card) {
@@ -818,7 +1118,7 @@ function bindFileDrop($drop, key) {
 // ── Summary ───────────────────────────────────────────────────────────────────
 function updateSummary() {
     var garments = 0;
-    $('#sketches .garment-row').each(function () { if ($(this).find('.js-style').val().trim()) garments++; });
+    $('#sketches .garment-row').each(function () { if ($(this).data('style')) garments++; });
     $('#sumSketches').text(state.count);
     $('#sumGarments').text(garments);
     $('#sumLicensing').text($('#sketches .js-lic.on').length);
@@ -841,10 +1141,21 @@ function validate() {
 
     $('#sketches .sketch-card').each(function () {
         var $c = $(this), n = $c.data('num');
-        var $firstStyle = $c.find('.garment-row').first().find('.js-style');
-        var $firstColor = $c.find('.garment-row').first().find('.js-color');
-        need($firstStyle, 'Sketch ' + n + ': garment style');
-        need($firstColor, 'Sketch ' + n + ': garment color');
+        var picked = 0;
+        $c.find('.garment-row').each(function (gi) {
+            var $row = $(this), $in = $row.find('.js-item');
+            if ($row.data('style')) {
+                picked++;
+                if ($row.data('needsColor')) need($row.find('.js-color'), 'Sketch ' + n + ', item ' + (gi + 1) + ': garment color');
+            } else if ($in.val().trim()) {
+                $in.addClass('field-error');
+                errors.push('Sketch ' + n + ', item ' + (gi + 1) + ': pick "' + $in.val().trim() + '" from the list');
+            }
+        });
+        if (!picked) {
+            $c.find('.garment-row').first().find('.js-item').addClass('field-error');
+            errors.push('Sketch ' + n + ': pick at least one item');
+        }
         need($c.find('.js-location'), 'Sketch ' + n + ': print location');
         need($c.find('.js-desc'), 'Sketch ' + n + ': description');
 
@@ -881,8 +1192,10 @@ function buildPayload() {
         var $c = $(this);
         var garments = [], changes = [];
         $c.find('.garment-row').each(function () {
-            var s = $(this).find('.js-style').val().trim(), col = $(this).find('.js-color').val().trim();
-            if (s || col) garments.push({ style: s, color: col });
+            var st = $(this).data('style');
+            if (!st) return;
+            var it = catalogByStyle[st] || {};
+            garments.push({ style: st, description: it.desc || '', category: it.cat || '', color: $(this).find('.js-color').val().trim() });
         });
         $c.find('.swap-table input.omit').each(function () {
             var row = $(this).data('row');
@@ -894,7 +1207,7 @@ function buildPayload() {
             referToArt: $c.find('.js-refer').val().trim(),
             location: $c.find('.js-location').val(),
             process: $c.find('.js-process').val(),
-            garments: garments,
+            items: garments,
             changes: changes,
             description: $c.find('.js-desc').val().trim(),
             needsLicensing: $c.find('.js-lic').hasClass('on'),
@@ -932,7 +1245,7 @@ function openReview() {
         '<dt>Projected</dt><dd>' + esc(p.projectedDate) + '</dd>' +
         '</dl>';
     p.sketches.forEach(function (s) {
-        var g = s.garments.map(function (x) { return x.style + (x.color ? ' / ' + x.color : ''); }).join(', ');
+        var g = s.items.map(function (x) { return x.description + (x.color ? ' — ' + x.color : ''); }).join(', ');
         var ch = s.changes.map(function (c) { return esc(c.omit || '—') + ' → ' + esc(c.add || '—'); }).join(' · ');
         html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b>' + (s.needsLicensing ? '<span class="tag-lic">Licensing</span>' : '') +
             '<div>' + esc(g) + ' · ' + esc(s.location) + (s.referToArt ? ' · Art ' + esc(s.referToArt) : '') + '</div>' +
