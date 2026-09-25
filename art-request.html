@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Art Request - Sales Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --surface-2: #fafaf8;
+            --border: #e2e0d8;
+            --text: #1a1a18;
+            --text-muted: #7a7870;
+            --accent: #667eea;
+            --accent2: #764ba2;
+            --accent-soft: #f0f4ff;
+            --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #2e7d32;
+            --success-bg: #e8f5e9;
+            --warning: #b45309;
+            --warning-bg: #fff8e1;
+            --error: #c62828;
+            --error-bg: #ffebee;
+            --shadow: 0 2px 12px rgba(0,0,0,0.07);
+            --radius: 10px;
+        }
+
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* ── Header ── */
+        .portal-header {
+            background: var(--grad); color: white; padding: 0 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 64px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header .logo-area { display: flex; align-items: center; gap: 14px; }
+        .portal-header img.logo { max-height: 38px; max-width: 120px; object-fit: contain; }
+        .portal-header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+        .header-right { display: flex; align-items: center; gap: 18px; }
+        .rep-badge {
+            background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500;
+        }
+        .btn-back {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: white;
+            padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.25); }
+        @media (max-width: 600px) {
+            .portal-header { padding: 0 16px; }
+            .rep-badge { display: none; }
+        }
+
+        /* ── Status strip ── */
+        .status-strip {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 0 32px; display: flex; gap: 4px; overflow-x: auto;
+        }
+        .status-tab {
+            padding: 12px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted);
+            white-space: nowrap; border-bottom: 2px solid transparent; cursor: pointer;
+        }
+        .status-tab:hover { color: var(--accent); }
+        .status-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+        .status-tab .count {
+            display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px;
+            border-radius: 10px; background: #eeede8; font-size: 11px; font-family: 'DM Mono', monospace; text-align: center;
+        }
+        .status-tab.ours .count { background: #efe7f7; color: var(--accent2); }
+        @media (max-width: 600px) { .status-strip { padding: 0 8px; } }
+
+        /* ── Page body ── */
+        .page-body { max-width: 960px; margin: 0 auto; padding: 36px 24px 120px; }
+        @media (max-width: 600px) { .page-body { padding: 24px 16px 120px; } }
+        .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+        .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .page-subtitle { color: var(--text-muted); font-size: 14px; }
+        .req-meta { display: flex; gap: 10px; align-items: center; }
+        .pill {
+            display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: var(--surface);
+        }
+        .pill.draft::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #b0ada3; }
+        .pill.mono { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--text-muted); }
+
+        .preview-banner {
+            background: var(--warning-bg); border: 1px solid #f3dfa3; color: #7a5a00;
+            border-radius: var(--radius); padding: 10px 16px; font-size: 13px; margin-bottom: 20px;
+        }
+
+        /* ── Cards ── */
+        .form-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 28px 32px; box-shadow: var(--shadow); margin-bottom: 24px;
+        }
+        @media (max-width: 600px) { .form-card { padding: 20px 18px; } }
+        .form-card-title {
+            font-size: 15px; font-weight: 600; letter-spacing: -0.2px; margin-bottom: 22px; padding-bottom: 14px;
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;
+        }
+        .form-card-title .icon { font-size: 18px; }
+        .form-card-title .right { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+        /* ── Form grid ── */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-row.single { grid-template-columns: 1fr; }
+        .form-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.quad { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+        @media (max-width: 700px) {
+            .form-row, .form-row.triple, .form-row.quad { grid-template-columns: 1fr; }
+        }
+
+        .form-group { display: flex; flex-direction: column; min-width: 0; }
+        .form-group label, .field-label {
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;
+            color: var(--text-muted); margin-bottom: 7px;
+        }
+        .required { color: #e53935; margin-left: 2px; }
+        .form-group .hint-inline { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 4px; }
+
+        input[type="text"], input[type="email"], textarea, select {
+            width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 7px;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--surface);
+            transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
+        input[readonly] { background: #f8f8f6; color: var(--text-muted); }
+        textarea { resize: vertical; min-height: 84px; }
+        .field-error { border-color: #e57373 !important; background: var(--error-bg) !important; }
+        .field-hint { font-size: 11px; margin-top: 5px; color: var(--text-muted); }
+
+        /* ── Segmented buttons (account) ── */
+        .seg-group { display: flex; gap: 10px; flex-wrap: wrap; }
+        .seg-btn {
+            flex: 1; min-width: 180px; display: flex; align-items: center; gap: 12px; padding: 13px 16px;
+            border: 2px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer;
+            font-family: 'DM Sans', sans-serif; text-align: left; transition: all 0.18s;
+        }
+        .seg-btn:hover { border-color: var(--accent); background: #f7f9ff; }
+        .seg-btn.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 2px 10px rgba(102,126,234,0.15); }
+        .seg-btn .emoji { font-size: 22px; }
+        .seg-btn .t { font-size: 14px; font-weight: 600; color: var(--text); }
+        .seg-btn .s { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+        .seg-group.field-error-group .seg-btn { border-color: #e57373; }
+
+        /* ── Sketch pack ── */
+        .pack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        @media (max-width: 700px) { .pack-grid { grid-template-columns: 1fr; } }
+        .pack-card {
+            border: 2px solid var(--border); border-radius: 10px; padding: 16px 18px; cursor: pointer;
+            background: var(--surface); transition: all 0.18s; position: relative;
+        }
+        .pack-card:hover { border-color: var(--accent); }
+        .pack-card.selected { border-color: transparent; background: var(--grad); color: white; box-shadow: 0 4px 16px rgba(102,126,234,0.3); }
+        .pack-card .range { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+        .pack-card .range small { font-size: 13px; font-weight: 500; opacity: 0.75; margin-left: 4px; }
+        .pack-card .days { font-size: 12px; margin-top: 4px; color: var(--text-muted); }
+        .pack-card.selected .days { color: rgba(255,255,255,0.85); }
+        .pack-grid.field-error-group .pack-card { border-color: #e57373; }
+
+        .count-row {
+            display: none; margin-top: 18px; padding: 16px 18px; background: var(--surface-2);
+            border: 1px solid var(--border); border-radius: 8px; align-items: center; gap: 16px; flex-wrap: wrap;
+        }
+        .count-row.open { display: flex; }
+        .count-row .field-label { margin: 0; }
+        .chip-group { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip {
+            width: 40px; height: 36px; border: 1.5px solid var(--border); border-radius: 7px; background: var(--surface);
+            font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text);
+        }
+        .chip:hover { border-color: var(--accent); color: var(--accent); }
+        .chip.selected { background: var(--accent); border-color: var(--accent); color: white; }
+
+        .due-box {
+            margin-left: auto; text-align: right;
+        }
+        .due-box .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); }
+        .due-box .date { font-size: 20px; font-weight: 700; color: var(--accent2); font-family: 'DM Mono', monospace; }
+        @media (max-width: 700px) { .due-box { margin-left: 0; text-align: left; width: 100%; } }
+
+        /* ── File drop ── */
+        .file-drop {
+            border: 1.5px dashed var(--border); border-radius: 8px; padding: 14px 16px; background: var(--surface-2);
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .file-drop.dragover { border-color: var(--accent); background: var(--accent-soft); }
+        .btn-file {
+            padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface);
+            font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text);
+        }
+        .btn-file:hover { border-color: var(--accent); color: var(--accent); }
+        .file-drop .note { font-size: 12px; color: var(--text-muted); }
+        .file-list { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+        .file-list:empty { display: none; }
+        .file-chip {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 14px;
+            background: var(--accent-soft); color: #3a4a9a; font-size: 12px; font-weight: 500; max-width: 100%;
+        }
+        .file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-chip button { border: none; background: none; cursor: pointer; color: #3a4a9a; font-size: 13px; padding: 0 4px; }
+
+        /* ── Sketch cards ── */
+        .sketches-head { display: flex; align-items: center; justify-content: space-between; margin: 36px 0 14px; gap: 12px; flex-wrap: wrap; }
+        .section-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+        }
+        .sketches-empty {
+            border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 40px 20px; text-align: center;
+            color: var(--text-muted); font-size: 14px; background: var(--surface);
+        }
+
+        .sketch-card { padding: 0; overflow: hidden; }
+        .sketch-head {
+            display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: var(--surface-2);
+            border-bottom: 1px solid var(--border); flex-wrap: wrap;
+        }
+        .sketch-num {
+            width: 32px; height: 32px; border-radius: 8px; background: var(--grad); color: white;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0;
+        }
+        .sketch-title { font-size: 15px; font-weight: 600; }
+        .sketch-sub { font-size: 12px; color: var(--text-muted); }
+        .sketch-actions { margin-left: auto; display: flex; gap: 8px; }
+        .btn-ghost {
+            padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 6px; background: var(--surface);
+            font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+        }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-link {
+            border: none; background: none; color: var(--accent); font-family: 'DM Sans', sans-serif;
+            font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 0;
+        }
+        .btn-link:hover { text-decoration: underline; }
+        .sketch-body { padding: 22px 24px; }
+        @media (max-width: 600px) { .sketch-head, .sketch-body { padding-left: 16px; padding-right: 16px; } }
+
+        .sub-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted);
+            margin: 22px 0 10px; display: flex; align-items: center; gap: 8px;
+        }
+        .sub-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .sub-label:first-child { margin-top: 0; }
+
+        /* Garments */
+        .garment-list { display: flex; flex-direction: column; gap: 8px; }
+        .garment-row { display: grid; grid-template-columns: 28px 1.3fr 1fr 34px; gap: 8px; align-items: center; }
+        .garment-row .idx { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); text-align: center; }
+        .icon-btn {
+            width: 34px; height: 38px; border: 1.5px solid var(--border); border-radius: 7px; background: var(--surface);
+            color: var(--text-muted); cursor: pointer; font-size: 14px;
+        }
+        .icon-btn:hover { border-color: #e57373; color: var(--error); }
+        .icon-btn:disabled { opacity: 0.3; cursor: default; }
+        .icon-btn:disabled:hover { border-color: var(--border); color: var(--text-muted); }
+
+        /* Omit / Add */
+        .swap-layout { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; }
+        @media (max-width: 760px) { .swap-layout { grid-template-columns: 1fr; } }
+        .swap-table { display: grid; grid-template-columns: 22px 1fr 22px 1fr; gap: 6px 6px; align-items: center; }
+        .swap-table .hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; }
+        .swap-table .hdr.omit { color: var(--error); }
+        .swap-table .hdr.add { color: var(--success); }
+        .swap-table .n { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); text-align: center; }
+        .swap-table .arrow { color: #c4c1b8; text-align: center; font-size: 14px; }
+        .swap-table input { padding: 8px 10px; font-size: 13px; }
+        .swap-table input.omit:not(:placeholder-shown) { border-color: #f1b0b0; background: #fff7f7; }
+        .swap-table input.add:not(:placeholder-shown) { border-color: #a5d6a7; background: #f5fbf5; }
+
+        .desc-col textarea { min-height: 178px; height: 100%; }
+
+        .licensing {
+            margin-top: 18px; display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+            border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); cursor: pointer; user-select: none;
+        }
+        .licensing.on { background: #f7f1fc; border-color: #d9c6ec; }
+        .licensing .box {
+            width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; margin-top: 1px;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;
+        }
+        .licensing.on .box { background: var(--grad); border-color: transparent; }
+        .licensing.on .box::after { content: '✓'; }
+        .licensing .t { font-size: 13px; font-weight: 600; }
+        .licensing .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .licensing .auto { font-size: 10px; font-weight: 700; color: var(--accent2); background: #efe7f7; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
+
+        /* ── Sticky submit bar ── */
+        .submit-bar {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(6px); border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+        }
+        .submit-inner { max-width: 960px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; gap: 20px; }
+        @media (max-width: 600px) { .submit-inner { padding: 12px 16px; gap: 12px; } }
+        .submit-stats { display: flex; gap: 22px; flex: 1; min-width: 0; flex-wrap: wrap; }
+        .stat .num { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 600; display: block; }
+        .stat .lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
+        @media (max-width: 600px) { .stat.hide-sm { display: none; } }
+        .btn-secondary {
+            padding: 12px 18px; border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface);
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-submit {
+            padding: 12px 26px; background: var(--grad); color: white; border: none; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(102,126,234,0.35); white-space: nowrap;
+        }
+        .btn-submit:hover { opacity: 0.92; }
+        @media (max-width: 600px) { .btn-secondary { display: none; } }
+
+        /* ── Error summary ── */
+        .error-summary {
+            display: none; background: var(--error-bg); border: 1px solid #f5c2c2; border-radius: var(--radius);
+            padding: 14px 18px; margin-bottom: 22px; color: var(--error); font-size: 13px;
+        }
+        .error-summary.open { display: block; }
+        .error-summary strong { display: block; margin-bottom: 6px; font-size: 14px; }
+        .error-summary ul { margin-left: 18px; }
+        .error-summary li { margin: 2px 0; }
+
+        /* ── Modal ── */
+        .modal-bg {
+            display: none; position: fixed; inset: 0; background: rgba(20,20,30,0.45); z-index: 200;
+            align-items: center; justify-content: center; padding: 16px;
+        }
+        .modal-bg.open { display: flex; }
+        .modal {
+            background: var(--surface); border-radius: 12px; width: 100%; max-width: 620px; max-height: 88vh;
+            overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .modal-head { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .modal-head h2 { font-size: 18px; font-weight: 600; }
+        .modal-body { padding: 20px 24px; font-size: 14px; }
+        .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .rv-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; margin-bottom: 18px; }
+        .rv-grid dt { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px; }
+        .rv-sketch { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; }
+        .rv-sketch b { font-size: 13px; }
+        .rv-sketch .swaps { color: var(--text-muted); margin-top: 4px; }
+        .tag-lic { font-size: 10px; font-weight: 700; color: var(--accent2); background: #efe7f7; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="portal-header">
+    <div class="logo-area">
+        <img src="logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+        <h1>Sales Portal</h1>
+    </div>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge">Loading…</span>
+        <a href="index.html" class="btn-back">← Back to Portal</a>
+    </div>
+</div>
+
+<!-- ── Status strip (my art requests) ── -->
+<div class="status-strip">
+    <div class="status-tab">Draft <span class="count">0</span></div>
+    <div class="status-tab">Opened <span class="count">0</span></div>
+    <div class="status-tab">In Progress <span class="count">0</span></div>
+    <div class="status-tab">On Hold <span class="count">0</span></div>
+    <div class="status-tab">Revise <span class="count">0</span></div>
+    <div class="status-tab">Complete <span class="count">0</span></div>
+    <div class="status-tab ours">Licensing <span class="count">0</span></div>
+    <div class="status-tab ours">Ready to Order <span class="count">0</span></div>
+    <div class="status-tab active">+ New Request</div>
+</div>
+
+<div class="page-body">
+
+    <div class="page-head">
+        <div>
+            <div class="page-title">🎨 New Art Request</div>
+            <div class="page-subtitle">Pick existing art or upload your own, then tell the art team what to change.</div>
+        </div>
+        <div class="req-meta">
+            <span class="pill mono" id="reqId">ID assigned on submit</span>
+            <span class="pill draft">Draft</span>
+        </div>
+    </div>
+
+    <div id="previewBanner"></div>
+    <div class="error-summary" id="errorSummary"></div>
+
+    <!-- ── Request info ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">📋</span> Request Details</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Requestor</label>
+                <input type="text" id="repName" readonly>
+            </div>
+            <div class="form-group">
+                <label>Rep Email</label>
+                <input type="email" id="repEmail" readonly>
+            </div>
+        </div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>Account <span class="required">*</span></label>
+                <div class="seg-group" id="accountGroup">
+                    <button type="button" class="seg-btn" data-account="Souvenir">
+                        <span class="emoji">🎁</span>
+                        <span><span class="t">Souvenir</span><div class="s">Base &amp; location-specific souvenirs</div></span>
+                    </button>
+                    <button type="button" class="seg-btn" data-account="Local Navy Pride">
+                        <span class="emoji">⚓</span>
+                        <span><span class="t">Local Navy Pride</span><div class="s">Local Navy Pride program</div></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>Project Title <span class="required">*</span> <span class="hint-inline">— appears on the cover page of your PDF, so choose wisely</span></label>
+                <input type="text" id="projectTitle" placeholder="e.g. NEXCOM DSD Catalog – CS3050 Base Name Drop" maxlength="120">
+            </div>
+        </div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>Description <span class="required">*</span> <span class="hint-inline">— the theme or purpose, customer likes and dislikes</span></label>
+                <textarea id="description" placeholder="e.g. Create base-specific designs for the NEXCOM DSD catalog"></textarea>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Preferred Marks or Logos</label>
+                <textarea id="preferredMarks" style="min-height:64px;" placeholder="Any marks or logos to use across all sketches"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Institution</label>
+                <input type="text" id="institution" placeholder="e.g. NAS Jacksonville">
+            </div>
+        </div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>General Attachments</label>
+                <div class="file-drop" data-target="general">
+                    <button type="button" class="btn-file">📎 Choose files</button>
+                    <span class="note">or drag files here — logos, reference art, customer notes</span>
+                    <input type="file" multiple hidden>
+                    <div class="file-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Sketch pack ── -->
+    <div class="form-card">
+        <div class="form-card-title"><span class="icon">📦</span> Sketch Pack <span class="required">*</span>
+            <span class="right">Turnaround is in business days</span>
+        </div>
+
+        <div class="pack-grid" id="packGrid">
+            <div class="pack-card" data-min="1" data-max="4" data-days-min="5" data-days-max="7">
+                <div class="range">1–4<small>sketches</small></div>
+                <div class="days">5–7 business days</div>
+            </div>
+            <div class="pack-card" data-min="5" data-max="8" data-days-min="7" data-days-max="10">
+                <div class="range">5–8<small>sketches</small></div>
+                <div class="days">7–10 business days</div>
+            </div>
+            <div class="pack-card" data-min="9" data-max="12" data-days-min="10" data-days-max="14">
+                <div class="range">9–12<small>sketches</small></div>
+                <div class="days">10–14 business days</div>
+            </div>
+        </div>
+
+        <div class="count-row" id="countRow">
+            <span class="field-label">How many sketches?</span>
+            <div class="chip-group" id="countChips"></div>
+            <div class="due-box">
+                <div class="lbl">Projected Date</div>
+                <div class="date" id="projectedDate">—</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Sketches ── -->
+    <div class="sketches-head">
+        <span class="section-label" id="sketchesLabel">Sketch Details</span>
+    </div>
+    <div id="sketches">
+        <div class="sketches-empty" id="sketchesEmpty">Choose a sketch pack above and your sketch forms will appear here.</div>
+    </div>
+
+</div>
+
+<!-- ── Sticky submit bar ── -->
+<div class="submit-bar">
+    <div class="submit-inner">
+        <div class="submit-stats">
+            <div class="stat"><span class="num" id="sumSketches">0</span><span class="lbl">Sketches</span></div>
+            <div class="stat hide-sm"><span class="num" id="sumGarments">0</span><span class="lbl">Garments</span></div>
+            <div class="stat hide-sm"><span class="num" id="sumLicensing">0</span><span class="lbl">Need Licensing</span></div>
+            <div class="stat"><span class="num" id="sumDue">—</span><span class="lbl">Projected</span></div>
+        </div>
+        <button type="button" class="btn-secondary" id="saveDraftBtn">Save Draft</button>
+        <button type="button" class="btn-submit" id="submitBtn">Review &amp; Submit</button>
+    </div>
+</div>
+
+<!-- ── Review modal ── -->
+<div class="modal-bg" id="reviewModal">
+    <div class="modal">
+        <div class="modal-head"><span style="font-size:20px;">🧾</span><h2>Review your request</h2></div>
+        <div class="modal-body" id="reviewBody"></div>
+        <div class="modal-foot">
+            <button type="button" class="btn-secondary" style="display:inline-block;" id="reviewBack">Keep editing</button>
+            <button type="button" class="btn-submit" id="reviewConfirm">Submit Request</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+// Backend isn't wired up yet. When it is, set SUBMIT_ENABLED = true and add an
+// 'artRequest' action to the Apps Script doPost.
+var APPS_SCRIPT_URL = '';
+var SUBMIT_ENABLED  = false;
+
+var MAX_SWAPS = 5;
+var LOCATIONS = [
+    ['FC', 'Full Chest'], ['LC', 'Left Chest'], ['RC', 'Right Chest'],
+    ['FB', 'Full Back'], ['UB', 'Upper Back'], ['LS', 'Left Sleeve'],
+    ['RS', 'Right Sleeve'], ['LEG', 'Leg'], ['HOOD', 'Hood'], ['OTH', 'Other']
+];
+var PROCESSES = ['Screen Print', 'Embroidery', 'DTG', 'Heat Transfer', 'Sublimation', 'Other'];
+
+// Words that suggest a base/branch name went into the "Add" column. Used only
+// to pre-tick the licensing box — the rep can always change it.
+var LICENSING_HINTS = /\b(navy|nas|nsa|nb|naval|jb|jbphh|nws|nsf|base|station|fleet|usn|marine|usmc|army|air force|coast guard|seabee)\b/i;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var state = {
+    account: null,
+    pack: null,          // { min, max, daysMin, daysMax }
+    count: 0,
+    files: { general: [] }
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+$(function () {
+    var auth = null;
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')); } catch (e) {}
+    if (auth && auth.email) {
+        $('#repBadge').text(auth.name || auth.email);
+        $('#repName').val(auth.name || '');
+        $('#repEmail').val(auth.email || '');
+    } else {
+        // Preview mode — lets the page be reviewed outside the portal
+        $('#repBadge').text('Preview');
+        $('#repName').val('Preview Rep');
+        $('#repEmail').val('rep@example.com');
+        $('#previewBanner').html('<div class="preview-banner"><strong>Preview mode</strong> — not logged in, so rep details are placeholders and nothing is submitted.</div>');
+    }
+
+    // Account
+    $('#accountGroup').on('click', '.seg-btn', function () {
+        $('#accountGroup .seg-btn').removeClass('selected');
+        $(this).addClass('selected');
+        state.account = $(this).data('account');
+        $('#accountGroup').removeClass('field-error-group');
+    });
+
+    // Sketch pack
+    $('#packGrid').on('click', '.pack-card', function () {
+        var $c = $(this);
+        var pack = { min: +$c.data('min'), max: +$c.data('max'), daysMin: +$c.data('days-min'), daysMax: +$c.data('days-max') };
+        $('#packGrid .pack-card').removeClass('selected');
+        $c.addClass('selected');
+        $('#packGrid').removeClass('field-error-group');
+        state.pack = pack;
+        renderCountChips();
+        var target = Math.min(Math.max(state.count || pack.min, pack.min), pack.max);
+        setCount(target);
+        $('#projectedDate, #sumDue').text(formatDate(addBusinessDays(new Date(), pack.daysMax)));
+    });
+
+    $('#countChips').on('click', '.chip', function () { setCount(+$(this).data('n')); });
+
+    // Clear errors as fields get filled
+    $(document).on('input change', 'input, textarea, select', function () {
+        if ($(this).val()) $(this).removeClass('field-error');
+    });
+
+    bindFileDrop($('.file-drop[data-target="general"]'), 'general');
+
+    $('#submitBtn').on('click', openReview);
+    $('#reviewBack').on('click', function () { $('#reviewModal').removeClass('open'); });
+    $('#reviewModal').on('click', function (e) { if (e.target === this) $(this).removeClass('open'); });
+    $('#reviewConfirm').on('click', submitRequest);
+    $('#saveDraftBtn').on('click', function () {
+        alert('Drafts will save to your Draft tab once the backend is connected.');
+    });
+});
+
+// ── Sketch count ──────────────────────────────────────────────────────────────
+function renderCountChips() {
+    var html = '';
+    for (var n = state.pack.min; n <= state.pack.max; n++) {
+        html += '<button type="button" class="chip" data-n="' + n + '">' + n + '</button>';
+    }
+    $('#countChips').html(html);
+    $('#countRow').addClass('open');
+}
+
+function setCount(n) {
+    var current = $('#sketches .sketch-card').length;
+
+    // Removing sketches — warn if any being removed have content
+    if (n < current) {
+        var losing = 0;
+        $('#sketches .sketch-card').slice(n).each(function () { if (sketchHasContent($(this))) losing++; });
+        if (losing && !confirm('This will remove ' + (current - n) + ' sketch' + (current - n > 1 ? 'es' : '') +
+            ' from the end, including ' + losing + ' with details filled in. Continue?')) {
+            highlightChip(current);
+            return;
+        }
+        $('#sketches .sketch-card').slice(n).remove();
+    }
+    for (var i = current; i < n; i++) $('#sketches').append(buildSketch(i + 1));
+
+    state.count = n;
+    $('#sketchesEmpty').toggle(n === 0);
+    $('#sketchesLabel').text(n ? 'Sketch Details · ' + n + ' sketch' + (n > 1 ? 'es' : '') : 'Sketch Details');
+    highlightChip(n);
+    updateSummary();
+}
+
+function highlightChip(n) {
+    $('#countChips .chip').removeClass('selected').filter('[data-n="' + n + '"]').addClass('selected');
+}
+
+// ── Sketch card ───────────────────────────────────────────────────────────────
+function buildSketch(num) {
+    var locOpts = '<option value="">Select…</option>' + LOCATIONS.map(function (l) {
+        return '<option value="' + l[0] + '">' + l[0] + ' — ' + l[1] + '</option>';
+    }).join('');
+    var procOpts = '<option value="">Optional</option>' + PROCESSES.map(function (p) {
+        return '<option>' + p + '</option>';
+    }).join('');
+
+    var swaps = '<span></span><span class="hdr omit">Omit</span><span></span><span class="hdr add">Add</span>';
+    for (var i = 1; i <= MAX_SWAPS; i++) {
+        swaps += '<span class="n">' + i + '</span>' +
+                 '<input type="text" class="omit" placeholder=" " data-row="' + i + '">' +
+                 '<span class="arrow">→</span>' +
+                 '<input type="text" class="add" placeholder=" " data-row="' + i + '">';
+    }
+
+    var $card = $(
+        '<div class="form-card sketch-card">' +
+          '<div class="sketch-head">' +
+            '<div class="sketch-num"></div>' +
+            '<div><div class="sketch-title"></div><div class="sketch-sub">Garment, art reference and changes</div></div>' +
+            '<div class="sketch-actions">' +
+              (num > 1 ? '<button type="button" class="btn-ghost js-copy">⧉ Copy garments from Sketch 1</button>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="sketch-body">' +
+
+            '<div class="sub-label">Art</div>' +
+            '<div class="form-row">' +
+              '<div class="form-group">' +
+                '<label>Refer-to-Art # <span class="hint-inline">— from the art archive, if starting from existing art</span></label>' +
+                '<input type="text" class="js-refer" placeholder="e.g. APC03760915" style="font-family:\'DM Mono\',monospace;">' +
+              '</div>' +
+              '<div class="form-group">' +
+                '<label>Attachments</label>' +
+                '<div class="file-drop" style="padding:8px 12px;">' +
+                  '<button type="button" class="btn-file">📎 Add files</button>' +
+                  '<input type="file" multiple hidden>' +
+                  '<div class="file-list"></div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="form-row">' +
+              '<div class="form-group"><label>Location <span class="required">*</span></label><select class="js-location">' + locOpts + '</select></div>' +
+              '<div class="form-group"><label>Process</label><select class="js-process">' + procOpts + '</select></div>' +
+            '</div>' +
+
+            '<div class="sub-label">Garments</div>' +
+            '<div class="garment-list"></div>' +
+            '<button type="button" class="btn-link js-add-garment">+ Add another garment</button>' +
+
+            '<div class="sub-label">Changes</div>' +
+            '<div class="swap-layout">' +
+              '<div><div class="swap-table">' + swaps + '</div>' +
+                '<div class="field-hint" style="margin-top:8px;">Replace names, mascots or logos. Put "LOGO (UPLOADED)" in Add to use an attached file.</div></div>' +
+              '<div class="form-group desc-col"><label>Description <span class="required">*</span></label>' +
+                '<textarea class="js-desc" placeholder="What should the artist do? Ink colors, placement, anything else.&#10;&#10;e.g. See uploaded vector logo — create a 1–2 ink color version. Inks = Navy & White."></textarea></div>' +
+            '</div>' +
+
+            '<div class="licensing js-lic">' +
+              '<div class="box"></div>' +
+              '<div><div class="t">Includes a base or branch name <span class="auto" style="display:none;">auto-detected</span></div>' +
+              '<div class="s">This sketch will go to licensing review after you approve the final art.</div></div>' +
+            '</div>' +
+
+          '</div>' +
+        '</div>'
+    );
+
+    addGarmentRow($card);
+    bindFileDrop($card.find('.file-drop'), null);
+
+    $card.on('click', '.js-add-garment', function () { addGarmentRow($card); updateSummary(); });
+    $card.on('click', '.js-remove-garment', function () {
+        $(this).closest('.garment-row').remove();
+        renumberGarments($card); updateSummary();
+    });
+    $card.on('click', '.js-copy', function () { copyGarmentsFromFirst($card); });
+    $card.on('click', '.js-lic', function () {
+        $(this).toggleClass('on').data('manual', true).find('.auto').hide();
+        updateSummary();
+    });
+    $card.on('input', 'input.add', function () { autoDetectLicensing($card); });
+    $card.on('input', '.garment-row input', updateSummary);
+
+    setSketchNumber($card, num);
+    return $card;
+}
+
+function setSketchNumber($card, num) {
+    $card.attr('data-num', num);
+    $card.find('.sketch-num').text(num);
+    $card.find('.sketch-title').text('Sketch ' + num);
+}
+
+function addGarmentRow($card, style, color) {
+    var $row = $(
+        '<div class="garment-row">' +
+          '<span class="idx"></span>' +
+          '<input type="text" class="js-style" placeholder="Style, e.g. CS3050">' +
+          '<input type="text" class="js-color" placeholder="Color, e.g. 940">' +
+          '<button type="button" class="icon-btn js-remove-garment" title="Remove garment">✕</button>' +
+        '</div>'
+    );
+    if (style) $row.find('.js-style').val(style);
+    if (color) $row.find('.js-color').val(color);
+    $card.find('.garment-list').append($row);
+    renumberGarments($card);
+}
+
+function renumberGarments($card) {
+    var $rows = $card.find('.garment-row');
+    $rows.each(function (i) { $(this).find('.idx').text(i + 1); });
+    $rows.find('.js-remove-garment').prop('disabled', $rows.length === 1);
+}
+
+function copyGarmentsFromFirst($card) {
+    var $first = $('#sketches .sketch-card').first();
+    var rows = [];
+    $first.find('.garment-row').each(function () {
+        var s = $(this).find('.js-style').val().trim(), c = $(this).find('.js-color').val().trim();
+        if (s || c) rows.push([s, c]);
+    });
+    if (!rows.length) { alert('Sketch 1 has no garments entered yet.'); return; }
+    $card.find('.garment-list').empty();
+    rows.forEach(function (r) { addGarmentRow($card, r[0], r[1]); });
+    var loc = $first.find('.js-location').val(), proc = $first.find('.js-process').val();
+    if (loc && !$card.find('.js-location').val()) $card.find('.js-location').val(loc);
+    if (proc && !$card.find('.js-process').val()) $card.find('.js-process').val(proc);
+    updateSummary();
+}
+
+function autoDetectLicensing($card) {
+    var $lic = $card.find('.js-lic');
+    if ($lic.data('manual')) return;
+    var hit = false;
+    $card.find('input.add').each(function () { if (LICENSING_HINTS.test($(this).val())) hit = true; });
+    $lic.toggleClass('on', hit).find('.auto').toggle(hit);
+    updateSummary();
+}
+
+function sketchHasContent($card) {
+    var has = false;
+    $card.find('input[type=text], textarea').each(function () { if ($(this).val().trim()) has = true; });
+    return has || $card.find('.js-location').val() || $card.data('files');
+}
+
+// ── Files (names only for now — upload handled when backend is wired) ─────────
+function bindFileDrop($drop, key) {
+    var files = [];
+    var $input = $drop.find('input[type=file]');
+    var $list = $drop.find('.file-list');
+
+    function render() {
+        $list.html(files.map(function (f, i) {
+            return '<span class="file-chip"><span>' + esc(f.name) + '</span><button type="button" data-i="' + i + '" title="Remove">✕</button></span>';
+        }).join(''));
+        if (key) state.files[key] = files; else $drop.closest('.sketch-card').data('files', files.length ? files : null);
+    }
+    function add(list) { for (var i = 0; i < list.length; i++) files.push(list[i]); render(); }
+
+    $drop.find('.btn-file').on('click', function () { $input.click(); });
+    $input.on('change', function () { add(this.files); this.value = ''; });
+    $list.on('click', 'button', function () { files.splice(+$(this).data('i'), 1); render(); });
+    $drop.on('dragover', function (e) { e.preventDefault(); $drop.addClass('dragover'); })
+         .on('dragleave drop', function () { $drop.removeClass('dragover'); })
+         .on('drop', function (e) { e.preventDefault(); add(e.originalEvent.dataTransfer.files); });
+}
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+function updateSummary() {
+    var garments = 0;
+    $('#sketches .garment-row').each(function () { if ($(this).find('.js-style').val().trim()) garments++; });
+    $('#sumSketches').text(state.count);
+    $('#sumGarments').text(garments);
+    $('#sumLicensing').text($('#sketches .js-lic.on').length);
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+function validate() {
+    var errors = [];
+    $('.field-error').removeClass('field-error');
+    $('.field-error-group').removeClass('field-error-group');
+
+    function need($el, msg) {
+        if (!$.trim($el.val())) { $el.addClass('field-error'); errors.push(msg); }
+    }
+
+    if (!state.account) { $('#accountGroup').addClass('field-error-group'); errors.push('Choose an account'); }
+    need($('#projectTitle'), 'Enter a project title');
+    need($('#description'), 'Enter a description');
+    if (!state.pack) { $('#packGrid').addClass('field-error-group'); errors.push('Choose a sketch pack'); }
+
+    $('#sketches .sketch-card').each(function () {
+        var $c = $(this), n = $c.data('num');
+        var $firstStyle = $c.find('.garment-row').first().find('.js-style');
+        var $firstColor = $c.find('.garment-row').first().find('.js-color');
+        need($firstStyle, 'Sketch ' + n + ': garment style');
+        need($firstColor, 'Sketch ' + n + ': garment color');
+        need($c.find('.js-location'), 'Sketch ' + n + ': print location');
+        need($c.find('.js-desc'), 'Sketch ' + n + ': description');
+
+        var hasArt = $c.find('.js-refer').val().trim() || $c.data('files');
+        if (!hasArt) {
+            $c.find('.js-refer').addClass('field-error');
+            errors.push('Sketch ' + n + ': a refer-to-art # or an attachment');
+        }
+        $c.find('.swap-table input.omit').each(function () {
+            var row = $(this).data('row');
+            var add = $c.find('input.add[data-row="' + row + '"]');
+            if ($(this).val().trim() && !add.val().trim()) {
+                add.addClass('field-error');
+                errors.push('Sketch ' + n + ', change ' + row + ': what should replace "' + $(this).val().trim() + '"?');
+            }
+        });
+    });
+
+    var $sum = $('#errorSummary');
+    if (errors.length) {
+        $sum.html('<strong>Please fix ' + errors.length + ' thing' + (errors.length > 1 ? 's' : '') + ' before submitting</strong><ul>' +
+            errors.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>').addClass('open');
+        $('html, body').animate({ scrollTop: $sum.offset().top - 90 }, 250);
+    } else {
+        $sum.removeClass('open');
+    }
+    return !errors.length;
+}
+
+// ── Payload ───────────────────────────────────────────────────────────────────
+function buildPayload() {
+    var sketches = [];
+    $('#sketches .sketch-card').each(function () {
+        var $c = $(this);
+        var garments = [], changes = [];
+        $c.find('.garment-row').each(function () {
+            var s = $(this).find('.js-style').val().trim(), col = $(this).find('.js-color').val().trim();
+            if (s || col) garments.push({ style: s, color: col });
+        });
+        $c.find('.swap-table input.omit').each(function () {
+            var row = $(this).data('row');
+            var o = $(this).val().trim(), a = $c.find('input.add[data-row="' + row + '"]').val().trim();
+            if (o || a) changes.push({ omit: o, add: a });
+        });
+        sketches.push({
+            number: $c.data('num'),
+            referToArt: $c.find('.js-refer').val().trim(),
+            location: $c.find('.js-location').val(),
+            process: $c.find('.js-process').val(),
+            garments: garments,
+            changes: changes,
+            description: $c.find('.js-desc').val().trim(),
+            needsLicensing: $c.find('.js-lic').hasClass('on'),
+            attachments: ($c.data('files') || []).map(function (f) { return f.name; })
+        });
+    });
+
+    return {
+        action: 'artRequest',
+        status: 'Opened',
+        repName: $('#repName').val(),
+        repEmail: $('#repEmail').val(),
+        account: state.account,
+        projectTitle: $('#projectTitle').val().trim(),
+        description: $('#description').val().trim(),
+        preferredMarks: $('#preferredMarks').val().trim(),
+        institution: $('#institution').val().trim(),
+        sketchPack: state.pack ? state.pack.min + '-' + state.pack.max : '',
+        sketchCount: state.count,
+        projectedDate: $('#projectedDate').text(),
+        generalAttachments: state.files.general.map(function (f) { return f.name; }),
+        sketches: sketches,
+        submittedAt: new Date().toISOString()
+    };
+}
+
+// ── Review + submit ───────────────────────────────────────────────────────────
+function openReview() {
+    if (!validate()) return;
+    var p = buildPayload();
+    var html = '<dl class="rv-grid">' +
+        '<dt>Account</dt><dd>' + esc(p.account) + '</dd>' +
+        '<dt>Project</dt><dd><b>' + esc(p.projectTitle) + '</b></dd>' +
+        '<dt>Sketch pack</dt><dd>' + p.sketchCount + ' sketch' + (p.sketchCount > 1 ? 'es' : '') + ' (' + p.sketchPack + ' pack)</dd>' +
+        '<dt>Projected</dt><dd>' + esc(p.projectedDate) + '</dd>' +
+        '</dl>';
+    p.sketches.forEach(function (s) {
+        var g = s.garments.map(function (x) { return x.style + (x.color ? ' / ' + x.color : ''); }).join(', ');
+        var ch = s.changes.map(function (c) { return esc(c.omit || '—') + ' → ' + esc(c.add || '—'); }).join(' · ');
+        html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b>' + (s.needsLicensing ? '<span class="tag-lic">Licensing</span>' : '') +
+            '<div>' + esc(g) + ' · ' + esc(s.location) + (s.referToArt ? ' · Art ' + esc(s.referToArt) : '') + '</div>' +
+            (ch ? '<div class="swaps">' + ch + '</div>' : '') + '</div>';
+    });
+    $('#reviewBody').html(html);
+    $('#reviewModal').addClass('open');
+}
+
+function submitRequest() {
+    var payload = buildPayload();
+    $('#reviewModal').removeClass('open');
+
+    if (!SUBMIT_ENABLED || !APPS_SCRIPT_URL) {
+        console.log('Art request payload (not sent):', payload);
+        alert('✅ Request is valid.\n\nSubmitting isn\'t connected yet — the payload has been logged to the browser console.');
+        return;
+    }
+
+    var form = $('<form>', { method: 'POST', action: APPS_SCRIPT_URL, target: '_blank', style: 'display:none;' });
+    form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
+    $('body').append(form);
+    form.submit();
+    setTimeout(function () { form.remove(); }, 1000);
+    alert('✅ Art request submitted!\n\nProjected date: ' + payload.projectedDate + '\nYou\'ll get an email when it\'s assigned to an artist.');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function addBusinessDays(date, days) {
+    var d = new Date(date);
+    while (days > 0) {
+        d.setDate(d.getDate() + 1);
+        var dow = d.getDay();
+        if (dow !== 0 && dow !== 6) days--;
+    }
+    return d;
+}
+function formatDate(d) {
+    return ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + d.getDate()).slice(-2) + '/' + d.getFullYear();
+}
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
