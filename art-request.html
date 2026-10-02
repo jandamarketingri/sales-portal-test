@@ -66,6 +66,7 @@
             white-space: nowrap; border-bottom: 2px solid transparent; cursor: pointer;
         }
         .status-tab:hover { color: var(--accent); }
+        a.status-tab { text-decoration: none; }
         .status-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
         .status-tab .count {
             display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px;
@@ -349,6 +350,40 @@
         .ship-warn.ok { display: block; background: var(--success-bg); color: var(--success); border: 1px solid #c3e6cb; }
         .ship-warn.bad { display: block; background: var(--warning-bg); color: var(--warning); border: 1px solid #f3dfa3; }
 
+        /* ── Art type / print ── */
+        .art-type { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        @media (max-width: 600px) { .art-type { grid-template-columns: 1fr; } }
+        .art-type-btn {
+            text-align: left; padding: 11px 14px; border: 2px solid var(--border); border-radius: 8px; background: var(--surface);
+            font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s;
+        }
+        .art-type-btn b { display: block; font-size: 14px; color: var(--text); }
+        .art-type-btn span { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .art-type-btn:hover { border-color: var(--accent); }
+        .art-type-btn.selected { border-color: var(--accent); background: var(--accent-soft); }
+        .print-note { font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px; }
+        .print-note b { color: var(--text); }
+        .print-note.warn { color: var(--warning); background: var(--warning-bg); border: 1px solid #f3dfa3; padding: 8px 12px; border-radius: 7px; }
+        .print-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
+        @media (max-width: 700px) { .print-grid { grid-template-columns: 1fr; } }
+        .loc-list, .ink-list { display: grid; gap: 8px; }
+        .ink-list { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        .ack {
+            display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; margin: 4px 0 24px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13.5px; cursor: pointer;
+        }
+        .ack input { margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0; }
+        .ack.field-error-box { border-color: #e57373; background: var(--error-bg); }
+        .done-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px 32px; text-align: center; box-shadow: var(--shadow); margin-top: 20px; }
+        .done-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--success); color: white; font-size: 28px; line-height: 56px; margin: 0 auto 16px; }
+        .done-card h2 { font-size: 22px; margin-bottom: 8px; }
+        .done-id { font-family: 'DM Mono', monospace; font-size: 18px; color: var(--accent2); margin-bottom: 10px; }
+        .done-card p { margin: 6px 0; }
+        .done-card .muted { color: var(--text-muted); font-size: 14px; }
+        .done-actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+        .done-actions a { text-decoration: none; }
+        .btn-submit:disabled { opacity: 0.6; cursor: default; }
+
         /* ── Sticky submit bar ── */
         .submit-bar {
             position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; background: rgba(255,255,255,0.96);
@@ -421,16 +456,9 @@
 
 <!-- ── Status strip (my art requests) ── -->
 <div class="status-strip">
-    <div class="status-tab">Draft <span class="count">0</span></div>
-    <div class="status-tab">CSR Review <span class="count">0</span></div>
-    <div class="status-tab">In Art <span class="count">0</span></div>
-    <div class="status-tab">Revise <span class="count">0</span></div>
-    <div class="status-tab">On Hold <span class="count">0</span></div>
-    <div class="status-tab">Art Approved <span class="count">0</span></div>
-    <div class="status-tab ours">Licensing <span class="count">0</span></div>
-    <div class="status-tab ours">Ready to Order <span class="count">0</span></div>
-    <div class="status-tab">Ordered <span class="count">0</span></div>
-    <div class="status-tab active">+ New Request</div>
+    <a class="status-tab" href="art-requests.html">My art requests</a>
+    <span class="status-tab active">+ New request</span>
+</div>
 </div>
 
 <div class="page-body">
@@ -576,6 +604,11 @@
         <div class="sketches-empty" id="sketchesEmpty">Choose a sketch pack above and your sketch forms will appear here.</div>
     </div>
 
+    <label class="ack" id="ackWrap" style="display:none;">
+        <input type="checkbox" id="refAck">
+        <span><b>Uploaded art is for reference only.</b> I understand the art department will create something original and won’t copy another company’s design one-for-one.</span>
+    </label>
+
 </div>
 
 <!-- ── Sticky submit bar ── -->
@@ -587,7 +620,6 @@
             <div class="stat hide-sm"><span class="num" id="sumLicensing">0</span><span class="lbl">Need Licensing</span></div>
             <div class="stat"><span class="num" id="sumDue">—</span><span class="lbl">Earliest Ship</span></div>
         </div>
-        <button type="button" class="btn-secondary" id="saveDraftBtn">Save Draft</button>
         <button type="button" class="btn-submit" id="submitBtn">Review &amp; Submit</button>
     </div>
 </div>
@@ -606,18 +638,17 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-// Backend isn't wired up yet. When it is, set SUBMIT_ENABLED = true and add an
-// 'artRequest' action to the Apps Script doPost.
-var APPS_SCRIPT_URL = '';
-var SUBMIT_ENABLED  = false;
+// Same Apps Script web app as the NEXCOM store picker (Post.gs + ArtRequests.gs).
+// Leave blank to run the page as a preview that sends nothing.
+var ART_API_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
 
 var MAX_SWAPS = 5;
+var MAX_FILE_MB = 10;
 var LOCATIONS = [
     ['FC', 'Full Chest'], ['LC', 'Left Chest'], ['RC', 'Right Chest'],
     ['FB', 'Full Back'], ['UB', 'Upper Back'], ['LS', 'Left Sleeve'],
     ['RS', 'Right Sleeve'], ['LEG', 'Leg'], ['HOOD', 'Hood'], ['OTH', 'Other']
 ];
-var PROCESSES = ['Screen Print', 'Embroidery', 'DTG', 'Heat Transfer', 'Sublimation', 'Other'];
 
 // Words that suggest a base/branch name went into the "Add" column. Used only
 // to pre-tick the licensing box — the rep can always change it.
@@ -721,9 +752,6 @@ $(function () {
     $('#reviewBack').on('click', function () { $('#reviewModal').removeClass('open'); });
     $('#reviewModal').on('click', function (e) { if (e.target === this) $(this).removeClass('open'); });
     $('#reviewConfirm').on('click', submitRequest);
-    $('#saveDraftBtn').on('click', function () {
-        alert('Drafts will save to your Draft tab once the backend is connected.');
-    });
 });
 
 // ── Sketch count ──────────────────────────────────────────────────────────────
@@ -765,13 +793,6 @@ function highlightChip(n) {
 
 // ── Sketch card ───────────────────────────────────────────────────────────────
 function buildSketch(num) {
-    var locOpts = '<option value="">Select…</option>' + LOCATIONS.map(function (l) {
-        return '<option value="' + l[0] + '">' + l[0] + ' — ' + l[1] + '</option>';
-    }).join('');
-    var procOpts = '<option value="">Optional</option>' + PROCESSES.map(function (p) {
-        return '<option>' + p + '</option>';
-    }).join('');
-
     var swaps = '<span></span><span class="hdr omit">Omit</span><span></span><span class="hdr add">Add</span>';
     for (var i = 1; i <= MAX_SWAPS; i++) {
         swaps += '<span class="n">' + i + '</span>' +
@@ -784,7 +805,7 @@ function buildSketch(num) {
         '<div class="form-card sketch-card">' +
           '<div class="sketch-head">' +
             '<div class="sketch-num"></div>' +
-            '<div><div class="sketch-title"></div><div class="sketch-sub">Items, art reference and changes</div></div>' +
+            '<div><div class="sketch-title"></div><div class="sketch-sub">Art, items, print and changes</div></div>' +
             '<div class="sketch-actions">' +
               (num > 1 ? '<button type="button" class="btn-ghost js-copy">⧉ Copy items from Sketch 1</button>' : '') +
             '</div>' +
@@ -792,13 +813,17 @@ function buildSketch(num) {
           '<div class="sketch-body">' +
 
             '<div class="sub-label">Art</div>' +
+            '<div class="art-type">' +
+              '<button type="button" class="art-type-btn selected" data-type="existing"><b>Start from existing art</b><span>Use an art # and change names, logos, colors</span></button>' +
+              '<button type="button" class="art-type-btn" data-type="new"><b>New design</b><span>Something new. Goes to a designer for concept work</span></button>' +
+            '</div>' +
             '<div class="form-row">' +
-              '<div class="form-group">' +
-                '<label>Refer-to-Art # <span class="hint-inline">— from the art archive, if starting from existing art</span></label>' +
+              '<div class="form-group js-refer-wrap">' +
+                '<label>Refer-to-Art # <span class="hint-inline">— or attach the art instead</span></label>' +
                 '<input type="text" class="js-refer" placeholder="e.g. SVN-00123" style="font-family:\'DM Mono\',monospace;">' +
               '</div>' +
               '<div class="form-group">' +
-                '<label>Attachments</label>' +
+                '<label>Attachments <span class="hint-inline js-attach-hint">— logos, the art you’re starting from</span></label>' +
                 '<div class="file-drop" style="padding:8px 12px;">' +
                   '<button type="button" class="btn-file">📎 Add files</button>' +
                   '<input type="file" multiple hidden>' +
@@ -806,21 +831,24 @@ function buildSketch(num) {
                 '</div>' +
               '</div>' +
             '</div>' +
-            '<div class="form-row">' +
-              '<div class="form-group"><label>Location <span class="required">*</span></label><select class="js-location">' + locOpts + '</select></div>' +
-              '<div class="form-group"><label>Process</label><select class="js-process">' + procOpts + '</select></div>' +
-            '</div>' +
 
             '<div class="sub-label">Items</div>' +
             '<div class="garment-list"></div>' +
             '<button type="button" class="btn-link js-add-garment">+ Add another item</button>' +
 
-            '<div class="sub-label">Changes</div>' +
+            '<div class="sub-label">Print</div>' +
+            '<div class="print-note js-print-note"></div>' +
+            '<div class="print-grid">' +
+              '<div class="form-group"><label>Location(s) <span class="required">*</span></label><div class="loc-list js-locs"></div></div>' +
+              '<div class="form-group"><label>Ink colors <span class="required">*</span></label><div class="ink-list js-inks"></div></div>' +
+            '</div>' +
+
+            '<div class="sub-label js-changes-label">Changes</div>' +
             '<div class="swap-layout">' +
-              '<div><div class="swap-table">' + swaps + '</div>' +
+              '<div class="js-swaps"><div class="swap-table">' + swaps + '</div>' +
                 '<div class="field-hint" style="margin-top:8px;">Replace names, mascots or logos. Put "LOGO (UPLOADED)" in Add to use an attached file.</div></div>' +
               '<div class="form-group desc-col"><label>Description <span class="required">*</span></label>' +
-                '<textarea class="js-desc" placeholder="What should the artist do? Ink colors, placement, anything else.&#10;&#10;e.g. See uploaded vector logo — create a 1–2 ink color version. Inks = Navy & White."></textarea></div>' +
+                '<textarea class="js-desc" placeholder="What should the artist do? Placement, size, anything else.&#10;&#10;e.g. See uploaded vector logo — convert it for this art."></textarea></div>' +
             '</div>' +
 
             '<div class="licensing js-lic">' +
@@ -835,11 +863,17 @@ function buildSketch(num) {
 
     addGarmentRow($card);
     bindFileDrop($card.find('.file-drop'), null);
+    renderPrint($card);
 
+    $card.on('click', '.art-type-btn', function () {
+        $card.find('.art-type-btn').removeClass('selected');
+        $(this).addClass('selected');
+        applyArtType($card);
+    });
     $card.on('click', '.js-add-garment', function () { addGarmentRow($card); updateSummary(); });
     $card.on('click', '.js-remove-garment', function () {
         $(this).closest('.garment-row').remove();
-        renumberGarments($card); updateSummary();
+        renumberGarments($card); renderPrint($card); updateSummary();
     });
     $card.on('click', '.js-copy', function () { copyGarmentsFromFirst($card); });
     $card.on('click', '.js-lic', function () {
@@ -851,6 +885,73 @@ function buildSketch(num) {
 
     setSketchNumber($card, num);
     return $card;
+}
+
+function artTypeOf($card) { return $card.find('.art-type-btn.selected').data('type') || 'existing'; }
+
+function applyArtType($card) {
+    var isNew = artTypeOf($card) === 'new';
+    $card.find('.js-refer-wrap').toggle(!isNew);
+    $card.find('.js-swaps, .js-changes-label').toggle(!isNew);
+    $card.find('.js-changes-label').text(isNew ? '' : 'Changes');
+    $card.find('.js-attach-hint').text(isNew ? '— optional reference images, logos' : '— logos, the art you’re starting from');
+    $card.find('.js-desc').attr('placeholder', isNew
+        ? 'Describe the design: theme, elements, text, style, placement.\n\nReference images are for inspiration only. We won’t copy another design.'
+        : 'What should the artist do? Placement, size, anything else.\n\ne.g. See uploaded vector logo — convert it for this art.');
+}
+
+// ── Price point → locations and ink colors ───────────────────────────────────
+// Apparel items carry their price point in the style (e.g. 1–2 color, 1 location).
+// One sketch is one piece of art, so every apparel item in it must share a price point.
+function sketchTier($card) {
+    var tiers = [];
+    $card.find('.garment-row').each(function () {
+        var it = catalogByStyle[$(this).data('style')];
+        if (it && it.maxInks) tiers.push(it);
+    });
+    if (!tiers.length) return null;
+    var t0 = tiers[0];
+    var mixed = tiers.some(function (t) { return t.maxInks !== t0.maxInks || t.locs !== t0.locs; });
+    return { minInks: t0.minInks, maxInks: t0.maxInks, locs: t0.locs, mixed: mixed, label: t0.tier };
+}
+
+function renderPrint($card) {
+    var tier = sketchTier($card);
+    var $note = $card.find('.js-print-note');
+    // keep what's already typed
+    var locVals = $card.find('.js-loc').map(function () { return $(this).val(); }).get();
+    var inkVals = $card.find('.js-ink').map(function () { return $(this).val(); }).get();
+
+    var nLocs = tier ? tier.locs : 1;
+    var locOpts = '<option value="">Select…</option>' + LOCATIONS.map(function (l) {
+        return '<option value="' + l[0] + '">' + l[0] + ' — ' + l[1] + '</option>';
+    }).join('');
+    var locHtml = '';
+    for (var i = 0; i < nLocs; i++) locHtml += '<select class="js-loc">' + locOpts + '</select>';
+    $card.find('.js-locs').html(locHtml);
+    $card.find('.js-loc').each(function (i) { if (locVals[i]) $(this).val(locVals[i]); });
+
+    var inkHtml = '';
+    if (tier) {
+        for (var k = 0; k < tier.maxInks; k++) {
+            var req = k < tier.minInks;
+            inkHtml += '<input type="text" class="js-ink' + (req ? ' req' : '') + '" placeholder="Ink ' + (k + 1) + (req ? ' *' : ' (optional)') + '">';
+        }
+    } else {
+        inkHtml = '<input type="text" class="js-ink js-ink-free" placeholder="Colors / imprint (optional for non-apparel)">';
+    }
+    $card.find('.js-inks').html(inkHtml);
+    $card.find('.js-ink').each(function (i) { if (inkVals[i]) $(this).val(inkVals[i]); });
+
+    if (tier && tier.mixed) {
+        $note.attr('class', 'print-note js-print-note warn').html('⚠ These items are on different price points. One sketch is one piece of art, so use items with the same ink colors and locations, or split them into separate sketches.');
+    } else if (tier) {
+        $note.attr('class', 'print-note js-print-note').html('Price point: <b>' + esc(tier.label) + '</b>. Pick ' +
+            (tier.minInks === tier.maxInks ? tier.maxInks : tier.minInks + '–' + tier.maxInks) + ' ink colors and ' + tier.locs +
+            ' location' + (tier.locs > 1 ? 's' : '') + '. No “artist’s choice”, so name each ink.');
+    } else {
+        $note.attr('class', 'print-note js-print-note').html('Pick an apparel item to see how many ink colors and locations its price point includes.');
+    }
 }
 
 function setSketchNumber($card, num) {
@@ -896,9 +997,11 @@ function copyGarmentsFromFirst($card) {
     if (!rows.length) { alert('Sketch 1 has no items picked yet.'); return; }
     $card.find('.garment-list').empty();
     rows.forEach(function (r) { addGarmentRow($card, r[0], r[1]); });
-    var loc = $first.find('.js-location').val(), proc = $first.find('.js-process').val();
-    if (loc && !$card.find('.js-location').val()) $card.find('.js-location').val(loc);
-    if (proc && !$card.find('.js-process').val()) $card.find('.js-process').val(proc);
+    renderPrint($card);
+    $first.find('.js-loc').each(function (i) {
+        var $t = $card.find('.js-loc').eq(i);
+        if ($(this).val() && !$t.val()) $t.val($(this).val());
+    });
     updateSummary();
 }
 
@@ -918,6 +1021,8 @@ function setRowItem($row, item) {
     var apparel = item && item.cat === 'Apparel';
     $color.attr('placeholder', apparel ? 'Garment color' : 'Color / finish (optional)');
     $row.data('needsColor', !!apparel);
+    var $sc = $row.closest('.sketch-card');
+    if ($sc.length) renderPrint($sc);
 }
 
 function refreshPickerState($row) {
@@ -1045,7 +1150,8 @@ function pickItem($row, item) {
 function makeItem(style, desc, cat) {
     var m = /(\d+)\s*-\s*(\d+)\s*COLOR\s*(\d+)\s*LOC/i.exec(desc);
     var tier = m ? m[1] + '–' + m[2] + ' ink colors · ' + m[3] + ' location' + (m[3] === '1' ? '' : 's') : '';
-    return { style: style, desc: prettyDesc(desc), cat: cat, tier: tier };
+    return { style: style, desc: prettyDesc(desc), cat: cat, tier: tier,
+             minInks: m ? +m[1] : 0, maxInks: m ? +m[2] : 0, locs: m ? +m[3] : 0 };
 }
 
 // "1 - 2 COLOR 1 LOC HOODIE" → "Hoodie (1–2 Color, 1 Loc)"; everything else → Title Case
@@ -1152,7 +1258,7 @@ function autoDetectLicensing($card) {
 function sketchHasContent($card) {
     var has = false;
     $card.find('input[type=text], textarea').each(function () { if ($(this).val().trim()) has = true; });
-    return has || $card.find('.js-location').val() || $card.data('files');
+    return has || $card.find('.js-loc').filter(function () { return $(this).val(); }).length || $card.data('files');
 }
 
 // ── Files (names only for now — upload handled when backend is wired) ─────────
@@ -1166,8 +1272,16 @@ function bindFileDrop($drop, key) {
             return '<span class="file-chip"><span>' + esc(f.name) + '</span><button type="button" data-i="' + i + '" title="Remove">✕</button></span>';
         }).join(''));
         if (key) state.files[key] = files; else $drop.closest('.sketch-card').data('files', files.length ? files : null);
+        $('#ackWrap').toggle(anyFiles()).removeClass('field-error-box');
     }
-    function add(list) { for (var i = 0; i < list.length; i++) files.push(list[i]); render(); }
+    function add(list) {
+        var tooBig = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].size > MAX_FILE_MB * 1024 * 1024) tooBig.push(list[i].name); else files.push(list[i]);
+        }
+        if (tooBig.length) alert('These files are over ' + MAX_FILE_MB + ' MB and weren’t added:\n' + tooBig.join('\n'));
+        render();
+    }
 
     $drop.find('.btn-file').on('click', function () { $input.click(); });
     $input.on('change', function () { add(this.files); this.value = ''; });
@@ -1218,13 +1332,38 @@ function validate() {
             $c.find('.garment-row').first().find('.js-item').addClass('field-error');
             errors.push('Sketch ' + n + ': pick at least one item');
         }
-        need($c.find('.js-location'), 'Sketch ' + n + ': print location');
+        var tier = sketchTier($c);
+        if (tier && tier.mixed) errors.push('Sketch ' + n + ': items are on different price points. Split them into separate sketches');
+        var locs = [];
+        $c.find('.js-loc').each(function (li) {
+            need($(this), 'Sketch ' + n + ': print location ' + (li + 1));
+            var v = $(this).val();
+            if (v && locs.indexOf(v) !== -1) { $(this).addClass('field-error'); errors.push('Sketch ' + n + ': the two locations must be different'); }
+            locs.push(v);
+        });
+        if (tier) {
+            var inks = $c.find('.js-ink').filter(function () { return $(this).val().trim(); }).length;
+            $c.find('.js-ink.req').each(function () { if (!$(this).val().trim()) $(this).addClass('field-error'); });
+            if (inks < tier.minInks) {
+                errors.push('Sketch ' + n + ': name ' + (tier.minInks === tier.maxInks ? tier.maxInks : 'at least ' + tier.minInks) +
+                    ' ink color' + (tier.minInks > 1 ? 's' : '') + ' for this price point' +
+                    (tier.minInks > 1 ? ', or pick a lower-priced item' : ''));
+            }
+            $c.find('.js-ink').each(function () {
+                if (/^\s*(ac|artist'?s? choice)\s*$/i.test($(this).val())) {
+                    $(this).addClass('field-error');
+                    errors.push('Sketch ' + n + ': “artist’s choice” isn’t available. Name the ink color');
+                }
+            });
+        }
         need($c.find('.js-desc'), 'Sketch ' + n + ': description');
 
-        var hasArt = $c.find('.js-refer').val().trim() || $c.data('files');
-        if (!hasArt) {
-            $c.find('.js-refer').addClass('field-error');
-            errors.push('Sketch ' + n + ': a refer-to-art # or an attachment');
+        if (artTypeOf($c) === 'existing') {
+            var hasArt = $c.find('.js-refer').val().trim() || $c.data('files');
+            if (!hasArt) {
+                $c.find('.js-refer').addClass('field-error');
+                errors.push('Sketch ' + n + ': a refer-to-art # or an attachment (or choose “New design”)');
+            }
         }
         $c.find('.swap-table input.omit').each(function () {
             var row = $(this).data('row');
@@ -1235,6 +1374,11 @@ function validate() {
             }
         });
     });
+
+    if (anyFiles() && !$('#refAck').is(':checked')) {
+        $('#ackWrap').addClass('field-error-box');
+        errors.push('Confirm that uploaded art is reference only');
+    }
 
     var $sum = $('#errorSummary');
     if (errors.length) {
@@ -1257,39 +1401,39 @@ function buildPayload() {
             var st = $(this).data('style');
             if (!st) return;
             var it = catalogByStyle[st] || {};
-            garments.push({ style: st, description: it.desc || '', category: it.cat || '', color: $(this).find('.js-color').val().trim() });
+            garments.push({ style: st, description: it.desc || '', category: it.cat || '', priceTier: it.tier || '',
+                            color: $(this).find('.js-color').val().trim() });
         });
-        $c.find('.swap-table input.omit').each(function () {
-            var row = $(this).data('row');
-            var o = $(this).val().trim(), a = $c.find('input.add[data-row="' + row + '"]').val().trim();
-            if (o || a) changes.push({ omit: o, add: a });
-        });
+        var isNew = artTypeOf($c) === 'new';
+        if (!isNew) {
+            $c.find('.swap-table input.omit').each(function () {
+                var row = $(this).data('row');
+                var o = $(this).val().trim(), a = $c.find('input.add[data-row="' + row + '"]').val().trim();
+                if (o || a) changes.push({ omit: o, add: a });
+            });
+        }
+        var tier = sketchTier($c);
         sketches.push({
             number: $c.data('num'),
-            referToArt: $c.find('.js-refer').val().trim(),
-            location: $c.find('.js-location').val(),
-            process: $c.find('.js-process').val(),
+            artType: isNew ? 'new' : 'existing',
+            referToArt: isNew ? '' : $c.find('.js-refer').val().trim(),
+            locations: $c.find('.js-loc').map(function () { return $(this).val(); }).get().filter(Boolean),
+            inkColors: $c.find('.js-ink').map(function () { return $(this).val().trim(); }).get().filter(Boolean),
+            priceTier: tier ? tier.label : '',
             items: garments,
             changes: changes,
             description: $c.find('.js-desc').val().trim(),
             needsLicensing: $c.find('.js-lic').hasClass('on'),
-            attachments: ($c.data('files') || []).map(function (f) { return f.name; })
+            fileObjs: $c.data('files') || []
         });
     });
 
     return {
-        action: 'artRequest',
-        status: 'CSR Review',
-        // Every status change appends here (with who/when) so every step is dated.
-        statusHistory: [
-            { status: 'Draft',      at: new Date().toISOString(), by: $('#repEmail').val() },
-            { status: 'CSR Review', at: new Date().toISOString(), by: $('#repEmail').val() }
-        ],
-        neededBy: $('#neededBy').val(),
+        action: 'artSubmit',
+        email: $('#repEmail').val(),
+        neededBy: $('#neededBy').val() ? formatDate(parseDate($('#neededBy').val())) : '',
         approveArtBy: $('#approveBy').val(),
         estimatedShip: state.estShip || '',
-        repName: $('#repName').val(),
-        repEmail: $('#repEmail').val(),
         account: state.account,
         projectTitle: $('#projectTitle').val().trim(),
         description: $('#description').val().trim(),
@@ -1298,10 +1442,28 @@ function buildPayload() {
         sketchPack: state.pack ? state.pack.min + '-' + state.pack.max : '',
         sketchCount: state.count,
         projectedDate: $('#projectedDate').text(),
-        generalAttachments: state.files.general.map(function (f) { return f.name; }),
-        sketches: sketches,
-        submittedAt: new Date().toISOString()
+        fileObjs: state.files.general,
+        sketches: sketches
     };
+}
+
+function anyFiles() {
+    if (state.files.general.length) return true;
+    var any = false;
+    $('#sketches .sketch-card').each(function () { if (($(this).data('files') || []).length) any = true; });
+    return any;
+}
+
+// File objects → [{ name, mimeType, data(base64) }]
+function readFiles(list) {
+    return Promise.all((list || []).map(function (f) {
+        return new Promise(function (resolve, reject) {
+            var r = new FileReader();
+            r.onload = function () { resolve({ name: f.name, mimeType: f.type || 'application/octet-stream', data: String(r.result).split(',')[1] || '' }); };
+            r.onerror = function () { reject(new Error('Could not read ' + f.name)); };
+            r.readAsDataURL(f);
+        });
+    }));
 }
 
 // ── Review + submit ───────────────────────────────────────────────────────────
@@ -1314,13 +1476,15 @@ function openReview() {
         '<dt>Sketch pack</dt><dd>' + p.sketchCount + ' sketch' + (p.sketchCount > 1 ? 'es' : '') + ' (' + p.sketchPack + ' pack)</dd>' +
         '<dt>Proofs by</dt><dd>' + esc(p.projectedDate) + '</dd>' +
         (p.estimatedShip ? '<dt>Earliest ship</dt><dd>' + esc(p.estimatedShip) + ' <span style="color:var(--text-muted);font-size:12px;">if approved on time</span></dd>' : '') +
-        (p.neededBy ? '<dt>Needed by</dt><dd>' + esc(formatDate(parseDate(p.neededBy))) + '</dd>' : '') +
+        (p.neededBy ? '<dt>Needed by</dt><dd>' + esc(p.neededBy) + '</dd>' : '') +
         '</dl>';
     p.sketches.forEach(function (s) {
         var g = s.items.map(function (x) { return x.description + (x.color ? ' — ' + x.color : ''); }).join(', ');
         var ch = s.changes.map(function (c) { return esc(c.omit || '—') + ' → ' + esc(c.add || '—'); }).join(' · ');
-        html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b>' + (s.needsLicensing ? '<span class="tag-lic">Licensing</span>' : '') +
-            '<div>' + esc(g) + ' · ' + esc(s.location) + (s.referToArt ? ' · Art ' + esc(s.referToArt) : '') + '</div>' +
+        html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b> · ' + (s.artType === 'new' ? 'New design' : 'Existing art' + (s.referToArt ? ' ' + esc(s.referToArt) : '')) +
+            (s.needsLicensing ? '<span class="tag-lic">Licensing</span>' : '') +
+            '<div>' + esc(g) + '</div>' +
+            '<div class="swaps">' + esc(s.locations.join(' + ')) + ' · Inks: ' + esc(s.inkColors.join(', ') || '—') + '</div>' +
             (ch ? '<div class="swaps">' + ch + '</div>' : '') + '</div>';
     });
     $('#reviewBody').html(html);
@@ -1328,21 +1492,61 @@ function openReview() {
 }
 
 function submitRequest() {
-    var payload = buildPayload();
-    $('#reviewModal').removeClass('open');
+    var p = buildPayload();
+    var $btn = $('#reviewConfirm').prop('disabled', true).text('Submitting…');
 
-    if (!SUBMIT_ENABLED || !APPS_SCRIPT_URL) {
-        console.log('Art request payload (not sent):', payload);
-        alert('✅ Request is valid.\n\nSubmitting isn\'t connected yet — the payload has been logged to the browser console.');
+    if (!ART_API_URL) {
+        $('#reviewModal').removeClass('open');
+        $btn.prop('disabled', false).text('Submit Request');
+        alert('Preview only: the server address (ART_API_URL) isn’t set, so nothing was sent.');
         return;
     }
 
-    var form = $('<form>', { method: 'POST', action: APPS_SCRIPT_URL, target: '_blank', style: 'display:none;' });
-    form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
-    $('body').append(form);
-    form.submit();
-    setTimeout(function () { form.remove(); }, 1000);
-    alert('✅ Art request submitted!\n\nA CSR will review it first. Proofs projected by ' + payload.projectedDate + '.\nYou\'ll get an email at each step.');
+    var jobs = [readFiles(p.fileObjs)].concat(p.sketches.map(function (s) { return readFiles(s.fileObjs); }));
+    Promise.all(jobs).then(function (res) {
+        p.files = res[0];
+        p.sketches.forEach(function (s, i) { s.files = res[i + 1]; delete s.fileObjs; });
+        delete p.fileObjs;
+        return sendToServer(p);
+    }).then(function (r) {
+        $('#reviewModal').removeClass('open');
+        $btn.prop('disabled', false).text('Submit Request');
+        if (!r || !r.success) { alert('Could not submit: ' + ((r && r.message) || 'unknown error')); return; }
+        showSubmitted(r, p);
+    }).catch(function (err) {
+        $btn.prop('disabled', false).text('Submit Request');
+        alert('Could not submit: ' + err.message);
+    });
+}
+
+// POST as text/plain so the browser sends it without a pre-flight check.
+// If the response can't be read (some Google setups), fall back to a normal form post.
+function sendToServer(payload) {
+    return fetch(ART_API_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(function (r) { return r.json(); })
+        .catch(function () {
+            var form = $('<form>', { method: 'POST', action: ART_API_URL, target: '_blank', style: 'display:none;' });
+            form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
+            $('body').append(form); form.submit(); setTimeout(function () { form.remove(); }, 1000);
+            return { success: true, fallback: true, message: 'Sent. The result opened in a new tab.' };
+        });
+}
+
+function showSubmitted(r, p) {
+    $('.submit-bar').hide();
+    $('.page-body').html(
+        '<div class="done-card">' +
+          '<div class="done-icon">✓</div>' +
+          '<h2>Art request submitted</h2>' +
+          (r.id ? '<div class="done-id">' + esc(r.id) + '</div>' : '') +
+          '<p>' + esc(p.projectTitle) + ' · ' + p.sketchCount + ' sketch' + (p.sketchCount > 1 ? 'es' : '') + '</p>' +
+          '<p class="muted">Proofs projected by <b>' + esc(p.projectedDate) + '</b>. You’ll get an email from the J&amp;A Art Department at each step.</p>' +
+          '<div class="done-actions">' +
+            (r.id ? '<a class="btn-submit" href="art-requests.html?id=' + encodeURIComponent(r.id) + '">View request</a>' : '') +
+            '<a class="btn-secondary" style="display:inline-block;text-decoration:none;" href="art-request.html">Start another</a>' +
+          '</div>' +
+        '</div>');
+    window.scrollTo(0, 0);
 }
 
 // ── Timeline ──────────────────────────────────────────────────────────────────
@@ -1361,8 +1565,8 @@ function renderTimeline() {
         d = addBusinessDays(d, days);
         steps.push({ label: label, sub: sub, date: new Date(d), cls: cls || '' });
     }
-    steps.push({ label: 'Submitted', sub: 'Goes to a CSR first', date: today, cls: 'now' });
-    step('CSR review', 'Design #, minimums, royalties & licensing checked', CSR_REVIEW_DAYS);
+    steps.push({ label: 'Submitted', sub: 'Goes to the art department', date: today, cls: 'now' });
+    step('Review & assignment', 'Checked, then assigned to a designer', CSR_REVIEW_DAYS);
     step('Proofs back', state.pack.daysMin + '–' + state.pack.daysMax + ' business days for this pack', state.pack.daysMax);
     step('You approve the art', 'Revisions push everything below later', BUYER_REVIEW_DAYS, 'you');
     var proofsBack = steps[2].date;
