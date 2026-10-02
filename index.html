@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Sales Portal - Select Program</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,6 +22,8 @@
             max-width: 800px;
             width: 90%;
             position: relative;
+            margin: 90px 0 40px;
+            box-sizing: border-box;
         }
         .logo {
             position: absolute;
@@ -84,6 +87,82 @@
             font-size: 14px;
             line-height: 1.4;
         }
+
+        /* ── NEXCOM custom art ── */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 40px 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #666;
+        }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .tool-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #333;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+        .tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            border-color: #764ba2;
+        }
+        .tool-icon {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .tool-card h3 { margin: 0 0 4px; font-size: 17px; color: #222; }
+        .tool-card p { margin: 0; font-size: 13px; color: #666; line-height: 1.35; }
+        .turn-badge {
+            position: absolute;
+            top: -9px;
+            right: -9px;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 7px;
+            box-sizing: border-box;
+            border-radius: 12px;
+            background: #c62828;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 24px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(198,40,40,0.4);
+            display: none;
+        }
+        .turn-note { font-size: 12px; color: #764ba2; font-weight: 700; margin-top: 4px; display: none; }
+
+        @media (max-width: 600px) {
+            .container { padding: 28px 20px; }
+            .logo { position: static; display: block; margin: 0 auto; }
+            h1 { margin-top: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -91,7 +170,7 @@
 <div class="container">
     <img src="logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none'">
     <h1>Sales Portal</h1>
-    <p class="subtitle">Select a program to continue</p>
+    <p class="subtitle" id="subtitle">Select a program to continue</p>
 
     <div class="program-grid" id="programGrid">
         <a href="aafes-hub.html" class="program-card" id="aafesCard">
@@ -105,6 +184,29 @@
             <h2>NEXCOM</h2>
             <p>Souvenirs &amp; Local Navy Pride ordering for Navy Exchange</p>
         </a>
+    </div>
+
+    <!-- NEXCOM custom art: reps request art; the art team and licensing work the requests -->
+    <div id="artSection" style="display:none;">
+        <div class="section-title">NEXCOM Custom Art</div>
+        <div class="tool-grid">
+            <a href="art-request.html" class="tool-card" id="newArtCard">
+                <div class="tool-icon">🎨</div>
+                <div>
+                    <h3>New Art Request</h3>
+                    <p>Start from existing art or ask for a new design</p>
+                </div>
+            </a>
+            <a href="art-requests.html" class="tool-card" id="artListCard">
+                <span class="turn-badge" id="artBadge"></span>
+                <div class="tool-icon">🗂️</div>
+                <div>
+                    <h3 id="artListTitle">My Art Requests</h3>
+                    <p id="artListDesc">Proofs, revisions, approvals and status</p>
+                    <div class="turn-note" id="artTurnNote"></div>
+                </div>
+            </a>
+        </div>
     </div>
 
     <p id="noProgramsMessage" style="display:none; text-align:center; color:#c62828; background:#ffebee; padding:16px; border-radius:8px; margin-top:20px;">
@@ -126,6 +228,10 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script>
+// NEXCOM script through the Cloudflare relay (same as the art pages).
+// Used only to show how many art requests are waiting on this person.
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+
 $(document).ready(function(){
     // Check if user is authenticated
     var authData = sessionStorage.getItem('salesPortalAuth');
@@ -140,17 +246,20 @@ $(document).ready(function(){
     try {
         var auth = JSON.parse(authData);
 
-        var userInfo = '<div style="position:fixed;top:20px;right:20px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;gap:10px;align-items:center;z-index:1000;">' +
-            '<span style="color:#666;font-size:14px;">👤 ' + auth.name + '</span>' +
+        var userInfo = '<div style="position:fixed;top:20px;right:20px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;gap:10px;align-items:center;z-index:1000;flex-wrap:wrap;">' +
+            '<span style="color:#666;font-size:14px;">👤 ' + esc(auth.name) + '</span>' +
             '<a href="help.html" style="background:#28a745;color:white;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;text-decoration:none;font-size:14px;">🆘 Need Help</a>' +
-            '<a href="my-orders.html" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;text-decoration:none;font-size:14px;">📋 My Orders</a>' +
+            '<a href="my-orders.html" id="myOrdersLink" style="background:#667eea;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;text-decoration:none;font-size:14px;">📋 My Orders</a>' +
             '<button onclick="logout()" style="background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Logout</button>' +
             '</div>';
 
         $('body').append(userInfo);
 
         // Show admin-only section for Admin role
-        var isAdmin = auth.role === 'Admin';
+        var role = String(auth.role || '').toLowerCase();
+        var isAdmin = role === 'admin';
+        var isArtTeam = role === 'art';
+        var isLicensing = role === 'licensing';
         if (isAdmin) {
             $('#adminSection').show();
         }
@@ -164,9 +273,27 @@ $(document).ready(function(){
         if (!hasAAFES) $('#aafesCard').remove();
         if (!hasNEXCOM) $('#nexcomCard').remove();
 
+        // NEXCOM custom art: reps on NEXCOM request art; the art team and
+        // licensing work requests even if they aren't on a sales program.
+        var artStaff = isAdmin || isArtTeam || isLicensing;
+        if (hasNEXCOM || artStaff) {
+            $('#artSection').show();
+            if (!hasNEXCOM) $('#newArtCard').remove();
+            if (artStaff) {
+                $('#artListTitle').text('Art Requests');
+                $('#artListDesc').text(isLicensing && !isAdmin ? 'Approved art waiting on licensing' : 'Assign, upload proofs, track every request');
+            }
+            loadArtTurnCount(auth, { isAdmin: isAdmin, isArtTeam: isArtTeam, isLicensing: isLicensing });
+        }
+
         if (!hasAAFES && !hasNEXCOM) {
             $('#programGrid').hide();
-            $('#noProgramsMessage').show();
+            if (artStaff) {
+                $('#subtitle').text('Welcome back');
+                $('#myOrdersLink').remove(); // art team / licensing don't place orders
+            } else {
+                $('#noProgramsMessage').show();
+            }
         }
 
     } catch(e){
@@ -175,6 +302,32 @@ $(document).ready(function(){
         window.location.href = 'login.html';
     }
 });
+
+// Red badge on "Art Requests" = requests waiting on this person.
+// Reps: proofs to review + art ready to order. Art team: new + revisions.
+// Licensing: requests in licensing. Fails quietly if the server can't be reached.
+function loadArtTurnCount(auth, r) {
+    if (!ART_API_URL) return;
+    $.ajax({
+        url: ART_API_URL, method: 'GET', dataType: 'json', cache: false, timeout: 20000,
+        data: { action: 'artList', email: auth.email, token: auth.token || '', status: 'open', limit: 1 }
+    }).done(function (res) {
+        if (!res || !res.success || !res.counts) return;
+        var c = res.counts, n = 0, parts = [];
+        function add(status, label) { if (c[status]) { n += c[status]; parts.push(c[status] + ' ' + label); } }
+        if (r.isArtTeam || r.isAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); }
+        if (r.isLicensing || r.isAdmin) { add('Licensing', 'in licensing'); }
+        if (!r.isArtTeam && !r.isLicensing && !r.isAdmin) { add('Proof Ready', 'proof' + (c['Proof Ready'] === 1 ? '' : 's') + ' to review'); add('Ready to Order', 'ready to order'); }
+        if (n) {
+            $('#artBadge').text(n).show();
+            $('#artTurnNote').text('Waiting on you: ' + parts.join(', ')).show();
+        }
+    });
+}
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 function logout() {
     if(confirm('Are you sure you want to log out?')){
