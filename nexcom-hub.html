@@ -84,6 +84,22 @@
             font-size: 48px;
             margin-bottom: 15px;
         }
+        .section-title {
+            text-align: center;
+            margin: 36px 0 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .nav-card.art { position: relative; background: linear-gradient(135deg, #8a5cc4 0%, #5b3a8c 100%); }
+        .turn-badge {
+            position: absolute; top: -10px; right: -10px; min-width: 26px; height: 26px; padding: 0 8px;
+            box-sizing: border-box; border-radius: 13px; background: #c62828; color: white; font-size: 13px;
+            font-weight: 700; line-height: 26px; box-shadow: 0 2px 6px rgba(198,40,40,0.45); display: none;
+        }
+        .turn-note {
+            display: none; margin-top: 10px; font-size: 12px; font-weight: 700;
+            background: rgba(255,255,255,0.22); border-radius: 10px; padding: 3px 10px;
+        }
         .coming-soon-badge {
             display: inline-block;
             background: rgba(255,255,255,0.25);
@@ -117,6 +133,22 @@
             <p>Custom-print tees, hardgoods &amp; accessories</p>
         </a>
     </div>
+
+    <h3 class="section-title">Custom Art</h3>
+    <div class="nav-grid" style="margin-top:16px;">
+        <a href="art-request.html" class="nav-card art">
+            <div class="icon">🎨</div>
+            <h2>New Art Request</h2>
+            <p>Start from existing art or ask for a new design</p>
+        </a>
+        <a href="art-requests.html" class="nav-card art">
+            <span class="turn-badge" id="artBadge"></span>
+            <div class="icon">🗂️</div>
+            <h2>My Art Requests</h2>
+            <p>Proofs, revisions, approvals and status</p>
+            <div class="turn-note" id="artTurnNote"></div>
+        </a>
+    </div>
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -140,12 +172,34 @@ $(document).ready(function(){
             '</div>';
 
         $('body').append(userInfo);
+        loadArtTurnCount(auth);
 
     } catch(e){
         sessionStorage.removeItem('salesPortalAuth');
         window.location.href = 'login.html';
     }
 });
+
+// NEXCOM script through the Cloudflare relay — red badge on "My Art Requests"
+// for proofs waiting on review and art that's ready to order.
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+function loadArtTurnCount(auth) {
+    if (!auth.token) return;
+    $.ajax({
+        url: ART_API_URL, method: 'GET', dataType: 'json', cache: false, timeout: 20000,
+        data: { action: 'artList', email: auth.email, token: auth.token, status: 'open', limit: 1 }
+    }).done(function (res) {
+        if (!res || !res.success || !res.counts) return;
+        var proofs = res.counts['Proof Ready'] || 0, ready = res.counts['Ready to Order'] || 0, parts = [];
+        if (res.user && res.user.isStaff) return;   // staff use the Art Requests page itself
+        if (proofs) parts.push(proofs + ' proof' + (proofs === 1 ? '' : 's') + ' to review');
+        if (ready) parts.push(ready + ' ready to order');
+        if (proofs + ready) {
+            $('#artBadge').text(proofs + ready).show();
+            $('#artTurnNote').text('Waiting on you: ' + parts.join(', ')).show();
+        }
+    });
+}
 
 function logout() {
     if(confirm('Are you sure you want to log out?')){
