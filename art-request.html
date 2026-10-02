@@ -217,7 +217,8 @@
             color: var(--text-muted); font-size: 14px; background: var(--surface);
         }
 
-        .sketch-card { padding: 0; overflow: hidden; }
+        .sketch-card { padding: 0; overflow: visible; }
+        .sketch-card .sketch-head { border-radius: var(--radius) var(--radius) 0 0; }
         .sketch-head {
             display: flex; align-items: center; gap: 12px; padding: 16px 24px; background: var(--surface-2);
             border-bottom: 1px solid var(--border); flex-wrap: wrap;
@@ -367,7 +368,18 @@
         .print-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
         @media (max-width: 700px) { .print-grid { grid-template-columns: 1fr; } }
         .loc-list, .ink-list { display: grid; gap: 8px; }
-        .ink-list { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+        .ink-combo { position: relative; }
+        .ink-combo .ink-sw { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.18); background: repeating-linear-gradient(45deg,#eee 0 3px,#fff 3px 6px); pointer-events: none; }
+        .ink-combo input { padding-left: 34px; }
+        .ink-combo.picked input { border-color: #a5d6a7; background: #f5fbf5; font-weight: 600; }
+        .ink-dd { position: absolute; top: calc(100% + 4px); left: 0; min-width: 260px; right: 0; z-index: 70; background: var(--surface); border: 1.5px solid var(--accent); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,0.14); max-height: 280px; overflow-y: auto; display: none; }
+        .ink-dd.open { display: block; }
+        .ink-opt { display: flex; align-items: center; gap: 10px; padding: 7px 12px; cursor: pointer; border-top: 1px solid #f2f1ec; font-size: 13px; }
+        .ink-opt:hover, .ink-opt.hl { background: var(--accent-soft); }
+        .ink-opt .ink-sw { position: static; transform: none; flex-shrink: 0; width: 18px; height: 18px; }
+        .ink-opt .nm { font-weight: 600; flex: 1; }
+        .ink-opt .pms { font-family: 'DM Mono', monospace; font-size: 11.5px; color: var(--text-muted); }
+        .ink-list { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
         .ack {
             display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; margin: 4px 0 24px;
             background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13.5px; cursor: pointer;
@@ -638,12 +650,23 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-// Same Apps Script web app as the NEXCOM store picker (Post.gs + ArtRequests.gs).
+// NEXCOM script (Nexcom.gs + ArtRequests.gs), reached through the Cloudflare relay.
 // Leave blank to run the page as a preview that sends nothing.
-var ART_API_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
 
 var MAX_SWAPS = 5;
 var MAX_FILE_MB = 10;
+var MAX_FREE_INKS = 6;   // non-apparel items: optional inks, up to this many
+
+// Ink colors from “PMS to Ink” (GFSI chart). Reps must pick from this list.
+// White and Black aren't on the chart but are standard inks.
+// [name, PMS, swatch hex (sampled from the chart, approximate), fluorescent]
+var INK_DATA = [["White","","FFFFFF",0],["Black","","111111",0],["Reflex Blue","PMS 072 C","084393",0],["Sunburst","PMS 101 C","FBF063",0],["Michigan Yellow","PMS 109 C","FEE203",0],["Butter","PMS 1205 C","FEFAD4",0],["Soleil","PMS 121 C","FEE777",0],["Sun Gold","PMS 123 C","FFD900",0],["Gold","PMS 1235 C","FACD1A",0],["Citrus Gold","PMS 124 C","F7BC34",0],["Honey","PMS 1245 C","C09404",0],["Cider","PMS 1255 C","BC8818",0],["Maize","PMS 1345 C","FFD98E",0],["Weathered Gold","PMS 1375 C","F8A82F",0],["Karat","PMS 145 C","EC9C24",0],["Mango","PMS 1485 C","F8CD7E",0],["Baked Coral","PMS 1495 C","F78320",0],["Flesh","PMS 156 C","FFD3A2",0],["Light Orange","PMS 1585 C","F47F38",0],["Peach","PMS 162 U","FDB493",0],["Cantaloupe","PMS 1635 C","F49074",0],["Tangelo","PMS 1645 C","F48054",0],["Pumpkin","PMS 167 C","D36B24",0],["Texas Orange","PMS 1685 C","9C5017",0],["Georgia Peach","PMS 170 U","F7AC80",0],["Outrage Orange","PMS 173 U","E4681F",0],["Rust","PMS 174 C","B73328",0],["Guava","PMS 178 U","DC6C6C",0],["Sunset","PMS 1788 C","EC3830",0],["Orange","PMS 179 C","EF571C",0],["Red","PMS 1797 C","C31828",0],["Auburn","PMS 1815 C","8C2830",0],["Athletic Cardinal","PMS 188 C","9C1834",0],["Rhubarb","PMS 193 C","D7104C",0],["Light Cardinal","PMS 194 C","BC2444",0],["Temple Maroon","PMS 195 C","800C24",0],["Scarlet","PMS 200 C","D31344",0],["Terra Cotta","PMS 200 U","DC545C",0],["Crimson","PMS 201 C","C3243C",0],["Simply Red","PMS 202 C","B32038",0],["Memphis Belle","PMS 203 C","F8ADC1",0],["Raspberry","PMS 204 C","EB8498",0],["Deep Pink","PMS 205 C","EC4F87",0],["Magenta","PMS 214 U","D40458",0],["Weathered Red","PMS 216 C","9C2850",0],["Sangria","PMS 221 C","B02458",0],["Shell","PMS 2365 C","FAC0CC",0],["Lipstick","PMS 237 C","E38CBB",0],["Plum","PMS 242 C","AF4C87",0],["Red Violet","PMS 242 U","934C73",0],["Orchid","PMS 263 C","D9CFDA",0],["Lavender","PMS 2635 C","9CA4D0",0],["Simba Purple","PMS 2665 U","7068A4",0],["Cambridge Purple","PMS 269 C","533873",0],["Blue Violet","PMS 2715 C","6083C3",0],["Peri","PMS 2726 C","3067B3",0],["Purple","PMS 273 U","484893",0],["Cobalt","PMS 2747 C","243797",0],["Washed Grape","PMS 2755 C","204777",0],["Soft Grape","PMS 2756 U","344B7F",0],["Marine Navy","PMS 2767 C","000C48",0],["Dark Plum","PMS 276 C","372057",0],["Sky","PMS 277 U","A2CDED",0],["Meditation Blue","PMS 278 C","90B8D8",0],["Tropical Blue","PMS 281 C","003774",0],["Navy","PMS 282 C","002450",0],["Powder Blue","PMS 283 C","7BBFE7",0],["Breeze","PMS 284 C","549BCF",0],["Polar Blue","PMS 2905 C","88D4F8",0],["Pacific Blue","PMS 2915 U","38ABE3",0],["Indigo","PMS 295 U","005498",0],["Riviera","PMS 2955 C","004F83",0],["Light Blue","PMS 298 U","24BBE7",0],["Medium Blue","PMS 2995 U","0093C7",0],["Light Royal","PMS 3005 U","0087C7",0],["Tidal","PMS 301 U","004C78",0],["Washed Indigo","PMS 302 U","1C4C70",0],["Columbia Blue","PMS 3025 U","003F6F",0],["Clearwater","PMS 304 C","A1D8ED",0],["Turquoise","PMS 3135 U","0088B0",0],["Bermuda Teal","PMS 3155 C","006F7B",0],["Aqua","PMS 3155 U","006C80",0],["Cayman","PMS 320 U","00A0B0",0],["Island Green","PMS 323 C","00807C",0],["Mint","PMS 3245 C","98D4CC",0],["Billiard Green","PMS 3272 U","00AFA7",0],["Sea Green","PMS 3285 C","00AC84",0],["Weathered Green","PMS 3292 U","007373",0],["Forest Green","PMS 3308 C","004834",0],["Light Green","PMS 339 C","10B488",0],["Grass Green","PMS 341 C","004733",0],["Emerald","PMS 3415 C","009064",0],["Green","PMS 3425 C","00834C",0],["Pistachio","PMS 359 C","8BC388",0],["Grasshopper","PMS 360 C","68BB64",0],["Lime","PMS 361 C","38B448",0],["Midori","PMS 373 C","C9DE7F",0],["Acid Green","PMS 387 C","ECE95C",0],["New Blade","PMS 390 C","8FA324",0],["Earth","PMS 403 U","989C8C",0],["Chino","PMS 414 C","B0B4AC",0],["Concrete","PMS 427 U","E5E5E5",0],["Silver","PMS 428 C","C4D4D3",0],["Oxford Gray","PMS 429 C","A4AFB4",0],["Heather Gray","PMS 430 C","8C989C",0],["Grey","PMS 431 C","5C7480",0],["Charcoal","PMS 432 C","3C4454",0],["Dark Grey","PMS 432 U","44535F",0],["Sage","PMS 444 C","5C9090",0],["Moss Green","PMS 4485 U","786004",0],["Vegas Gold","PMS 4525 C","DFDBB6",0],["Midas","PMS 458 U","CCA448",0],["Bronze","PMS 462 C","634410",0],["Cane","PMS 468 C","F3E0B5",0],["Brown","PMS 469 C","633400",0],["Light Brown","PMS 4705 U","836454",0],["Saffron","PMS 471 U","C47C5C",0],["Shell Brown","PMS 4715 C","8F7074",0],["Bittersweet","PMS 472 U","E37058",0],["Minnesota Tan","PMS 4725 C","C0907C",0],["Light Papaya","PMS 473 U","FBB68D",0],["Almond","PMS 4755 C","DAC2A8",0],["Pecan","PMS 476 C","4B2000",0],["Chestnut","PMS 477 C","642814",0],["Dark Maroon","PMS 497 C","380004",0],["Chicago Maroon","PMS 4975 C","300008",0],["Vassar Cardinal","PMS 505 C","801C30",0],["Cardinal","PMS 5115 C","2C0008",0],["Mulberry","PMS 5125 U","876377",0],["Blackberry","PMS 525 U","4F3453",0],["Baja Blue","PMS 5405 C","446377",0],["Royal","PMS 541 C","00579F",0],["Wedgewood","PMS 5415 C","2F7897",0],["Cool Grey","PMS 5435 U","B3C4D8",0],["Chambray","PMS 549 C","78ABCC",0],["Mist","PMS 5507 U","A4BCB4",0],["Hunter","PMS 5535 C","04483C",0],["Vine","PMS 554 C","185038",0],["Sea Grass","PMS 554 U","40584C",0],["Evergreen","PMS 555 C","006838",0],["Dark Green","PMS 560 C","004C34",0],["Aloe","PMS 5625 C","608478",0],["Military","PMS 5743 C","445C3C",0],["Willow","PMS 5767 U","7C804C",0],["Rosemary","PMS 5773 C","7F9765",0],["Celery","PMS 5783 C","A8BCA4",0],["Pale Green","PMS 622 U","B7D9C9",0],["Pacifica","PMS 631 C","3EBBD7",0],["Scuba","PMS 632 C","00B0B4",0],["Intense Blue","PMS 634 U","00638B",0],["Light Turquoise","PMS 636 C","A4DBEF",0],["Aquamarine","PMS 640 U","0097C0",0],["Weathered Blue","PMS 647 C","084F7B",0],["Dusty Blue","PMS 659 C","3C8BC8",0],["Bay Blue","PMS 660 C","0073BB",0],["African Violet","PMS 668 C","484880",0],["Fuschia","PMS 673 C","CC7898",0],["Rhodemine Red","PMS 675 U","CF548B",0],["Maroon","PMS 690 C","6C3440",0],["Dark Terra Cotta","PMS 696 C","B8585C",0],["Berry","PMS 702 C","E36078",0],["Coral Flame","PMS 709 U","E44370",0],["Canoe Yellow","PMS 7403 C","F5D88C",0],["Cavaliers Orange","PMS 7417 C","F05024",0],["Orange Sherbet","PMS 7417 U","F07054",0],["Sail Blue","PMS 7457 C","C6EAFA",0],["Starlight Blue","PMS 7458 C","64ABBB",0],["Capri","PMS 7461 C","008FCF",0],["Washed Spruce","PMS 7476 U","20686C",0],["Light Melon","PMS 7478 C","84C89C",0],["Melon","PMS 7479 C","1CB05C",0],["Margarita","PMS 7486 C","BFE2AC",0],["Anise Seed","PMS 7492 C","C3D196",0],["Garden Green","PMS 7490 U","78A47C",0],["Rattan","PMS 7502 C","E5CA83",0],["Beachwood","PMS 7503 U","A79888",0],["Chamois","PMS 7508 C","ECCCA3",0],["BC Flesh","PMS 7514 U","D48468",0],["Woodtan","PMS 7518 C","6B483C",0],["Oak","PMS 7527 C","D5C8B8",0],["Champagne","PMS 7535 C","D8C791",0],["Light Mushroom","PMS 7536 U","A8A494",0],["Rain","PMS 7542 C","B1CED4",0],["Light Grey","PMS 7545 U","708894",0],["Storm","PMS 7546 C","103C4C",0],["Graphite","PMS 7547 C","082F3F",0],["Aztec Gold","PMS 8580 C","B47848",0],["Canvas","PMS 9061 U","F2EEE5",0],["Pink","PMS 9260 U","FCE0DC",0],["Ice Blue","PMS 9410 U","B8D5DB",0],["Fluor Yellow","PMS Yellow C","FCF207",1],["Fluor Blue","PMS 3005 C","0097D7",1],["Fluor Violet","PMS 7442 C","842C94",1],["Fluor Red","PMS 805 C","EB3C3C",1],["Fluor Lemon","PMS 809 C","D4E01E",1],["Fluor Pink","PMS 812 C","EF588C",1]];
+var INKS = INK_DATA.map(function (r) {
+    return { name: r[0], pms: r[1], hex: r[2], fluor: !!r[3], label: r[0] + (r[1] ? ' (' + r[1] + ')' : '') };
+});
+var INK_BY_LABEL = {};
+INKS.forEach(function (k) { INK_BY_LABEL[k.label] = k; });
 var LOCATIONS = [
     ['FC', 'Full Chest'], ['LC', 'Left Chest'], ['RC', 'Right Chest'],
     ['FB', 'Full Back'], ['UB', 'Upper Back'], ['LS', 'Left Sleeve'],
@@ -719,6 +742,7 @@ $(function () {
 
     loadCatalogs();
     bindItemPicker();
+    bindInkPicker();
 
     // Sketch pack
     $('#packGrid').on('click', '.pack-card', function () {
@@ -920,7 +944,7 @@ function renderPrint($card) {
     var $note = $card.find('.js-print-note');
     // keep what's already typed
     var locVals = $card.find('.js-loc').map(function () { return $(this).val(); }).get();
-    var inkVals = $card.find('.js-ink').map(function () { return $(this).val(); }).get();
+    var inkVals = $card.find('.js-ink').map(function () { return $(this).data('ink') || ''; }).get();
 
     var nLocs = tier ? tier.locs : 1;
     var locOpts = '<option value="">Select…</option>' + LOCATIONS.map(function (l) {
@@ -933,25 +957,113 @@ function renderPrint($card) {
 
     var inkHtml = '';
     if (tier) {
-        for (var k = 0; k < tier.maxInks; k++) {
-            var req = k < tier.minInks;
-            inkHtml += '<input type="text" class="js-ink' + (req ? ' req' : '') + '" placeholder="Ink ' + (k + 1) + (req ? ' *' : ' (optional)') + '">';
-        }
+        for (var k = 0; k < tier.maxInks; k++) inkHtml += inkSlotHtml(k, k < tier.minInks);
     } else {
-        inkHtml = '<input type="text" class="js-ink js-ink-free" placeholder="Colors / imprint (optional for non-apparel)">';
+        var nFree = Math.max(1, Math.min(MAX_FREE_INKS, inkVals.filter(Boolean).length + (inkVals.length > inkVals.filter(Boolean).length ? 1 : 0)));
+        for (var f = 0; f < nFree; f++) inkHtml += inkSlotHtml(f, false);
+        inkHtml += '<button type="button" class="btn-link js-add-ink" style="justify-self:start;">+ Add ink</button>';
     }
     $card.find('.js-inks').html(inkHtml);
-    $card.find('.js-ink').each(function (i) { if (inkVals[i]) $(this).val(inkVals[i]); });
+    $card.find('.js-ink').each(function (i) { if (inkVals[i]) setInk($(this), INK_BY_LABEL[inkVals[i]]); });
 
     if (tier && tier.mixed) {
         $note.attr('class', 'print-note js-print-note warn').html('⚠ These items are on different price points. One sketch is one piece of art, so use items with the same ink colors and locations, or split them into separate sketches.');
     } else if (tier) {
         $note.attr('class', 'print-note js-print-note').html('Price point: <b>' + esc(tier.label) + '</b>. Pick ' +
             (tier.minInks === tier.maxInks ? tier.maxInks : tier.minInks + '–' + tier.maxInks) + ' ink colors and ' + tier.locs +
-            ' location' + (tier.locs > 1 ? 's' : '') + '. No “artist’s choice”, so name each ink.');
+            ' location' + (tier.locs > 1 ? 's' : '') + '. Choose each ink from the ink chart. No “artist’s choice”.');
     } else {
-        $note.attr('class', 'print-note js-print-note').html('Pick an apparel item to see how many ink colors and locations its price point includes.');
+        $note.attr('class', 'print-note js-print-note').html('Pick an apparel item to see how many ink colors and locations its price point includes. For other items, inks are optional.');
     }
+}
+
+// ── Ink picker (restricted to the ink chart) ─────────────────────────────────
+function inkSlotHtml(k, required) {
+    return '<div class="ink-combo">' +
+        '<span class="ink-sw"></span>' +
+        '<input type="text" class="js-ink' + (required ? ' req' : '') + '" autocomplete="off" placeholder="Ink ' + (k + 1) + (required ? ' *' : ' (optional)') + '">' +
+        '<div class="ink-dd"></div></div>';
+}
+
+function setInk($in, ink) {
+    $in.data('ink', ink ? ink.label : '');
+    $in.closest('.ink-combo').toggleClass('picked', !!ink)
+       .find('.ink-sw').css('background', ink ? '#' + ink.hex : '');
+    if (ink) $in.val(ink.label).removeClass('field-error');
+}
+
+function searchInks(q) {
+    q = q.trim().toLowerCase().replace(/^pms\s*/, '');
+    if (!q) return INKS;
+    var tokens = q.split(/\s+/);
+    var hits = INKS.filter(function (k) {
+        var hay = (k.name + ' ' + k.pms).toLowerCase();
+        return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
+    });
+    // names that start with the search come first
+    return hits.sort(function (a, b) {
+        var as = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bs = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+        return as - bs;
+    });
+}
+
+function renderInkDropdown($in) {
+    var $dd = $in.siblings('.ink-dd');
+    var q = $in.data('ink') ? '' : $in.val();
+    var hits = searchInks(q);
+    $in.data('hits', hits).data('hl', 0);
+    if (!hits.length) { $dd.html('<div class="item-empty">No ink matches “' + esc(q) + '”</div>').addClass('open'); return; }
+    var html = '', lastFluor = null;
+    hits.forEach(function (k, i) {
+        if (k.fluor !== lastFluor && (lastFluor !== null || k.fluor)) html += '<div class="item-group">' + (k.fluor ? 'Fluorescent' : 'Inks') + '</div>';
+        lastFluor = k.fluor;
+        html += '<div class="ink-opt' + (i === 0 ? ' hl' : '') + '" data-i="' + i + '"><span class="ink-sw" style="background:#' + k.hex + '"></span>' +
+                '<span class="nm">' + esc(k.name) + '</span><span class="pms">' + esc(k.pms) + '</span></div>';
+    });
+    $dd.html(html).addClass('open').scrollTop(0);
+}
+
+function bindInkPicker() {
+    $(document).on('focus', '.js-ink', function () { if ($(this).data('ink')) this.select(); renderInkDropdown($(this)); });
+    $(document).on('input', '.js-ink', function () { if ($(this).data('ink')) setInk($(this), null); renderInkDropdown($(this)); });
+    $(document).on('keydown', '.js-ink', function (e) {
+        var $in = $(this), $dd = $in.siblings('.ink-dd'), hits = $in.data('hits') || [], hl = $in.data('hl') || 0;
+        if (!$dd.hasClass('open')) return;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            hl = e.key === 'ArrowDown' ? Math.min(hl + 1, hits.length - 1) : Math.max(hl - 1, 0);
+            $in.data('hl', hl);
+            var $o = $dd.find('.ink-opt').removeClass('hl').eq(hl).addClass('hl');
+            if ($o.length) $o[0].scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (hits[hl]) { setInk($in, hits[hl]); $dd.removeClass('open'); }
+        } else if (e.key === 'Escape') { $dd.removeClass('open'); }
+    });
+    $(document).on('blur', '.js-ink', function () {
+        var $in = $(this);
+        setTimeout(function () {
+            $in.siblings('.ink-dd').removeClass('open');
+            if (!$in.data('ink') && $in.val().trim()) {
+                // accept an exact name typed in full
+                var exact = INKS.filter(function (k) { return k.name.toLowerCase() === $in.val().trim().toLowerCase(); })[0];
+                if (exact) setInk($in, exact); else $in.addClass('field-error');
+            }
+        }, 150);
+    });
+    $(document).on('mousedown', '.ink-opt', function (e) {
+        e.preventDefault();
+        var $in = $(this).closest('.ink-combo').find('.js-ink');
+        var k = ($in.data('hits') || [])[+$(this).data('i')];
+        if (k) { setInk($in, k); $(this).closest('.ink-dd').removeClass('open'); $in.blur(); }
+    });
+    $(document).on('click', '.js-add-ink', function () {
+        var $list = $(this).closest('.js-inks');
+        var n = $list.find('.ink-combo').length;
+        if (n >= MAX_FREE_INKS) return;
+        $(inkSlotHtml(n, false)).insertBefore(this);
+        if (n + 1 >= MAX_FREE_INKS) $(this).hide();
+    });
 }
 
 function setSketchNumber($card, num) {
@@ -1011,7 +1123,7 @@ function setRowItem($row, item) {
     $row.data('style', item ? item.style : null);
     if (item) {
         $in.val(item.desc).addClass('picked').removeClass('field-error');
-        $meta.html('<span class="code">' + esc(item.style) + '</span>' +
+        $meta.html('<span class="code">RIN ' + esc(item.style) + '</span>' +
             (item.tier ? '<span class="tier-chip">' + esc(item.tier) + '</span>' : '') +
             '<span class="cat-chip">' + esc(item.cat) + '</span>');
     } else {
@@ -1030,7 +1142,7 @@ function refreshPickerState($row) {
     if (!state.account) {
         $in.prop('disabled', true).attr('placeholder', 'Choose an account above first');
     } else {
-        $in.prop('disabled', false).attr('placeholder', 'Search ' + state.account + ' items — e.g. hoodie, decal, tumbler');
+        $in.prop('disabled', false).attr('placeholder', 'Search ' + state.account + ' items or paste a RIN, e.g. hoodie, LNPHDY1-2-2');
     }
 }
 
@@ -1051,6 +1163,10 @@ function onAccountChanged(prev, next) {
 
 function searchItems(query) {
     var list = catalog[state.account] || [];
+    // A pasted RIN (vendor style) jumps straight to its item, size suffix or not.
+    var rin = query.trim().toUpperCase().replace(/-(XS|S|M|L|XL|XX|XXL|2X|3X|XXX|3XL|4X|OS|OSFA|OSFM|SM|MD|LG)$/, '');
+    var exact = list.filter(function (it) { return it.style.toUpperCase() === rin; });
+    if (exact.length) return exact;
     var tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (!tokens.length) return list;
     return list.filter(function (it) {
@@ -1084,7 +1200,7 @@ function renderItemDropdown($row) {
         html += '<div class="item-group">' + esc(c) + ' · ' + byCat[c].length + '</div>';
         byCat[c].forEach(function (it) {
             html += '<div class="item-opt" data-i="' + ordered.length + '"><div class="d">' + highlight(it.desc, q) +
-                    '</div><div class="c">' + esc(it.style) + '</div></div>';
+                    '</div><div class="c">RIN ' + esc(it.style) + '</div></div>';
             ordered.push(it);
         });
     });
@@ -1341,20 +1457,19 @@ function validate() {
             if (v && locs.indexOf(v) !== -1) { $(this).addClass('field-error'); errors.push('Sketch ' + n + ': the two locations must be different'); }
             locs.push(v);
         });
-        if (tier) {
-            var inks = $c.find('.js-ink').filter(function () { return $(this).val().trim(); }).length;
-            $c.find('.js-ink.req').each(function () { if (!$(this).val().trim()) $(this).addClass('field-error'); });
-            if (inks < tier.minInks) {
-                errors.push('Sketch ' + n + ': name ' + (tier.minInks === tier.maxInks ? tier.maxInks : 'at least ' + tier.minInks) +
-                    ' ink color' + (tier.minInks > 1 ? 's' : '') + ' for this price point' +
-                    (tier.minInks > 1 ? ', or pick a lower-priced item' : ''));
-            }
-            $c.find('.js-ink').each(function () {
-                if (/^\s*(ac|artist'?s? choice)\s*$/i.test($(this).val())) {
-                    $(this).addClass('field-error');
-                    errors.push('Sketch ' + n + ': “artist’s choice” isn’t available. Name the ink color');
-                }
-            });
+        var picked = [], badInk = false;
+        $c.find('.js-ink').each(function () {
+            var $i = $(this), v = $i.data('ink');
+            if (v) {
+                if (picked.indexOf(v) !== -1) { $i.addClass('field-error'); errors.push('Sketch ' + n + ': ' + v + ' is listed twice'); }
+                picked.push(v);
+            } else if ($i.val().trim()) { $i.addClass('field-error'); badInk = true; }
+        });
+        if (badInk) errors.push('Sketch ' + n + ': choose each ink from the ink chart list (no “artist’s choice”)');
+        if (tier && picked.length < tier.minInks) {
+            $c.find('.js-ink.req').each(function () { if (!$(this).data('ink')) $(this).addClass('field-error'); });
+            errors.push('Sketch ' + n + ': choose ' + (tier.minInks === tier.maxInks ? tier.maxInks : 'at least ' + tier.minInks) +
+                ' ink color' + (tier.minInks > 1 ? 's' : '') + ' for this price point' + (tier.minInks > 1 ? ', or pick a lower-priced item' : ''));
         }
         need($c.find('.js-desc'), 'Sketch ' + n + ': description');
 
@@ -1418,7 +1533,7 @@ function buildPayload() {
             artType: isNew ? 'new' : 'existing',
             referToArt: isNew ? '' : $c.find('.js-refer').val().trim(),
             locations: $c.find('.js-loc').map(function () { return $(this).val(); }).get().filter(Boolean),
-            inkColors: $c.find('.js-ink').map(function () { return $(this).val().trim(); }).get().filter(Boolean),
+            inkColors: $c.find('.js-ink').map(function () { return $(this).data('ink') || ''; }).get().filter(Boolean),
             priceTier: tier ? tier.label : '',
             items: garments,
             changes: changes,
@@ -1519,17 +1634,23 @@ function submitRequest() {
     });
 }
 
-// POST as text/plain so the browser sends it without a pre-flight check.
-// If the response can't be read (some Google setups), fall back to a normal form post.
+// POST as text/plain through the relay, with the login token.
 function sendToServer(payload) {
+    var a = {};
+    try { a = JSON.parse(sessionStorage.getItem('salesPortalAuth')) || {}; } catch (e) {}
+    payload.email = a.email || payload.email;
+    payload.token = a.token || '';
     return fetch(ART_API_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(function (r) { return r.json(); })
-        .catch(function () {
-            var form = $('<form>', { method: 'POST', action: ART_API_URL, target: '_blank', style: 'display:none;' });
-            form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
-            $('body').append(form); form.submit(); setTimeout(function () { form.remove(); }, 1000);
-            return { success: true, fallback: true, message: 'Sent. The result opened in a new tab.' };
-        });
+        .then(function (r) {
+            if (r && r.sessionExpired) {
+                alert('Your login has expired. Please log in again. (Your request was not sent.)');
+                sessionStorage.removeItem('salesPortalAuth');
+                window.location.href = 'login.html';
+            }
+            return r;
+        })
+        .catch(function () { return { success: false, message: 'Could not reach the server. Check your connection and try again.' }; });
 }
 
 function showSubmitted(r, p) {
