@@ -184,8 +184,8 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-// Same Apps Script web app as art-request.html (Post.gs + ArtRequests.gs).
-var ART_API_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+// NEXCOM script (Nexcom.gs + ArtRequests.gs), reached through the Cloudflare relay.
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
 var PAGE_SIZE = 25;
 var ORDER_PAGES = { 'Souvenir': 'souvenirs.html', 'Local Navy Pride': 'navy-pride.html' };
 var MAX_FILE_MB = 10;
@@ -202,7 +202,7 @@ var list = { status: 'open', scope: null, q: '', assigned: '', offset: 0, loadin
 // ── Boot ──────────────────────────────────────────────────────────────────────
 $(function () {
     try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')); } catch (e) {}
-    if (!auth || !auth.email) { window.location.href = 'login.html'; return; }
+    if (!auth || !auth.email || !auth.token) { sessionStorage.removeItem('salesPortalAuth'); window.location.href = 'login.html'; return; }
     $('#repBadge').text(auth.name || auth.email);
     var id = new URLSearchParams(location.search).get('id');
     if (id) loadDetail(id); else loadList(true);
@@ -215,20 +215,25 @@ $(function () {
 // ── API ───────────────────────────────────────────────────────────────────────
 function apiGet(params) {
     params.email = auth.email;
+    params.token = auth.token || '';
     return $.ajax({ url: ART_API_URL, method: 'GET', data: params, dataType: 'json', cache: false, timeout: 30000 })
-        .then(function (r) { return r; }, function () { return { success: false, message: 'Could not reach the server.' }; });
+        .then(checkSession, function () { return { success: false, message: 'Could not reach the server.' }; });
 }
 function apiPost(payload) {
     payload.email = auth.email;
+    payload.token = auth.token || '';
     return fetch(ART_API_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(function (r) { return r.json(); })
-        .catch(function () {
-            // Fallback when the response can't be read: plain form post in a new tab.
-            var form = $('<form>', { method: 'POST', action: ART_API_URL, target: '_blank', style: 'display:none;' });
-            form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
-            $('body').append(form); form.submit(); setTimeout(function () { form.remove(); }, 1000);
-            return { success: true, fallback: true, message: 'Sent. The result opened in a new tab.' };
-        });
+        .then(checkSession)
+        .catch(function () { return { success: false, message: 'Could not reach the server. Try again.' }; });
+}
+// Expired login → back to the login page (same as My Orders does).
+function checkSession(r) {
+    if (r && r.sessionExpired) {
+        sessionStorage.removeItem('salesPortalAuth');
+        window.location.href = 'login.html';
+    }
+    return r;
 }
 
 // ── Whose turn is it? ─────────────────────────────────────────────────────────
@@ -521,7 +526,7 @@ function bindActions(q) {
             if (!r.success) { toast(r.message || 'Something went wrong.', true); $('[data-op]').prop('disabled', false); loadDetail(q.id); return; }
             toast(r.message || 'Done.');
             $('#app').off('click.act');
-            setTimeout(function () { loadDetail(q.id); }, r.fallback ? 2500 : 200);
+            setTimeout(function () { loadDetail(q.id); }, 200);
         }).catch(function (e) { toast(e.message, true); $('[data-op]').prop('disabled', false); });
     });
 }
