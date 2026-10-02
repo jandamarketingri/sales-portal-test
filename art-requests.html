@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Art Requests - Sales Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f4f0; --surface: #ffffff; --surface-2: #fafaf8; --border: #e2e0d8;
+            --text: #1a1a18; --text-muted: #7a7870; --accent: #667eea; --accent2: #764ba2; --accent-soft: #f0f4ff;
+            --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #2e7d32; --success-bg: #e8f5e9; --warning: #b45309; --warning-bg: #fff8e1;
+            --error: #c62828; --error-bg: #ffebee; --shadow: 0 2px 12px rgba(0,0,0,0.07); --radius: 10px;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { color: var(--accent); }
+
+        .portal-header {
+            background: var(--grad); color: white; padding: 0 32px; display: flex; align-items: center;
+            justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header .logo-area { display: flex; align-items: center; gap: 14px; }
+        .portal-header img.logo { max-height: 38px; max-width: 120px; object-fit: contain; }
+        .portal-header h1 { font-size: 17px; font-weight: 600; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .rep-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; }
+        .btn-back { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: white; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; }
+        @media (max-width: 600px) { .portal-header { padding: 0 16px; } .rep-badge { display: none; } }
+
+        .page-body { max-width: 1000px; margin: 0 auto; padding: 32px 24px 80px; }
+        @media (max-width: 600px) { .page-body { padding: 22px 16px 80px; } }
+        .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+        .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+        .page-subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+        .btn-primary, .btn-secondary, .btn-danger {
+            display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+            font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap;
+        }
+        .btn-primary { background: var(--grad); color: white; box-shadow: 0 3px 12px rgba(102,126,234,0.3); }
+        .btn-primary:disabled { opacity: 0.55; cursor: default; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-danger { background: var(--surface); color: var(--error); border: 1.5px solid #f1b0b0; }
+        .btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+        /* Tabs + filters */
+        .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+        .tab { padding: 10px 12px; font-size: 13px; font-weight: 500; color: var(--text-muted); white-space: nowrap; cursor: pointer; border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; font-family: 'DM Sans', sans-serif; }
+        .tab:hover { color: var(--accent); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+        .tab .count { display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px; border-radius: 10px; background: #eeede8; font-size: 11px; font-family: 'DM Mono', monospace; text-align: center; }
+        .tab.mine-turn .count { background: var(--accent2); color: white; }
+        .filters { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .filters input, .filters select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); outline: none; }
+        .filters input { flex: 1; min-width: 200px; }
+        .filters input:focus, .filters select:focus { border-color: var(--accent); }
+        .seg { display: inline-flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 3px; }
+        .seg button { border: none; background: none; padding: 6px 12px; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+        .seg button.active { background: var(--grad); color: white; }
+
+        /* List */
+        .list { display: flex; flex-direction: column; gap: 10px; }
+        .req-card {
+            display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: center; padding: 16px 20px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+            text-decoration: none; color: inherit; transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .req-card:hover { border-color: #c9cff5; box-shadow: 0 4px 18px rgba(0,0,0,0.09); }
+        .req-card.my-turn { border-color: var(--accent2); }
+        .req-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .req-id { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--text-muted); }
+        .req-title { font-size: 15.5px; font-weight: 600; }
+        .req-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+        .req-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .waiting { font-size: 12px; color: var(--text-muted); }
+        .waiting.me { color: var(--accent2); font-weight: 700; }
+        @media (max-width: 640px) { .req-card { grid-template-columns: 1fr; } .req-right { align-items: flex-start; text-align: left; } }
+
+        .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+        .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .st-submitted { background: #eef0fb; color: #4451b0; }
+        .st-inart { background: #f2ecf9; color: #6a3d9a; }
+        .st-proof { background: #fff3dd; color: #a35a00; }
+        .st-revise { background: #fdeceb; color: #b23b32; }
+        .st-hold { background: #ececec; color: #555; }
+        .st-licensing { background: #e6f0fa; color: #1f5f99; }
+        .st-ready { background: var(--success-bg); color: var(--success); }
+        .st-ordered { background: #e7f3ef; color: #2b6b55; }
+        .st-cancelled { background: #f3f3f3; color: #999; }
+
+        .state-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+        .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader-row { text-align: center; padding: 18px; color: var(--text-muted); font-size: 13px; }
+
+        /* Detail */
+        .crumb { font-size: 13px; margin-bottom: 14px; display: inline-block; text-decoration: none; }
+        .detail-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px; }
+        .turn-banner { padding: 14px 18px; border-radius: var(--radius); margin-bottom: 18px; font-size: 14px; display: flex; gap: 10px; align-items: center; }
+        .turn-banner.me { background: #f4eefb; border: 1px solid #ddcbef; color: #4b2a70; }
+        .turn-banner.other { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+        .grid-2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 20px; }
+        @media (max-width: 600px) { .card { padding: 18px; } }
+        .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .card h3 .right { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+        .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px 18px; }
+        .fact label { display: block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); margin-bottom: 3px; }
+        .fact div { font-size: 14px; font-weight: 500; }
+        .desc { font-size: 14px; color: var(--text); margin-top: 16px; white-space: pre-wrap; }
+
+        .action-block { padding: 14px 0; border-top: 1px dashed var(--border); }
+        .action-block:first-of-type { border-top: none; padding-top: 0; }
+        .action-block .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); margin-bottom: 8px; }
+        .action-block textarea, .action-block select, .action-block input[type=text] {
+            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; margin-bottom: 8px; background: var(--surface);
+        }
+        .action-block textarea { min-height: 72px; resize: vertical; }
+        .action-block textarea:focus, .action-block select:focus { border-color: var(--accent); }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+
+        .file-drop { border: 1.5px dashed var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface-2); margin-bottom: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .file-drop.dragover { border-color: var(--accent); background: var(--accent-soft); }
+        .file-list { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+        .file-list:empty { display: none; }
+        .file-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 6px 3px 10px; border-radius: 14px; background: var(--accent-soft); color: #3a4a9a; font-size: 12px; font-weight: 500; }
+        .file-chip button { border: none; background: none; cursor: pointer; color: #3a4a9a; }
+
+        .proof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .proof { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; background: var(--surface-2); }
+        .proof .thumb { height: 160px; display: flex; align-items: center; justify-content: center; background: #f0efea; font-size: 34px; color: var(--text-muted); }
+        .proof .thumb img { width: 100%; height: 100%; object-fit: contain; background: white; }
+        .proof .nm { padding: 8px 10px; font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .older { margin-top: 12px; font-size: 13px; }
+        .older summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+        .older ul { margin: 8px 0 0 18px; }
+
+        .sketch { border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+        .sketch .hd { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+        .sketch .num { width: 26px; height: 26px; border-radius: 6px; background: var(--grad); color: white; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+        .sketch .row { font-size: 13.5px; margin: 4px 0; }
+        .sketch .row b { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; }
+        .tag { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 8px; background: #efe7f7; color: var(--accent2); }
+        .tag.grey { background: #eeede8; color: var(--text-muted); }
+        .swap { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12.5px; }
+        .swap s { color: var(--error); } .swap span { color: var(--success); font-weight: 600; }
+
+        .log { list-style: none; position: relative; }
+        .log li { position: relative; padding: 0 0 16px 22px; }
+        .log li::before { content: ''; position: absolute; left: 5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+        .log li::after { content: ''; position: absolute; left: 8px; top: 16px; bottom: 0; width: 2px; background: var(--border); }
+        .log li:last-child::after { display: none; }
+        .log .ev { font-size: 13.5px; font-weight: 600; }
+        .log .when { font-size: 12px; color: var(--text-muted); }
+        .log .msg { font-size: 13.5px; margin-top: 4px; padding: 8px 10px; background: var(--surface-2); border-radius: 6px; white-space: pre-wrap; }
+        .log .files { margin-top: 4px; font-size: 12.5px; }
+
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 300; display: none; max-width: 90%; }
+        .toast.err { background: var(--error); }
+    </style>
+</head>
+<body>
+
+<div class="portal-header">
+    <div class="logo-area">
+        <img src="logo.png" class="logo" alt="Logo" onerror="this.style.display='none'">
+        <h1>Sales Portal</h1>
+    </div>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge">Loading…</span>
+        <a href="index.html" class="btn-back">← Portal</a>
+    </div>
+</div>
+
+<div class="page-body" id="app">
+    <div class="state-box"><div class="spinner"></div>Loading…</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+// Same Apps Script web app as art-request.html (Post.gs + ArtRequests.gs).
+var ART_API_URL = 'https://script.google.com/macros/s/AKfycbyt75krYE3h9lJl-4uR7ymSmaf3sHPGSo8pOB5TlkUgkHFPGi-Z1FlHS6Jk850g2wxS/exec';
+var PAGE_SIZE = 25;
+var ORDER_PAGES = { 'Souvenir': 'souvenirs.html', 'Local Navy Pride': 'navy-pride.html' };
+var MAX_FILE_MB = 10;
+
+var STATUS_CLASS = {
+    'Submitted': 'st-submitted', 'In Art': 'st-inart', 'Proof Ready': 'st-proof', 'Revise': 'st-revise',
+    'On Hold': 'st-hold', 'Licensing': 'st-licensing', 'Ready to Order': 'st-ready', 'Ordered': 'st-ordered', 'Cancelled': 'st-cancelled'
+};
+var TABS = ['Submitted', 'In Art', 'Proof Ready', 'Revise', 'On Hold', 'Licensing', 'Ready to Order', 'Ordered', 'Cancelled'];
+
+var auth = null, me = null;
+var list = { status: 'open', scope: null, q: '', assigned: '', offset: 0, loading: false, hasMore: false, observer: null };
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+$(function () {
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')); } catch (e) {}
+    if (!auth || !auth.email) { window.location.href = 'login.html'; return; }
+    $('#repBadge').text(auth.name || auth.email);
+    var id = new URLSearchParams(location.search).get('id');
+    if (id) loadDetail(id); else loadList(true);
+    window.addEventListener('popstate', function () {
+        var pid = new URLSearchParams(location.search).get('id');
+        if (pid) loadDetail(pid); else loadList(true);
+    });
+});
+
+// ── API ───────────────────────────────────────────────────────────────────────
+function apiGet(params) {
+    params.email = auth.email;
+    return $.ajax({ url: ART_API_URL, method: 'GET', data: params, dataType: 'json', cache: false, timeout: 30000 })
+        .then(function (r) { return r; }, function () { return { success: false, message: 'Could not reach the server.' }; });
+}
+function apiPost(payload) {
+    payload.email = auth.email;
+    return fetch(ART_API_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(function (r) { return r.json(); })
+        .catch(function () {
+            // Fallback when the response can't be read: plain form post in a new tab.
+            var form = $('<form>', { method: 'POST', action: ART_API_URL, target: '_blank', style: 'display:none;' });
+            form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(payload) }));
+            $('body').append(form); form.submit(); setTimeout(function () { form.remove(); }, 1000);
+            return { success: true, fallback: true, message: 'Sent. The result opened in a new tab.' };
+        });
+}
+
+// ── Whose turn is it? ─────────────────────────────────────────────────────────
+function waitingOn(r, u) {
+    var mine = r.isMine;
+    switch (r.status) {
+        case 'Submitted':      return { who: 'Art department to assign', me: u.isArt };
+        case 'In Art':         return { who: 'Designer working on proofs', me: u.isArt };
+        case 'Revise':         return { who: 'Designer making revisions', me: u.isArt };
+        case 'Proof Ready':    return { who: mine ? 'You: review the proofs' : 'Rep to review proofs', me: mine };
+        case 'Licensing':      return { who: 'Licensing review', me: u.isLicensing };
+        case 'Ready to Order': return { who: mine ? 'You: place the order' : 'Rep to place the order', me: mine };
+        case 'On Hold':        return { who: 'On hold', me: false };
+        default:               return { who: '', me: false };
+    }
+}
+
+// ── LIST ──────────────────────────────────────────────────────────────────────
+function loadList(reset) {
+    if (reset) {
+        list.offset = 0;
+        history.replaceState(null, '', location.pathname + location.search.replace(/[?&]id=[^&]*/, ''));
+    }
+    if (list.loading) return;
+    list.loading = true;
+    var params = { action: 'artList', status: list.status, q: list.q, offset: list.offset, limit: PAGE_SIZE };
+    if (list.scope) params.scope = list.scope;
+    if (list.assigned) params.assigned = list.assigned;
+    if (reset && !$('#reqList').length) $('#app').html('<div class="state-box"><div class="spinner"></div>Loading your art requests…</div>');
+    if (!reset) $('#loaderRow').html('<div class="spinner" style="width:22px;height:22px;"></div>');
+
+    apiGet(params).then(function (r) {
+        list.loading = false;
+        if (!r.success) { $('#app').html('<div class="state-box">⚠ ' + esc(r.message) + '</div>'); return; }
+        me = r.user;
+        if (list.scope === null) list.scope = r.scope;
+        if (reset || !$('#reqList').length) renderListShell(r);
+        updateTabs(r);
+        var html = r.items.map(function (it) { return cardHtml(it); }).join('');
+        if (reset) $('#reqList').html(html); else $('#reqList').append(html);
+        if (reset && !r.items.length) $('#reqList').html('<div class="state-box">' + (list.q ? 'No requests match “' + esc(list.q) + '”.' : 'Nothing here.') + '</div>');
+        list.offset = r.offset + r.items.length;
+        list.hasMore = r.hasMore;
+        $('#loaderRow').html(r.hasMore ? 'Scroll for more' : (r.total > PAGE_SIZE ? 'That’s everything.' : ''));
+        watchSentinel();
+    });
+}
+
+function renderListShell(r) {
+    var staff = r.user.isStaff;
+    var h = '<div class="page-head"><div>' +
+        '<div class="page-title">🎨 Art Requests</div>' +
+        '<div class="page-subtitle">' + (staff ? 'Every NEXCOM art request, newest activity first.' : 'Your NEXCOM art requests, newest activity first.') + '</div></div>' +
+        '<a class="btn-primary" href="art-request.html">+ New request</a></div>';
+    h += '<div class="tabs" id="tabs"></div>';
+    h += '<div class="filters">' +
+        '<input type="text" id="search" placeholder="Search by ID, project, rep, institution…" value="' + esc(list.q) + '">';
+    if (staff) {
+        h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button><button data-scope="mine">Mine</button></div>' +
+             '<select id="assignedSel"><option value="">Anyone assigned</option>' +
+             (r.buckets || []).map(function (b) { return '<option' + (list.assigned === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('') + '</select>';
+    }
+    h += '</div><div class="list" id="reqList"></div><div class="loader-row" id="loaderRow"></div><div id="sentinel" style="height:1px;"></div>';
+    $('#app').html(h);
+
+    $('#scopeSeg button').removeClass('active').filter('[data-scope="' + list.scope + '"]').addClass('active');
+    $('#scopeSeg').on('click', 'button', function () { list.scope = $(this).data('scope'); $('#scopeSeg button').removeClass('active'); $(this).addClass('active'); loadList(true); });
+    $('#assignedSel').on('change', function () { list.assigned = $(this).val(); loadList(true); });
+    var t;
+    $('#search').on('input', function () { var v = $(this).val(); clearTimeout(t); t = setTimeout(function () { list.q = v.trim(); loadList(true); }, 350); });
+    $('#tabs').on('click', '.tab', function () { list.status = $(this).data('status'); loadList(true); });
+    $('#reqList').on('click', '.req-card', function (e) {
+        e.preventDefault(); var id = $(this).data('id');
+        history.pushState(null, '', '?id=' + encodeURIComponent(id)); loadDetail(id);
+    });
+}
+
+function updateTabs(r) {
+    var tabs = [{ s: 'open', label: 'Open', n: r.openCount }];
+    TABS.forEach(function (s) { if (r.counts[s] || ['Ordered', 'Cancelled'].indexOf(s) === -1) tabs.push({ s: s, label: s, n: r.counts[s] || 0 }); });
+    tabs.push({ s: 'all', label: 'All', n: null });
+    var myTurn = { 'Proof Ready': !r.user.isStaff, 'Ready to Order': !r.user.isStaff, 'Submitted': r.user.isArt, 'Revise': r.user.isArt, 'Licensing': r.user.isLicensing };
+    $('#tabs').html(tabs.map(function (t) {
+        return '<button class="tab' + (t.s === list.status ? ' active' : '') + (myTurn[t.s] && t.n ? ' mine-turn' : '') + '" data-status="' + esc(t.s) + '">' +
+            esc(t.label) + (t.n !== null ? '<span class="count">' + t.n + '</span>' : '') + '</button>';
+    }).join(''));
+}
+
+function cardHtml(it) {
+    var w = waitingOn(it, me);
+    return '<a class="req-card' + (w.me ? ' my-turn' : '') + '" href="?id=' + encodeURIComponent(it.id) + '" data-id="' + esc(it.id) + '">' +
+        '<div><div class="req-top"><span class="req-id">' + esc(it.id) + '</span><span class="pill ' + (STATUS_CLASS[it.status] || '') + '">' + esc(it.status) + '</span>' +
+        (it.needsLicensing ? '<span class="tag">Licensing</span>' : '') + '</div>' +
+        '<div class="req-title" style="margin-top:4px;">' + esc(it.title) + '</div>' +
+        '<div class="req-meta"><span>' + esc(it.account) + '</span>' + (it.institution ? '<span>' + esc(it.institution) + '</span>' : '') +
+        '<span>' + it.sketchCount + ' sketch' + (it.sketchCount == 1 ? '' : 'es') + '</span>' +
+        (me.isStaff ? '<span>Rep: ' + esc(it.repName) + '</span>' : '') +
+        (me.isStaff && it.assignedTo ? '<span>→ ' + esc(it.assignedTo) + '</span>' : '') + '</div></div>' +
+        '<div class="req-right"><span class="waiting' + (w.me ? ' me' : '') + '">' + (w.me ? '● ' : '') + esc(w.who) + '</span>' +
+        '<span class="waiting">Updated ' + esc(fmtDate(it.updated)) + (it.proofsDue && ['Submitted', 'In Art', 'Revise'].indexOf(it.status) !== -1 ? ' · Proofs due ' + esc(it.proofsDue) : '') + '</span></div></a>';
+}
+
+// Infinite scroll: load the next page as the bottom comes into view.
+function watchSentinel() {
+    if (list.observer) list.observer.disconnect();
+    if (!list.hasMore || !('IntersectionObserver' in window)) return;
+    list.observer = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting && list.hasMore && !list.loading) loadList(false);
+    }, { rootMargin: '300px' });
+    var el = document.getElementById('sentinel');
+    if (el) list.observer.observe(el);
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────────────────
+function loadDetail(id) {
+    if (list.observer) list.observer.disconnect();
+    $('#app').html('<div class="state-box"><div class="spinner"></div>Loading ' + esc(id) + '…</div>');
+    window.scrollTo(0, 0);
+    apiGet({ action: 'artGet', id: id }).then(function (r) {
+        if (!r.success) {
+            $('#app').html('<a class="crumb" href="art-requests.html">← All art requests</a><div class="state-box">⚠ ' + esc(r.message) + '</div>');
+            return;
+        }
+        me = r.user;
+        renderDetail(r.request, r.buckets || []);
+    });
+}
+
+function renderDetail(q, buckets) {
+    var d = q.data || {};
+    var w = waitingOn(q, me);
+    var h = '<a class="crumb js-back" href="art-requests.html">← All art requests</a>';
+    h += '<div class="detail-head"><div><div class="req-top"><span class="req-id">' + esc(q.id) + '</span>' +
+        '<span class="pill ' + (STATUS_CLASS[q.status] || '') + '">' + esc(q.status) + '</span>' +
+        (q.needsLicensing ? '<span class="tag">Needs licensing</span>' : '') + '</div>' +
+        '<div class="page-title" style="margin-top:6px;">' + esc(q.title) + '</div>' +
+        '<div class="page-subtitle">' + esc(q.account) + (q.institution ? ' · ' + esc(q.institution) : '') + ' · ' + esc(q.repName) + '</div></div>' +
+        (q.folderUrl ? '<a class="btn-secondary btn-sm" target="_blank" rel="noopener" href="' + esc(q.folderUrl) + '">📁 Drive folder</a>' : '') + '</div>';
+    if (w.who) h += '<div class="turn-banner ' + (w.me ? 'me' : 'other') + '">' + (w.me ? '👉 <b>Your turn:</b> ' : 'Waiting on: ') + esc(w.who.replace(/^You: /, '')) + '</div>';
+
+    h += '<div class="grid-2"><div>';
+    h += proofsHtml(q);
+    h += '<div class="card"><h3>📋 Request</h3><div class="facts">' +
+        fact('Account', q.account) + fact('Institution', q.institution) + fact('Rep', q.repName) +
+        fact('Submitted', fmtDate(q.created)) + fact('Proofs due', q.proofsDue) + fact('Needed in store', q.neededBy) +
+        fact('Earliest ship', q.earliestShip) + fact('Sketch pack', d.sketchPack ? d.sketchPack + ' (' + q.sketchCount + ')' : q.sketchCount) +
+        (me.isStaff ? fact('Assigned to', q.assignedTo || 'Not assigned') : '') + '</div>' +
+        (d.description ? '<div class="desc">' + esc(d.description) + '</div>' : '') +
+        (d.preferredMarks ? '<div class="desc"><b>Preferred marks/logos:</b> ' + esc(d.preferredMarks) + '</div>' : '') +
+        filesLine('Attachments', d.generalAttachments) + '</div>';
+    h += '<div class="card"><h3>✏️ Sketches<span class="right">' + (d.sketches || []).length + '</span></h3>' + (d.sketches || []).map(sketchHtml).join('') + '</div>';
+    h += '</div><div>';
+    h += actionsHtml(q, buckets);
+    h += '<div class="card"><h3>🕒 Activity</h3><ul class="log">' + (q.activity || []).slice().reverse().map(function (a) {
+        return '<li><div class="ev">' + esc(a.event) + ' <span class="when">· ' + esc(a.by) + '</span></div>' +
+            '<div class="when">' + esc(fmtDateTime(a.at)) + (a.status ? ' · ' + esc(a.status) : '') + '</div>' +
+            (a.message ? '<div class="msg">' + esc(a.message) + '</div>' : '') +
+            (a.files && a.files.length ? '<div class="files">' + a.files.map(fileLink).join(' · ') + '</div>' : '') + '</li>';
+    }).join('') + '</ul></div>';
+    h += '</div></div>';
+    $('#app').html(h);
+    bindActions(q);
+    $('.js-back').on('click', function (e) { e.preventDefault(); history.pushState(null, '', 'art-requests.html'); loadList(true); });
+}
+
+function proofsHtml(q) {
+    var proofs = (q.activity || []).filter(function (a) { return /^Proof v\d+/.test(a.event) && a.files && a.files.length; });
+    if (!proofs.length) {
+        return '<div class="card"><h3>🖼️ Proofs</h3><div class="hint" style="margin:0;">No proofs yet.' +
+            (q.proofsDue ? ' Projected by <b>' + esc(q.proofsDue) + '</b>.' : '') + '</div></div>';
+    }
+    var latest = proofs[proofs.length - 1];
+    var h = '<div class="card"><h3>🖼️ Proofs<span class="right">' + esc(latest.event.replace(' uploaded', '')) + ' · ' + esc(fmtDate(latest.at)) + '</span></h3>';
+    if (latest.message) h += '<div class="msg" style="font-size:13.5px;background:var(--surface-2);padding:8px 10px;border-radius:6px;margin-bottom:12px;">' + esc(latest.message) + '</div>';
+    h += '<div class="proof-grid">' + latest.files.map(function (f) {
+        return '<a class="proof" href="' + esc(f.url) + '" target="_blank" rel="noopener"><div class="thumb">' +
+            '<img src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(f.id) + '&sz=w600" alt="" onerror="this.parentNode.innerHTML=\'📄\'"></div>' +
+            '<div class="nm">' + esc(f.name) + '</div></a>';
+    }).join('') + '</div>';
+    if (proofs.length > 1) {
+        h += '<details class="older"><summary>Earlier versions (' + (proofs.length - 1) + ')</summary><ul>' +
+            proofs.slice(0, -1).reverse().map(function (p) {
+                return '<li>' + esc(p.event.replace(' uploaded', '')) + ' · ' + esc(fmtDate(p.at)) + ': ' + p.files.map(fileLink).join(', ') + '</li>';
+            }).join('') + '</ul></details>';
+    }
+    return h + '</div>';
+}
+
+function sketchHtml(s, i) {
+    var items = (s.items || []).map(function (it) { return esc(it.description || it.style) + (it.color ? ' — ' + esc(it.color) : ''); }).join('<br>');
+    return '<div class="sketch"><div class="hd"><span class="num">' + (i + 1) + '</span>' +
+        '<b>' + (s.artType === 'new' ? 'New design' : 'Existing art' + (s.referToArt ? ' <span class="req-id">' + esc(s.referToArt) + '</span>' : '')) + '</b>' +
+        (s.priceTier ? '<span class="tag grey">' + esc(s.priceTier) + '</span>' : '') +
+        (s.needsLicensing ? '<span class="tag">Licensing</span>' : '') + '</div>' +
+        '<div class="row"><b>Items</b><br>' + items + '</div>' +
+        '<div class="row"><b>Locations</b>' + esc((s.locations || []).join(' + ')) + '</div>' +
+        '<div class="row"><b>Inks</b>' + esc((s.inkColors || []).join(', ') || '—') + '</div>' +
+        ((s.changes || []).length ? '<div class="row"><b>Changes</b><br>' + s.changes.map(function (c) {
+            return '<span class="swap"><s>' + esc(c.omit) + '</s> → <span>' + esc(c.add) + '</span></span>';
+        }).join('') + '</div>' : '') +
+        (s.description ? '<div class="row" style="white-space:pre-wrap;">' + esc(s.description) + '</div>' : '') +
+        filesLine('Files', s.attachments) + '</div>';
+}
+
+function actionsHtml(q, buckets) {
+    var st = q.status, mine = q.isMine, blocks = [];
+    var closed = ['Ordered', 'Cancelled'].indexOf(st) !== -1;
+
+    if ((mine || me.isAdmin) && st === 'Proof Ready') {
+        blocks.push('<div class="action-block"><div class="lbl">Review proofs</div>' +
+            '<div class="hint">The proofs were emailed to you. Forward them to your buyer, then approve or ask for changes here.</div>' +
+            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="approve">✓ Approve proofs</button></div>' +
+            '<textarea id="reviseMsg" placeholder="What needs to change? e.g. Move the logo down 1 inch. Change ink 2 to gold."></textarea>' +
+            '<button class="btn-secondary" data-op="revise" data-msg="#reviseMsg">Request revision</button></div>');
+    }
+    if ((mine || me.isAdmin) && st === 'Ready to Order') {
+        var page = ORDER_PAGES[q.account];
+        blocks.push('<div class="action-block"><div class="lbl">Ready to order</div>' +
+            '<div class="hint">The art is approved' + (q.needsLicensing ? ' and licensed' : '') + '. Place the order, then mark it ordered.</div>' +
+            '<div class="btn-row">' + (page ? '<a class="btn-primary" href="' + page + '">Go to ' + esc(q.account) + ' ordering</a>' : '') +
+            '<button class="btn-secondary" data-op="ordered">Mark ordered</button></div></div>');
+    }
+    if (me.isArt && ['Submitted', 'In Art', 'Revise', 'On Hold'].indexOf(st) !== -1) {
+        blocks.push('<div class="action-block"><div class="lbl">' + (q.assignedTo ? 'Reassign' : 'Assign') + '</div>' +
+            '<select id="assignTo"><option value="">Choose who works on this…</option>' + buckets.map(function (b) {
+                return '<option' + (b === q.assignedTo ? ' selected' : '') + '>' + esc(b) + '</option>';
+            }).join('') + '</select>' +
+            '<input type="text" id="assignNote" placeholder="Note for the designer (optional)">' +
+            '<button class="btn-' + (st === 'Submitted' ? 'primary' : 'secondary') + '" data-op="assign">Assign</button></div>');
+    }
+    if (me.isArt && ['In Art', 'Revise', 'Proof Ready'].indexOf(st) !== -1) {
+        blocks.push('<div class="action-block"><div class="lbl">' + (st === 'Proof Ready' ? 'Send a corrected proof' : 'Send proofs to the rep') + '</div>' +
+            '<div class="file-drop" id="proofDrop"><button type="button" class="btn-secondary btn-sm js-pick">📎 Choose proof files</button><span class="hint" style="margin:0;">PDF or images, up to ' + MAX_FILE_MB + ' MB each</span><input type="file" multiple hidden><div class="file-list"></div></div>' +
+            '<textarea id="proofMsg" placeholder="Note to the rep (optional). Your name isn’t shown, emails come from the Art Department."></textarea>' +
+            '<button class="btn-primary" data-op="proof" data-msg="#proofMsg" data-files="#proofDrop">Send proofs</button></div>');
+    }
+    if (me.isLicensing && st === 'Licensing') {
+        blocks.push('<div class="action-block"><div class="lbl">Licensing</div>' +
+            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="licensed">✓ Licensing approved</button></div>' +
+            '<textarea id="licMsg" placeholder="If it can’t be licensed as is, say what has to change."></textarea>' +
+            '<button class="btn-secondary" data-op="licenseRejected" data-msg="#licMsg">Send back for changes</button></div>');
+    }
+    if (!closed) {
+        blocks.push('<div class="action-block"><div class="lbl">Comment</div>' +
+            '<textarea id="commentMsg" placeholder="' + (me.isStaff ? 'Question or note for the rep…' : 'Question or note for the art department…') + '"></textarea>' +
+            '<div class="file-drop" id="commentDrop" style="padding:6px 10px;"><button type="button" class="btn-secondary btn-sm js-pick">📎 Attach</button><input type="file" multiple hidden><div class="file-list"></div></div>' +
+            '<button class="btn-secondary" data-op="comment" data-msg="#commentMsg" data-files="#commentDrop">Add comment</button></div>');
+    }
+    var small = [];
+    if (me.isArt && !closed && st !== 'On Hold') small.push('<button class="btn-secondary btn-sm" data-op="hold" data-prompt="Why is it on hold?">Put on hold</button>');
+    if (me.isArt && st === 'On Hold') small.push('<button class="btn-secondary btn-sm" data-op="resume">Resume</button>');
+    if ((mine || me.isAdmin) && !closed) small.push('<button class="btn-danger btn-sm" data-op="cancel" data-confirm="Cancel this art request?">Cancel request</button>');
+    if (small.length) blocks.push('<div class="action-block"><div class="btn-row">' + small.join('') + '</div></div>');
+
+    if (!blocks.length) return '';
+    return '<div class="card"><h3>⚡ Actions</h3>' + blocks.join('') + '</div>';
+}
+
+function bindActions(q) {
+    $('#app').off('click.act');
+    $('.file-drop').each(function () { bindDrop($(this)); });
+    $('#app').on('click.act', '[data-op]', function () {
+        var $b = $(this), op = $b.data('op');
+        var payload = { action: 'artUpdate', id: q.id, op: op };
+        if ($b.data('msg')) payload.message = $($b.data('msg')).val().trim();
+        if ($b.data('prompt')) {
+            var m = prompt($b.data('prompt'));
+            if (m === null) return;
+            payload.message = m.trim();
+        }
+        if ($b.data('confirm') && !confirm($b.data('confirm'))) return;
+        if (op === 'assign') {
+            payload.assignTo = $('#assignTo').val();
+            payload.message = $('#assignNote').val().trim();
+            if (!payload.assignTo) return toast('Choose who should work on this.', true);
+        }
+        if (op === 'revise' && !payload.message) { $('#reviseMsg').focus(); return toast('Describe what needs to change.', true); }
+        if (op === 'licenseRejected' && !payload.message) { $('#licMsg').focus(); return toast('Say what has to change.', true); }
+        if (op === 'approve' && !confirm('Approve these proofs? ' + (q.needsLicensing ? 'They’ll go to licensing next.' : 'The art will be ready to order.'))) return;
+        var files = $b.data('files') ? ($($b.data('files')).data('files') || []) : [];
+        if (op === 'proof' && !files.length) return toast('Choose the proof file(s) first.', true);
+        if (op === 'comment' && !payload.message && !files.length) return toast('Write a comment first.', true);
+
+        $('[data-op]').prop('disabled', true);
+        $b.text('Working…');
+        readFiles(files).then(function (enc) {
+            if (enc.length) payload.files = enc;
+            return apiPost(payload);
+        }).then(function (r) {
+            if (!r.success) { toast(r.message || 'Something went wrong.', true); $('[data-op]').prop('disabled', false); loadDetail(q.id); return; }
+            toast(r.message || 'Done.');
+            $('#app').off('click.act');
+            setTimeout(function () { loadDetail(q.id); }, r.fallback ? 2500 : 200);
+        }).catch(function (e) { toast(e.message, true); $('[data-op]').prop('disabled', false); });
+    });
+}
+
+// ── Files ─────────────────────────────────────────────────────────────────────
+function bindDrop($drop) {
+    var files = [], $input = $drop.find('input[type=file]'), $list = $drop.find('.file-list');
+    function render() {
+        $list.html(files.map(function (f, i) { return '<span class="file-chip">' + esc(f.name) + '<button type="button" data-i="' + i + '">✕</button></span>'; }).join(''));
+        $drop.data('files', files);
+    }
+    function add(fl) {
+        for (var i = 0; i < fl.length; i++) {
+            if (fl[i].size > MAX_FILE_MB * 1024 * 1024) toast(fl[i].name + ' is over ' + MAX_FILE_MB + ' MB.', true); else files.push(fl[i]);
+        }
+        render();
+    }
+    $drop.find('.js-pick').on('click', function () { $input.click(); });
+    $input.on('change', function () { add(this.files); this.value = ''; });
+    $list.on('click', 'button', function () { files.splice(+$(this).data('i'), 1); render(); });
+    $drop.on('dragover', function (e) { e.preventDefault(); $drop.addClass('dragover'); })
+         .on('dragleave drop', function () { $drop.removeClass('dragover'); })
+         .on('drop', function (e) { e.preventDefault(); add(e.originalEvent.dataTransfer.files); });
+}
+function readFiles(list) {
+    return Promise.all((list || []).map(function (f) {
+        return new Promise(function (resolve, reject) {
+            var r = new FileReader();
+            r.onload = function () { resolve({ name: f.name, mimeType: f.type || 'application/octet-stream', data: String(r.result).split(',')[1] || '' }); };
+            r.onerror = function () { reject(new Error('Could not read ' + f.name)); };
+            r.readAsDataURL(f);
+        });
+    }));
+}
+function fileLink(f) { return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>'; }
+function filesLine(label, files) {
+    if (!files || !files.length) return '';
+    return '<div class="row" style="font-size:13px;margin-top:10px;"><b style="color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">' + label + '</b> ' + files.map(fileLink).join(' · ') + '</div>';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fact(label, val) { return val || val === 0 ? '<div class="fact"><label>' + esc(label) + '</label><div>' + esc(val) + '</div></div>' : ''; }
+function fmtDate(v) { if (!v) return ''; var d = new Date(v); if (isNaN(d)) return String(v); return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); }
+function fmtDateTime(v) { var d = new Date(v); if (isNaN(d)) return String(v || ''); return fmtDate(v) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+function toast(msg, err) { $('#toast').text(msg).toggleClass('err', !!err).fadeIn(150); clearTimeout(toast.t); toast.t = setTimeout(function () { $('#toast').fadeOut(300); }, 3500); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+</script>
+</body>
+</html>
