@@ -552,20 +552,37 @@ function submitOrder() {
         return;
     }
 
-    $('.submit-order-btn').prop('disabled', true).text('Submitting...');
-    var form = $('<form>', { method: 'POST', action: CFG.orderSubmissionUrl, target: '_blank', style: 'display:none;' });
-    form.append($('<input>', { type: 'hidden', name: 'data', value: JSON.stringify(orderData) }));
-    $('body').append(form);
-    form.submit();
-    setTimeout(function () { form.remove(); }, 1000);
-
+    var btn = $('.submit-order-btn').prop('disabled', true).text('Submitting...');
     var totalItems = cart.reduce(function (s, i) { return s + i.quantity; }, 0);
-    alert('📤 Order submitted! A new window will open showing the confirmation.\n\nTotal items: ' + totalItems);
+    orderData.action = 'nexcomOrder';
+    orderData.email = authData.email;
+    orderData.token = authData.token || '';
 
-    cart = [];
-    updateCartBadge();
-    closeCart();
-    $('.submit-order-btn').prop('disabled', false).text('Submit Order');
+    // JSON through the relay to the NEXCOM script (NexcomOrders.gs).
+    fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify(orderData) })
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            btn.prop('disabled', false).text('Submit Order');
+            if (r && r.sessionExpired) {
+                alert('Your login has expired. Please log in again. Your cart was not submitted.');
+                sessionStorage.removeItem('salesPortalAuth');
+                window.location.href = 'login.html';
+                return;
+            }
+            if (!r || !r.success) {
+                alert('❌ The order was not submitted.\n\n' + ((r && r.message) || 'Unknown error.') + '\n\nYour cart is still here.');
+                return;
+            }
+            alert('✅ Order submitted!\n\nPO Number: ' + r.poNumber + '\nStore: ' + (r.store || '') +
+                  '\nTotal items: ' + totalItems + '\n\nA confirmation email is on its way to ' + orderData.repEmail + '.');
+            cart = [];
+            updateCartBadge();
+            closeCart();
+        })
+        .catch(function () {
+            btn.prop('disabled', false).text('Submit Order');
+            alert('❌ Could not reach the server. Your cart is still here. Please try again.');
+        });
 }
 
 // ---------------------------------------------------------
