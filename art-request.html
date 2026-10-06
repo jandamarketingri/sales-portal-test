@@ -449,6 +449,32 @@
         .rv-sketch { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; }
         .rv-sketch b { font-size: 13px; }
         .rv-sketch .swaps { color: var(--text-muted); margin-top: 4px; }
+        /* ── Art Library picker ── */
+        .refer-row { display: flex; gap: 8px; }
+        .refer-row input { flex: 1; min-width: 0; }
+        .btn-browse {
+            flex: none; border: 1px solid var(--accent); background: var(--surface); color: var(--accent);
+            border-radius: 6px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-browse:hover { background: var(--accent); color: #fff; }
+        .lib-pick { display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 8px;
+            border: 1px solid var(--border); border-radius: 8px; background: var(--bg, #fafafa); font-size: 12px; }
+        .lib-pick.on { display: flex; }
+        .lib-pick img { width: 48px; height: 48px; object-fit: contain; background: #fff; border-radius: 4px; border: 1px solid var(--border); }
+        .lib-pick .x { margin-left: auto; border: 0; background: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; }
+        #libModal .modal { max-width: 920px; }
+        .lib-search { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 14px; }
+        .lib-status { color: var(--text-muted); font-size: 13px; margin: 10px 0; }
+        .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+        .lib-item { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; padding: 8px;
+            text-align: left; font: inherit; display: flex; flex-direction: column; gap: 6px; }
+        .lib-item:hover, .lib-item:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(140,31,36,.15); outline: none; }
+        .lib-item .th { aspect-ratio: 1; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .lib-item .th img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .lib-item .th .none { font-size: 28px; color: #bbb; }
+        .lib-item .art { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; }
+        .lib-item .w { font-size: 12px; color: var(--text-muted); line-height: 1.3; }
+        .lib-item .tag-lic { margin-left: 0; align-self: flex-start; }
         .tag-lic { font-size: 10px; font-weight: 700; color: var(--accent2); background: #efe7f7; padding: 1px 7px; border-radius: 8px; margin-left: 6px; }
     </style>
 </head>
@@ -644,6 +670,19 @@
         <div class="modal-foot">
             <button type="button" class="btn-secondary" style="display:inline-block;" id="reviewBack">Keep editing</button>
             <button type="button" class="btn-submit" id="reviewConfirm">Submit Request</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Art Library picker ── -->
+<div class="modal-bg" id="libModal">
+    <div class="modal">
+        <div class="modal-head"><span style="font-size:20px;">🖼️</span><h2>Art Library</h2>
+            <button type="button" class="btn-secondary" style="display:inline-block;margin-left:auto;" id="libClose">Close</button></div>
+        <div class="modal-body">
+            <input type="search" class="lib-search" id="libSearch" placeholder="Search by art #, words, or folder (e.g. anchor, Norfolk, _NY)">
+            <div class="lib-status" id="libStatus"></div>
+            <div class="lib-grid" id="libGrid"></div>
         </div>
     </div>
 </div>
@@ -844,7 +883,12 @@ function buildSketch(num) {
             '<div class="form-row">' +
               '<div class="form-group js-refer-wrap">' +
                 '<label>Refer-to-Art # <span class="hint-inline">— or attach the art instead</span></label>' +
-                '<input type="text" class="js-refer" placeholder="e.g. SVN-00123" style="font-family:\'DM Mono\',monospace;">' +
+                '<div class="refer-row">' +
+                  '<input type="text" class="js-refer" placeholder="e.g. M08566_NY" style="font-family:\'DM Mono\',monospace;text-transform:uppercase;">' +
+                  '<button type="button" class="btn-browse js-browse">🖼️ Browse art</button>' +
+                '</div>' +
+                '<div class="lib-pick js-lib-pick"></div>' +
+                '<div class="field-hint js-refer-hint">Must end in the licensing suffix: an underscore and 2 letters (_NY, _XX…).</div>' +
               '</div>' +
               '<div class="form-group">' +
                 '<label>Attachments <span class="hint-inline js-attach-hint">— logos, the art you’re starting from</span></label>' +
@@ -901,9 +945,24 @@ function buildSketch(num) {
     });
     $card.on('click', '.js-copy', function () { copyGarmentsFromFirst($card); });
     $card.on('click', '.js-lic', function () {
-        $(this).toggleClass('on').data('manual', true).find('.auto').hide();
+        var $lic = $(this);
+        if ($lic.data('locked') && $lic.hasClass('on')) {
+            alert('This art is ' + $lic.data('locked') + ' art, so it needs licensing. Only _XX art can skip licensing.');
+            return;
+        }
+        $lic.toggleClass('on').data('manual', true).find('.auto').hide();
         updateSummary();
     });
+    $card.on('input', '.js-refer', function () {
+        var pick = $card.data('libraryFile');
+        if (pick && $(this).val().trim().toUpperCase() !== pick.art) setLibraryPick($card, null);
+        applyArtSuffix($card);
+    });
+    $card.on('click', '.js-browse', function () { openLibrary($card); });
+    $card.on('click', '.js-lib-pick .x', function () {
+        setLibraryPick($card, null); $card.find('.js-refer').val(''); applyArtSuffix($card);
+    });
+    $card.on('blur', '.js-refer', function () { $(this).val($(this).val().trim().toUpperCase()); applyArtSuffix($card); });
     $card.on('input', 'input.add', function () { autoDetectLicensing($card); });
     $card.on('input', '.garment-row input', updateSummary);
 
@@ -916,6 +975,7 @@ function artTypeOf($card) { return $card.find('.art-type-btn.selected').data('ty
 function applyArtType($card) {
     var isNew = artTypeOf($card) === 'new';
     $card.find('.js-refer-wrap').toggle(!isNew);
+    applyArtSuffix($card);
     $card.find('.js-swaps, .js-changes-label').toggle(!isNew);
     $card.find('.js-changes-label').text(isNew ? '' : 'Changes');
     $card.find('.js-attach-hint').text(isNew ? '— optional reference images, logos' : '— logos, the art you’re starting from');
@@ -1362,9 +1422,36 @@ function parseCSVRow(row) {
     return cols;
 }
 
+// Art numbers end in a licensing suffix: _ + 2 letters. _XX = no licensing;
+// any other suffix (_NY, _MY, _AX…) means the art needs licensing.
+var ART_SUFFIX_RE = /_([A-Z]{2})$/i;
+function artSuffixOf(v) { var m = ART_SUFFIX_RE.exec(String(v || '').trim()); return m ? m[1].toUpperCase() : ''; }
+
+function applyArtSuffix($card) {
+    var $lic = $card.find('.js-lic');
+    var ref = artTypeOf($card) === 'existing' ? $card.find('.js-refer').val().trim() : '';
+    var suf = artSuffixOf(ref);
+    var $hint = $card.find('.js-refer-hint');
+    if (suf && suf !== 'XX') {
+        $lic.data('locked', '_' + suf).addClass('on').find('.auto').text('required by _' + suf + ' art').show();
+        $hint.text('_' + suf + ' art needs licensing.').css('color', '');
+    } else {
+        var wasLocked = $lic.data('locked');
+        $lic.removeData('locked');
+        $lic.find('.auto').text('auto-detected');
+        if (wasLocked && !$lic.data('manual')) $lic.removeClass('on').find('.auto').hide();
+        autoDetectLicensing($card);
+        $hint.text(suf === 'XX' ? '_XX art: no licensing unless you add a base or branch name.' :
+            (ref ? 'Add the licensing suffix at the end: an underscore and 2 letters (_NY, _XX…).' :
+                   'Must end in the licensing suffix: an underscore and 2 letters (_NY, _XX…).'))
+             .css('color', ref && !suf ? '#b42318' : '');
+    }
+    updateSummary();
+}
+
 function autoDetectLicensing($card) {
     var $lic = $card.find('.js-lic');
-    if ($lic.data('manual')) return;
+    if ($lic.data('manual') || $lic.data('locked')) return;
     var hit = false;
     $card.find('input.add').each(function () { if (LICENSING_HINTS.test($(this).val())) hit = true; });
     $lic.toggleClass('on', hit).find('.auto').toggle(hit);
@@ -1474,7 +1561,12 @@ function validate() {
         need($c.find('.js-desc'), 'Sketch ' + n + ': description');
 
         if (artTypeOf($c) === 'existing') {
-            var hasArt = $c.find('.js-refer').val().trim() || $c.data('files');
+            var refVal = $c.find('.js-refer').val().trim();
+            var hasArt = refVal || $c.data('files');
+            if (refVal && !artSuffixOf(refVal)) {
+                $c.find('.js-refer').addClass('field-error');
+                errors.push('Sketch ' + n + ': the art # must end in an underscore and 2 letters, e.g. M08566_NY or M08566_XX');
+            }
             if (!hasArt) {
                 $c.find('.js-refer').addClass('field-error');
                 errors.push('Sketch ' + n + ': a refer-to-art # or an attachment (or choose “New design”)');
@@ -1531,7 +1623,7 @@ function buildPayload() {
         sketches.push({
             number: $c.data('num'),
             artType: isNew ? 'new' : 'existing',
-            referToArt: isNew ? '' : $c.find('.js-refer').val().trim(),
+            referToArt: isNew ? '' : $c.find('.js-refer').val().trim().toUpperCase(),
             locations: $c.find('.js-loc').map(function () { return $(this).val(); }).get().filter(Boolean),
             inkColors: $c.find('.js-ink').map(function () { return $(this).data('ink') || ''; }).get().filter(Boolean),
             priceTier: tier ? tier.label : '',
@@ -1539,6 +1631,7 @@ function buildPayload() {
             changes: changes,
             description: $c.find('.js-desc').val().trim(),
             needsLicensing: $c.find('.js-lic').hasClass('on'),
+            libraryFile: (!isNew && $c.data('libraryFile')) ? { id: $c.data('libraryFile').id, name: $c.data('libraryFile').name } : null,
             fileObjs: $c.data('files') || []
         });
     });
@@ -1581,6 +1674,90 @@ function readFiles(list) {
     }));
 }
 
+// ── Art Library ───────────────────────────────────────────────────────────────
+// Lists the Drive "Art Library" folder (through the NEXCOM script). Picking a
+// design fills in the art #, sets licensing from its suffix, and the script
+// copies the picture into the request's folder on submit.
+var libraryLoad = null, libraryItems = [], libraryTarget = null;
+
+function loadLibrary(force) {
+    if (libraryLoad && !force) return libraryLoad;
+    libraryLoad = sendToServer({ action: 'artLibrary' }).then(function (r) {
+        if (!r || !r.success) { libraryLoad = null; throw new Error((r && r.message) || 'Could not load the Art Library.'); }
+        libraryItems = (r.items || []).map(function (it) {
+            it.hay = (it.art + ' ' + it.words + ' ' + (it.folder || '') + ' ' + it.name).toLowerCase();
+            return it;
+        });
+        return r;
+    });
+    return libraryLoad;
+}
+
+function openLibrary($card) {
+    libraryTarget = $card;
+    $('#libModal').addClass('open');
+    $('#libGrid').empty();
+    $('#libStatus').text('Loading the Art Library…');
+    loadLibrary().then(function (r) {
+        var note = libraryItems.length + ' design' + (libraryItems.length === 1 ? '' : 's');
+        if (r.skipped && r.skipped.length) note += ' · ' + r.skipped.length + ' file(s) skipped: no art # in the name (' + r.skipped.slice(0, 3).join(', ') + (r.skipped.length > 3 ? '…' : '') + ')';
+        $('#libStatus').data('base', note);
+        renderLibrary();
+        setTimeout(function () { $('#libSearch').trigger('focus'); }, 50);
+    }).catch(function (err) {
+        $('#libStatus').text(err.message + ' You can still type the art # and attach the picture.');
+    });
+}
+
+function renderLibrary() {
+    var q = $('#libSearch').val().trim().toLowerCase();
+    var words = q ? q.split(/\s+/) : [];
+    var hits = libraryItems.filter(function (it) {
+        return words.every(function (w) { return it.hay.indexOf(w) !== -1; });
+    });
+    var base = $('#libStatus').data('base') || '';
+    $('#libStatus').text(q ? hits.length + ' match' + (hits.length === 1 ? '' : 'es') + ' for “' + q + '” · ' + base : base);
+    if (!libraryItems.length) {
+        $('#libGrid').html('<div class="lib-status">The Art Library is empty. Add images named like “M08566_NY Anchor Eagle.jpg” to the Art Library folder in Drive.</div>');
+        return;
+    }
+    $('#libGrid').html(hits.slice(0, 200).map(function (it) {
+        var suf = artSuffixOf(it.art);
+        return '<button type="button" class="lib-item" data-id="' + esc(it.id) + '">' +
+            '<div class="th">' + (it.thumb ? '<img src="' + it.thumb + '" alt="" loading="lazy">' : '<span class="none">🖼️</span>') + '</div>' +
+            '<div class="art">' + esc(it.art) + '</div>' +
+            (it.words ? '<div class="w">' + esc(it.words) + '</div>' : '') +
+            (suf && suf !== 'XX' ? '<span class="tag-lic">Licensing</span>' : '') +
+        '</button>';
+    }).join(''));
+}
+
+function setLibraryPick($card, it) {
+    var $pick = $card.find('.js-lib-pick');
+    if (!it) { $card.removeData('libraryFile'); $pick.removeClass('on').empty(); return; }
+    $card.data('libraryFile', { id: it.id, name: it.name, art: it.art });
+    $pick.addClass('on').html(
+        (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<span style="font-size:24px;">🖼️</span>') +
+        '<div><b style="font-family:\'DM Mono\',monospace;">' + esc(it.art) + '</b>' + (it.words ? ' · ' + esc(it.words) : '') +
+        '<div style="color:var(--text-muted);">From the Art Library. The picture is attached to your request.</div></div>' +
+        '<button type="button" class="x" title="Remove">×</button>');
+}
+
+$(document).on('input', '#libSearch', renderLibrary);
+$(document).on('click', '#libClose', function () { $('#libModal').removeClass('open'); });
+$(document).on('click', '#libModal', function (e) { if (e.target === this) $('#libModal').removeClass('open'); });
+$(document).on('keydown', function (e) { if (e.key === 'Escape') $('#libModal').removeClass('open'); });
+$(document).on('click', '#libGrid .lib-item', function () {
+    var id = $(this).data('id');
+    var it = libraryItems.filter(function (x) { return x.id === id; })[0];
+    if (!it || !libraryTarget) return;
+    var $card = libraryTarget;
+    $card.find('.js-refer').val(it.art).removeClass('field-error');
+    setLibraryPick($card, it);
+    applyArtSuffix($card);
+    $('#libModal').removeClass('open');
+});
+
 // ── Review + submit ───────────────────────────────────────────────────────────
 function openReview() {
     if (!validate()) return;
@@ -1596,7 +1773,8 @@ function openReview() {
     p.sketches.forEach(function (s) {
         var g = s.items.map(function (x) { return x.description + (x.color ? ' — ' + x.color : ''); }).join(', ');
         var ch = s.changes.map(function (c) { return esc(c.omit || '—') + ' → ' + esc(c.add || '—'); }).join(' · ');
-        html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b> · ' + (s.artType === 'new' ? 'New design' : 'Existing art' + (s.referToArt ? ' ' + esc(s.referToArt) : '')) +
+        html += '<div class="rv-sketch"><b>Sketch ' + s.number + '</b> · ' + (s.artType === 'new' ? 'New design' : 'Existing art' + (s.referToArt ? ' ' + esc(s.referToArt) : '') +
+                (s.libraryFile ? ' <span style="color:var(--text-muted);">(picture from the Art Library)</span>' : '')) +
             (s.needsLicensing ? '<span class="tag-lic">Licensing</span>' : '') +
             '<div>' + esc(g) + '</div>' +
             '<div class="swaps">' + esc(s.locations.join(' + ')) + ' · Inks: ' + esc(s.inkColors.join(', ') || '—') + '</div>' +
