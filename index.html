@@ -273,12 +273,12 @@ $(document).ready(function(){
         if (!hasAAFES) $('#aafesCard').remove();
         if (!hasNEXCOM) $('#nexcomCard').remove();
 
-        // NEXCOM custom art: reps on NEXCOM request art; the art team and
-        // licensing work requests even if they aren't on a sales program.
+        // NEXCOM custom art lives inside the NEXCOM hub. It only shows here for
+        // the art team / licensing when they have no NEXCOM card to go through.
         var artStaff = isAdmin || isArtTeam || isLicensing;
-        if (hasNEXCOM || artStaff) {
+        if (artStaff && !hasNEXCOM) {
             $('#artSection').show();
-            if (!hasNEXCOM) $('#newArtCard').remove();
+            $('#newArtCard').remove();
             if (artStaff) {
                 $('#artListTitle').text('Art Requests');
                 $('#artListDesc').text(isLicensing && !isAdmin ? 'Approved art waiting on licensing' : 'Assign, upload proofs, track every request');
@@ -315,8 +315,8 @@ function loadArtTurnCount(auth, r) {
         if (!res || !res.success || !res.counts) return;
         var c = res.counts, n = 0, parts = [];
         function add(status, label) { if (c[status]) { n += c[status]; parts.push(c[status] + ' ' + label); } }
-        if (r.isArtTeam || r.isAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); }
-        if (r.isLicensing || r.isAdmin) { add('Licensing', 'in licensing'); }
+        if (r.isArtTeam || r.isAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); add('Licensing', 'to submit for licensing'); }
+        else if (r.isLicensing) { add('Licensing', 'in licensing'); }
         if (!r.isArtTeam && !r.isLicensing && !r.isAdmin) { add('Proof Ready', 'proof' + (c['Proof Ready'] === 1 ? '' : 's') + ' to review'); add('Ready to Order', 'ready to order'); }
         if (n) {
             $('#artBadge').text(n).show();
@@ -337,5 +337,7 @@ function logout() {
 }
 </script>
 
+</body>
+</html>
 </body>
 </html>
