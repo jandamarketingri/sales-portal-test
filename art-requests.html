@@ -160,6 +160,19 @@
         .log .msg { font-size: 13.5px; margin-top: 4px; padding: 8px 10px; background: var(--surface-2); border-radius: 6px; white-space: pre-wrap; }
         .log .files { margin-top: 4px; font-size: 12.5px; }
 
+        .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+        .ap-grid label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; }
+        .ap-grid label input { margin-top: 4px; }
+        .ap-grid label:last-child { grid-column: 1 / -1; }
+        .action-block input[type=date] { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; margin-bottom: 8px; background: var(--surface); }
+        .action-block .field-error { border-color: var(--error) !important; background: var(--error-bg); }
+        .copy-row { display: flex; gap: 8px; align-items: flex-start; }
+        .copy-row input { flex: 1; min-width: 0; font-family: 'DM Mono', monospace; font-size: 12px !important; color: var(--text-muted); }
+        .approval { margin-top: 16px; padding: 12px 14px; border-radius: 8px; background: var(--success-bg); border: 1px solid #c8e6c9; font-size: 14px; }
+        .approval .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--success); margin-bottom: 4px; }
+        .approval .sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+        @media (max-width: 600px) { .ap-grid { grid-template-columns: 1fr; } }
+
         .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #222; color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 300; display: none; max-width: 90%; }
         .toast.err { background: var(--error); }
     </style>
@@ -244,7 +257,7 @@ function waitingOn(r, u) {
         case 'In Art':         return { who: 'Designer working on proofs', me: u.isArt };
         case 'Revise':         return { who: 'Designer making revisions', me: u.isArt };
         case 'Proof Ready':    return { who: mine ? 'You: review the proofs' : 'Rep to review proofs', me: mine };
-        case 'Licensing':      return { who: 'Licensing review', me: u.isLicensing };
+        case 'Licensing':      return { who: u.isArt ? 'Art department: submit to licensing' : 'Licensing review', me: u.isArt || u.isLicensing };
         case 'Ready to Order': return { who: mine ? 'You: place the order' : 'Rep to place the order', me: mine };
         case 'On Hold':        return { who: 'On hold', me: false };
         default:               return { who: '', me: false };
@@ -315,7 +328,7 @@ function updateTabs(r) {
     var tabs = [{ s: 'open', label: 'Open', n: r.openCount }];
     TABS.forEach(function (s) { if (r.counts[s] || ['Ordered', 'Cancelled'].indexOf(s) === -1) tabs.push({ s: s, label: s, n: r.counts[s] || 0 }); });
     tabs.push({ s: 'all', label: 'All', n: null });
-    var myTurn = { 'Proof Ready': !r.user.isStaff, 'Ready to Order': !r.user.isStaff, 'Submitted': r.user.isArt, 'Revise': r.user.isArt, 'Licensing': r.user.isLicensing };
+    var myTurn = { 'Proof Ready': !r.user.isStaff, 'Ready to Order': !r.user.isStaff, 'Submitted': r.user.isArt, 'Revise': r.user.isArt, 'Licensing': r.user.isArt || r.user.isLicensing };
     $('#tabs').html(tabs.map(function (t) {
         return '<button class="tab' + (t.s === list.status ? ' active' : '') + (myTurn[t.s] && t.n ? ' mine-turn' : '') + '" data-status="' + esc(t.s) + '">' +
             esc(t.label) + (t.n !== null ? '<span class="count">' + t.n + '</span>' : '') + '</button>';
@@ -381,6 +394,7 @@ function renderDetail(q, buckets) {
         fact('Submitted', fmtDate(q.created)) + fact('Proofs due', q.proofsDue) + fact('Needed in store', q.neededBy) +
         fact('Earliest ship', q.earliestShip) + fact('Sketch pack', d.sketchPack ? d.sketchPack + ' (' + q.sketchCount + ')' : q.sketchCount) +
         (me.isStaff ? fact('Assigned to', q.assignedTo || 'Not assigned') : '') + '</div>' +
+        approvalHtml(d) +
         (d.description ? '<div class="desc">' + esc(d.description) + '</div>' : '') +
         (d.preferredMarks ? '<div class="desc"><b>Preferred marks/logos:</b> ' + esc(d.preferredMarks) + '</div>' : '') +
         filesLine('Attachments', d.generalAttachments) + '</div>';
@@ -442,10 +456,25 @@ function actionsHtml(q, buckets) {
     var st = q.status, mine = q.isMine, blocks = [];
     var closed = ['Ordered', 'Cancelled'].indexOf(st) !== -1;
 
+    if ((mine || me.isAdmin || me.isStaff) && st === 'Proof Ready' && q.buyerLink) {
+        blocks.push('<div class="action-block"><div class="lbl">Buyer approval link</div>' +
+            '<div class="hint">Send this to your buyer. They can approve or ask for changes without logging in, and you’ll get an email when they do. ' +
+            'It’s also in the proof email, so forwarding that works too.</div>' +
+            '<div class="copy-row"><input type="text" id="buyerLink" readonly value="' + esc(q.buyerLink) + '">' +
+            '<button type="button" class="btn-secondary btn-sm" id="copyBuyerLink">Copy</button></div></div>');
+    }
     if ((mine || me.isAdmin) && st === 'Proof Ready') {
-        blocks.push('<div class="action-block"><div class="lbl">Review proofs</div>' +
-            '<div class="hint">The proofs were emailed to you. Forward them to your buyer, then approve or ask for changes here.</div>' +
-            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="approve">✓ Approve proofs</button></div>' +
+        blocks.push('<div class="action-block"><div class="lbl">Approve for the store</div>' +
+            '<div class="hint">Who at the store approved these proofs? This is saved with the request.</div>' +
+            '<div class="ap-grid">' +
+              '<label>Approved by<input type="text" id="apName" placeholder="Buyer’s name" maxlength="80"></label>' +
+              '<label>Store / location<input type="text" id="apStore" placeholder="e.g. NAS Jacksonville" maxlength="120" value="' + esc(q.institution || '') + '"></label>' +
+              '<label>Date approved<input type="date" id="apDate" value="' + todayIso() + '" max="' + todayIso() + '"></label>' +
+            '</div>' +
+            '<div class="file-drop" id="apDrop" style="padding:6px 10px;"><button type="button" class="btn-secondary btn-sm js-pick">📎 Attach the buyer’s OK</button>' +
+              '<span class="hint" style="margin:0;">Optional: a screenshot or photo of their email or text</span><input type="file" multiple hidden accept="image/*,.pdf,.eml,.msg"><div class="file-list"></div></div>' +
+            '<div class="btn-row" style="margin-bottom:14px;"><button class="btn-primary" data-op="approve" data-files="#apDrop">✓ Approve proofs</button></div>' +
+            '<div class="lbl">Or ask for changes</div>' +
             '<textarea id="reviseMsg" placeholder="What needs to change? e.g. Move the logo down 1 inch. Change ink 2 to gold."></textarea>' +
             '<button class="btn-secondary" data-op="revise" data-msg="#reviseMsg">Request revision</button></div>');
     }
@@ -470,8 +499,9 @@ function actionsHtml(q, buckets) {
             '<textarea id="proofMsg" placeholder="Note to the rep (optional). Your name isn’t shown, emails come from the Art Department."></textarea>' +
             '<button class="btn-primary" data-op="proof" data-msg="#proofMsg" data-files="#proofDrop">Send proofs</button></div>');
     }
-    if (me.isLicensing && st === 'Licensing') {
+    if ((me.isArt || me.isLicensing) && st === 'Licensing') {
         blocks.push('<div class="action-block"><div class="lbl">Licensing</div>' +
+            (me.isArt ? '<div class="hint">Submit the approved art to licensing, then record the result here.</div>' : '') +
             '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="licensed">✓ Licensing approved</button></div>' +
             '<textarea id="licMsg" placeholder="If it can’t be licensed as is, say what has to change."></textarea>' +
             '<button class="btn-secondary" data-op="licenseRejected" data-msg="#licMsg">Send back for changes</button></div>');
@@ -495,6 +525,14 @@ function actionsHtml(q, buckets) {
 function bindActions(q) {
     $('#app').off('click.act');
     $('.file-drop').each(function () { bindDrop($(this)); });
+    $('#apName, #apStore, #apDate').on('input change', function () { $(this).removeClass('field-error'); });
+    $('#copyBuyerLink').on('click', function () {
+        var el = document.getElementById('buyerLink');
+        el.select();
+        var done = function () { toast('Link copied. Paste it into an email or text to your buyer.'); };
+        if (navigator.clipboard) navigator.clipboard.writeText(el.value).then(done, function () { document.execCommand('copy'); done(); });
+        else { document.execCommand('copy'); done(); }
+    });
     $('#app').on('click.act', '[data-op]', function () {
         var $b = $(this), op = $b.data('op');
         var payload = { action: 'artUpdate', id: q.id, op: op };
@@ -512,7 +550,17 @@ function bindActions(q) {
         }
         if (op === 'revise' && !payload.message) { $('#reviseMsg').focus(); return toast('Describe what needs to change.', true); }
         if (op === 'licenseRejected' && !payload.message) { $('#licMsg').focus(); return toast('Say what has to change.', true); }
-        if (op === 'approve' && !confirm('Approve these proofs? ' + (q.needsLicensing ? 'They’ll go to licensing next.' : 'The art will be ready to order.'))) return;
+        if (op === 'approve') {
+            var ap = { name: $('#apName').val().trim(), store: $('#apStore').val().trim(), date: $('#apDate').val() };
+            $('#apName, #apStore, #apDate').removeClass('field-error');
+            if (!ap.name) { $('#apName').addClass('field-error').focus(); return toast('Enter who approved it at the store.', true); }
+            if (!ap.store) { $('#apStore').addClass('field-error').focus(); return toast('Enter the store or location.', true); }
+            if (!ap.date) { $('#apDate').addClass('field-error').focus(); return toast('Enter the date they approved it.', true); }
+            ap.date = fmtDate(ap.date + 'T12:00:00');
+            if (!confirm('Approve these proofs for ' + ap.store + ' (approved by ' + ap.name + ' on ' + ap.date + ')? ' +
+                (q.needsLicensing ? 'They’ll go to licensing next.' : 'The art will be ready to order.'))) return;
+            payload.approval = ap;
+        }
         var files = $b.data('files') ? ($($b.data('files')).data('files') || []) : [];
         if (op === 'proof' && !files.length) return toast('Choose the proof file(s) first.', true);
         if (op === 'comment' && !payload.message && !files.length) return toast('Write a comment first.', true);
@@ -567,6 +615,25 @@ function filesLine(label, files) {
     return '<div class="row" style="font-size:13px;margin-top:10px;"><b style="color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">' + label + '</b> ' + files.map(fileLink).join(' · ') + '</div>';
 }
 
+// Who approved the art for the store (latest approval, plus earlier ones).
+function approvalHtml(d) {
+    var list = d.approvals || [];
+    if (!list.length) return '';
+    var a = list[list.length - 1];
+    var h = '<div class="approval"><div class="lbl">✓ Store approval</div>' +
+        '<div><b>' + esc(a.name) + '</b> · ' + esc(a.store) + ' · ' + esc(a.date) + '</div>' +
+        '<div class="sub">Proof v' + esc(a.version) + ' · ' + esc(a.via) + (a.recordedBy ? ' (recorded by ' + esc(a.recordedBy) + ')' : '') + '</div>' +
+        (a.files && a.files.length ? '<div class="sub">' + a.files.map(fileLink).join(' · ') + '</div>' : '');
+    if (list.length > 1) {
+        h += '<details class="older"><summary>Earlier approvals (' + (list.length - 1) + ')</summary><ul>' +
+            list.slice(0, -1).reverse().map(function (x) {
+                return '<li>v' + esc(x.version) + ': ' + esc(x.name) + ', ' + esc(x.store) + ', ' + esc(x.date) + '</li>';
+            }).join('') + '</ul></details>';
+    }
+    return h + '</div>';
+}
+function todayIso() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fact(label, val) { return val || val === 0 ? '<div class="fact"><label>' + esc(label) + '</label><div>' + esc(val) + '</div></div>' : ''; }
 function fmtDate(v) { if (!v) return ''; var d = new Date(v); if (isNaN(d)) return String(v); return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); }
@@ -574,5 +641,7 @@ function fmtDateTime(v) { var d = new Date(v); if (isNaN(d)) return String(v || 
 function toast(msg, err) { $('#toast').text(msg).toggleClass('err', !!err).fadeIn(150); clearTimeout(toast.t); toast.t = setTimeout(function () { $('#toast').fadeOut(300); }, 3500); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 </script>
+</body>
+</html>
 </body>
 </html>
