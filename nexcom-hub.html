@@ -190,12 +190,14 @@ function loadArtTurnCount(auth) {
         data: { action: 'artList', email: auth.email, token: auth.token, status: 'open', limit: 1 }
     }).done(function (res) {
         if (!res || !res.success || !res.counts) return;
-        var proofs = res.counts['Proof Ready'] || 0, ready = res.counts['Ready to Order'] || 0, parts = [];
-        if (res.user && res.user.isStaff) return;   // staff use the Art Requests page itself
-        if (proofs) parts.push(proofs + ' proof' + (proofs === 1 ? '' : 's') + ' to review');
-        if (ready) parts.push(ready + ' ready to order');
-        if (proofs + ready) {
-            $('#artBadge').text(proofs + ready).show();
+        var c = res.counts, u = res.user || {}, n = 0, parts = [];
+        function add(status, label) { if (c[status]) { n += c[status]; parts.push(c[status] + ' ' + label); } }
+        if (u.isArt) { add('Submitted', 'to assign'); add('Revise', 'to revise'); add('Licensing', 'to submit for licensing'); }
+        else if (u.isLicensing) { add('Licensing', 'in licensing'); }
+        else { add('Proof Ready', 'proof' + (c['Proof Ready'] === 1 ? '' : 's') + ' to review'); add('Ready to Order', 'ready to order'); }
+        if (u.isStaff) $('#artBadge').closest('.nav-card').find('h2').text('Art Requests');
+        if (n) {
+            $('#artBadge').text(n).show();
             $('#artTurnNote').text('Waiting on you: ' + parts.join(', ')).show();
         }
     });
