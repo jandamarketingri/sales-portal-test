@@ -460,12 +460,26 @@
         .lib-pick { display: none; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 8px;
             border: 1px solid var(--border); border-radius: 8px; background: var(--bg, #fafafa); font-size: 12px; }
         .lib-pick.on { display: flex; }
-        .lib-pick img { width: 48px; height: 48px; object-fit: contain; background: #fff; border-radius: 4px; border: 1px solid var(--border); }
+        .lib-pick img { width: 72px; height: 72px; object-fit: contain; background: #fff; border-radius: 4px; border: 1px solid var(--border); cursor: zoom-in; }
+        .lib-pick .zoom-link { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .lib-cell { position: relative; display: flex; }
+        .lib-cell .lib-item { flex: 1; }
+        .lib-zoom { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
+            border: 1px solid var(--border); background: rgba(255,255,255,.92); cursor: zoom-in; font-size: 14px; line-height: 1;
+            box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+        .lib-zoom:hover { border-color: var(--accent); }
+        #zoomModal { z-index: 1100; }
+        #zoomModal .modal { max-width: 1000px; }
+        .zoom-wrap { background: #fff; border: 1px solid var(--border); border-radius: 8px; min-height: 320px;
+            display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .zoom-wrap img { max-width: 100%; max-height: 70vh; object-fit: contain; display: block; }
+        .zoom-wrap img.lowres { filter: blur(1px); opacity: .7; }
+        .zoom-note { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
         .lib-pick .x { margin-left: auto; border: 0; background: none; font-size: 18px; color: var(--text-muted); cursor: pointer; line-height: 1; }
         #libModal .modal { max-width: 920px; }
         .lib-search { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 14px; }
         .lib-status { color: var(--text-muted); font-size: 13px; margin: 10px 0; }
-        .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+        .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
         .lib-item { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; padding: 8px;
             text-align: left; font: inherit; display: flex; flex-direction: column; gap: 6px; }
         .lib-item:hover, .lib-item:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(140,31,36,.15); outline: none; }
@@ -687,6 +701,19 @@
     </div>
 </div>
 
+<!-- ── Art preview (large) ── -->
+<div class="modal-bg" id="zoomModal">
+    <div class="modal">
+        <div class="modal-head"><span style="font-size:20px;">🔍</span><h2 id="zoomTitle">Preview</h2>
+            <button type="button" class="btn-secondary" style="display:inline-block;margin-left:auto;" id="zoomClose">Close</button></div>
+        <div class="modal-body">
+            <div class="zoom-wrap" id="zoomWrap"></div>
+            <div class="zoom-note" id="zoomNote"></div>
+        </div>
+        <div class="modal-foot" id="zoomFoot"></div>
+    </div>
+</div>
+
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 // NEXCOM script (Nexcom.gs + ArtRequests.gs), reached through the Cloudflare relay.
@@ -706,6 +733,51 @@ var INKS = INK_DATA.map(function (r) {
 });
 var INK_BY_LABEL = {};
 INKS.forEach(function (k) { INK_BY_LABEL[k.label] = k; });
+
+// Inks shown first in the picker, in this order (names from the chart above).
+// TODO: have Gary confirm each branch's standard gold / blue and adjust.
+var COMMON_INKS = ['White', 'Black', 'Navy', 'Marine Navy', 'Reflex Blue', 'Royal', 'Gold', 'Vegas Gold',
+                   'Athletic Cardinal', 'Red', 'Grey', 'Silver', 'Military'];
+
+// Everything else is grouped by color family (worked out from the swatch).
+var INK_FAMILIES = ['Whites, Greys & Blacks', 'Reds & Pinks', 'Oranges', 'Yellows & Golds', 'Greens',
+                    'Blues & Teals', 'Purples', 'Browns & Tans', 'Fluorescent'];
+function inkFamily(k) {
+    if (k.fluor) return 'Fluorescent';
+    var r = parseInt(k.hex.slice(0, 2), 16) / 255, g = parseInt(k.hex.slice(2, 4), 16) / 255, b = parseInt(k.hex.slice(4, 6), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+    var s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    var h = 0;
+    if (d) {
+        if (max === r) h = 60 * (((g - b) / d) % 6); else if (max === g) h = 60 * ((b - r) / d + 2); else h = 60 * ((r - g) / d + 4);
+        if (h < 0) h += 360;
+    }
+    // near-neutral, or a muted blue-grey (Grey, Charcoal, Silver read as greys, not blues)
+    if (s < 0.12 || (s < 0.22 && h >= 180 && h < 260) || (l > 0.9 && s < 0.35)) return 'Whites, Greys & Blacks';
+    if (h >= 15 && h < 50 && (l < 0.4 || s < 0.45)) return 'Browns & Tans';
+    if (h < 10 || h >= 330) return 'Reds & Pinks';
+    if (h < 38) return 'Oranges';
+    if (h < 70) return 'Yellows & Golds';
+    if (h < 172) return 'Greens';
+    if (h < 238) return 'Blues & Teals';
+    if (h < 330) return 'Purples';
+    return 'Reds & Pinks';
+}
+INKS.forEach(function (k) { k.family = inkFamily(k); });
+// Picker order when nothing is typed: [{ group, ink }]
+var INK_BROWSE = (function () {
+    var out = [];
+    COMMON_INKS.forEach(function (n) {
+        var k = INKS.filter(function (x) { return x.name === n; })[0];
+        if (k) out.push({ group: 'Common', ink: k });
+    });
+    INK_FAMILIES.forEach(function (f) {
+        INKS.filter(function (k) { return k.family === f; })
+            .sort(function (a, b) { return a.name.localeCompare(b.name); })
+            .forEach(function (k) { out.push({ group: f, ink: k }); });
+    });
+    return out;
+})();
 var LOCATIONS = [
     ['FC', 'Full Chest'], ['LC', 'Left Chest'], ['RC', 'Right Chest'],
     ['FB', 'Full Back'], ['UB', 'Upper Back'], ['LS', 'Left Sleeve'],
@@ -1052,33 +1124,37 @@ function setInk($in, ink) {
     if (ink) $in.val(ink.label).removeClass('field-error');
 }
 
+// Returns [{ group, ink }] in display order.
 function searchInks(q) {
     q = q.trim().toLowerCase().replace(/^pms\s*/, '');
-    if (!q) return INKS;
+    if (!q) return INK_BROWSE;
     var tokens = q.split(/\s+/);
     var hits = INKS.filter(function (k) {
-        var hay = (k.name + ' ' + k.pms).toLowerCase();
+        var hay = (k.name + ' ' + k.pms + ' ' + k.family).toLowerCase();
         return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
     });
-    // names that start with the search come first
-    return hits.sort(function (a, b) {
-        var as = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bs = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1;
-        return as - bs;
-    });
+    // names that start with the search come first, then common inks
+    function rank(k) {
+        return (k.name.toLowerCase().indexOf(q) === 0 ? 0 : 2) + (COMMON_INKS.indexOf(k.name) !== -1 ? 0 : 1);
+    }
+    return hits.sort(function (a, b) { return rank(a) - rank(b); })
+               .map(function (k) { return { group: '', ink: k }; });
 }
 
 function renderInkDropdown($in) {
     var $dd = $in.siblings('.ink-dd');
     var q = $in.data('ink') ? '' : $in.val();
-    var hits = searchInks(q);
+    var rows = searchInks(q);
+    var hits = rows.map(function (r) { return r.ink; });
     $in.data('hits', hits).data('hl', 0);
     if (!hits.length) { $dd.html('<div class="item-empty">No ink matches “' + esc(q) + '”</div>').addClass('open'); return; }
-    var html = '', lastFluor = null;
-    hits.forEach(function (k, i) {
-        if (k.fluor !== lastFluor && (lastFluor !== null || k.fluor)) html += '<div class="item-group">' + (k.fluor ? 'Fluorescent' : 'Inks') + '</div>';
-        lastFluor = k.fluor;
+    var html = '', lastGroup = null;
+    rows.forEach(function (r, i) {
+        var k = r.ink;
+        if (r.group && r.group !== lastGroup) html += '<div class="item-group">' + esc(r.group) + '</div>';
+        lastGroup = r.group;
         html += '<div class="ink-opt' + (i === 0 ? ' hl' : '') + '" data-i="' + i + '"><span class="ink-sw" style="background:#' + k.hex + '"></span>' +
-                '<span class="nm">' + esc(k.name) + '</span><span class="pms">' + esc(k.pms) + '</span></div>';
+                '<span class="nm">' + esc(k.name) + '</span><span class="pms">' + esc(k.pms) + (k.fluor ? ' · Fluor' : '') + '</span></div>';
     });
     $dd.html(html).addClass('open').scrollTop(0);
 }
@@ -1723,12 +1799,12 @@ function renderLibrary() {
     }
     $('#libGrid').html(hits.slice(0, 200).map(function (it) {
         var suf = artSuffixOf(it.art);
-        return '<button type="button" class="lib-item" data-id="' + esc(it.id) + '">' +
+        return '<div class="lib-cell"><button type="button" class="lib-item" data-id="' + esc(it.id) + '">' +
             '<div class="th">' + (it.thumb ? '<img src="' + it.thumb + '" alt="" loading="lazy">' : '<span class="none">🖼️</span>') + '</div>' +
             '<div class="art">' + esc(it.art) + '</div>' +
             (it.words ? '<div class="w">' + esc(it.words) + '</div>' : '') +
             (suf && suf !== 'XX' ? '<span class="tag-lic">Licensing</span>' : '') +
-        '</button>';
+        '</button><button type="button" class="lib-zoom" data-id="' + esc(it.id) + '" title="See it larger">🔍</button></div>';
     }).join(''));
 }
 
@@ -1737,16 +1813,68 @@ function setLibraryPick($card, it) {
     if (!it) { $card.removeData('libraryFile'); $pick.removeClass('on').empty(); return; }
     $card.data('libraryFile', { id: it.id, name: it.name, art: it.art });
     $pick.addClass('on').html(
-        (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<span style="font-size:24px;">🖼️</span>') +
+        (it.thumb ? '<img src="' + it.thumb + '" alt="" class="js-zoom-pick" title="See it larger">' : '<span style="font-size:24px;">🖼️</span>') +
         '<div><b style="font-family:\'DM Mono\',monospace;">' + esc(it.art) + '</b>' + (it.words ? ' · ' + esc(it.words) : '') +
-        '<div style="color:var(--text-muted);">From the Art Library. The picture is attached to your request.</div></div>' +
+        '<div style="color:var(--text-muted);">From the Art Library. The picture is attached to your request.</div>' +
+        '<button type="button" class="zoom-link js-zoom-pick">🔍 See it larger</button></div>' +
         '<button type="button" class="x" title="Remove">×</button>');
 }
+
+// ── Large preview ─────────────────────────────────────────────────────────────
+// Shows the small thumbnail right away, then swaps in a bigger image from the
+// script (the original picture for images, a larger render for PDFs).
+var previewCache = {};
+function openPreview(it, $forCard) {
+    $('#zoomTitle').text(it.art + (it.words ? ' · ' + it.words : ''));
+    $('#zoomWrap').html(it.thumb ? '<img src="' + it.thumb + '" alt="" class="lowres">' : '<span style="font-size:48px;color:#bbb;">🖼️</span>');
+    $('#zoomNote').text('Loading a larger version…');
+    $('#zoomFoot').html($forCard ? '' :
+        '<button type="button" class="btn-submit js-zoom-use" data-id="' + esc(it.id) + '">Use this art</button>');
+    $('#zoomModal').addClass('open');
+    var done = function (url, note) {
+        if (!$('#zoomModal').hasClass('open') || $('#zoomModal').data('id') !== it.id) return;
+        if (url) $('#zoomWrap').html('<img src="' + url + '" alt="">');
+        $('#zoomNote').text(note || '');
+    };
+    $('#zoomModal').data('id', it.id);
+    if (previewCache[it.id]) return done(previewCache[it.id].url, previewCache[it.id].note);
+    sendToServer({ action: 'artLibraryPreview', id: it.id }).then(function (r) {
+        if (r && r.success && r.url) {
+            previewCache[it.id] = { url: r.url, note: r.note || '' };
+            done(r.url, r.note);
+        } else {
+            done('', (r && r.message) || 'A larger version isn’t available, so this is the thumbnail.');
+        }
+    });
+}
+
+$(document).on('click', '#libGrid .lib-zoom', function (e) {
+    e.stopPropagation();
+    var id = $(this).data('id');
+    var it = libraryItems.filter(function (x) { return x.id === id; })[0];
+    if (it) openPreview(it, null);
+});
+$(document).on('click', '.js-zoom-pick', function () {
+    var $card = $(this).closest('.sketch-card'), pick = $card.data('libraryFile');
+    if (!pick) return;
+    var it = libraryItems.filter(function (x) { return x.id === pick.id; })[0] || { id: pick.id, art: pick.art, words: '', thumb: $card.find('.js-lib-pick img').attr('src') };
+    openPreview(it, $card);
+});
+$(document).on('click', '.js-zoom-use', function () {
+    var id = $(this).data('id');
+    $('#zoomModal').removeClass('open');
+    $('#libGrid .lib-item[data-id="' + id + '"]').trigger('click');
+});
+$(document).on('click', '#zoomClose', function () { $('#zoomModal').removeClass('open'); });
+$(document).on('click', '#zoomModal', function (e) { if (e.target === this) $(this).removeClass('open'); });
 
 $(document).on('input', '#libSearch', renderLibrary);
 $(document).on('click', '#libClose', function () { $('#libModal').removeClass('open'); });
 $(document).on('click', '#libModal', function (e) { if (e.target === this) $('#libModal').removeClass('open'); });
-$(document).on('keydown', function (e) { if (e.key === 'Escape') $('#libModal').removeClass('open'); });
+$(document).on('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('#zoomModal').hasClass('open')) $('#zoomModal').removeClass('open'); else $('#libModal').removeClass('open');
+});
 $(document).on('click', '#libGrid .lib-item', function () {
     var id = $(this).data('id');
     var it = libraryItems.filter(function (x) { return x.id === id; })[0];
