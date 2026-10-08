@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Review Art Proofs - J&amp;A Art Department</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Buyer approval page. Opened from the link in a proof email; no login.
+           Talks to the NEXCOM script (artBuyerGet / artBuyerRespond) through the relay. */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f4f0; --surface: #ffffff; --surface-2: #fafaf8; --border: #e2e0d8;
+            --text: #1a1a18; --text-muted: #7a7870; --accent: #667eea; --accent2: #764ba2;
+            --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #2e7d32; --success-bg: #e8f5e9; --error: #c62828; --error-bg: #ffebee;
+            --shadow: 0 2px 12px rgba(0,0,0,0.07); --radius: 10px;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { color: var(--accent); }
+        .top { background: var(--grad); color: #fff; padding: 0 24px; height: 60px; display: flex; align-items: center; font-weight: 600; font-size: 16px; }
+        .wrap { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 18px; }
+        @media (max-width: 600px) { .card { padding: 18px 16px; } }
+        .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+        .title { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; }
+        .sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+        .id { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--text-muted); }
+        .note { font-size: 14px; background: var(--surface-2); border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; white-space: pre-wrap; }
+        .proofs { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+        .proof { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-decoration: none; color: inherit; background: var(--surface-2); display: block; }
+        .proof .th { height: 240px; display: flex; align-items: center; justify-content: center; background: #fff; font-size: 40px; color: #bbb; }
+        .proof .th img { width: 100%; height: 100%; object-fit: contain; }
+        .proof .nm { padding: 8px 10px; font-size: 12.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hint { font-size: 12.5px; color: var(--text-muted); margin-top: 10px; }
+        .sk { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; font-size: 13.5px; }
+        .sk b { color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 6px; }
+        .sk div + div { margin-top: 4px; }
+        label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; }
+        input[type=text], textarea { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font: inherit; font-size: 15px; color: var(--text); background: var(--surface); outline: none; }
+        input:focus, textarea:focus { border-color: var(--accent); }
+        textarea { min-height: 96px; resize: vertical; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+        .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 14px; }
+        .choice button { padding: 14px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; color: var(--text); }
+        .choice button.on[data-d=approve] { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+        .choice button.on[data-d=revise] { border-color: var(--accent2); background: #f4eefb; color: #4b2a70; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 22px; border-radius: 8px; border: none;
+            background: var(--grad); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
+        .btn:disabled { opacity: 0.55; cursor: default; }
+        .err { color: var(--error); background: var(--error-bg); padding: 10px 12px; border-radius: 8px; font-size: 14px; margin-bottom: 12px; display: none; }
+        .field-error { border-color: var(--error) !important; background: var(--error-bg) !important; }
+        .state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+        .state .big { font-size: 42px; margin-bottom: 10px; }
+        .state h1 { font-size: 20px; color: var(--text); margin-bottom: 6px; }
+        .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .foot { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 24px; }
+    </style>
+</head>
+<body>
+<div class="top">J&amp;A Art Department</div>
+<div class="wrap" id="app"><div class="card state"><div class="spinner"></div>Loading the proofs…</div></div>
+
+<script>
+// NEXCOM script, reached through the Cloudflare relay (same as the portal pages).
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+
+var params = new URLSearchParams(location.search);
+var REQ_ID = params.get('id') || '', KEY = params.get('k') || '';
+var decision = '';
+
+function api(method, payload) {
+    var opts = method === 'GET'
+        ? fetch(ART_API_URL + '?' + new URLSearchParams(payload).toString(), { cache: 'no-store' })
+        : fetch(ART_API_URL, { method: 'POST', body: JSON.stringify(payload) });
+    return opts.then(function (r) { return r.json(); })
+        .catch(function () { return { success: false, message: 'Could not reach the server. Check your connection and try again.' }; });
+}
+
+function stateBox(icon, title, text) {
+    document.getElementById('app').innerHTML = '<div class="card state"><div class="big">' + icon + '</div><h1>' + esc(title) + '</h1><div>' + esc(text) + '</div></div>' +
+        '<div class="foot">Questions? Contact your sales rep.</div>';
+}
+
+function load() {
+    if (!REQ_ID || !KEY) return stateBox('🔗', 'This link is incomplete', 'Ask your rep to send the approval link again.');
+    api('GET', { action: 'artBuyerGet', id: REQ_ID, k: KEY }).then(function (r) {
+        if (!r || !r.success) return stateBox('⚠️', 'We couldn’t open these proofs', (r && r.message) || 'Something went wrong.');
+        render(r.request, r.open, r.message);
+    });
+}
+
+function render(q, open, closedMsg) {
+    var h = '<div class="card"><div class="id">' + esc(q.id) + ' · Proof v' + esc(q.version) + '</div>' +
+        '<div class="title" style="margin-top:4px;">' + esc(q.title) + '</div>' +
+        '<div class="sub">' + esc(q.account) + (q.institution ? ' · ' + esc(q.institution) : '') + ' · Rep: ' + esc(q.repName) + '</div></div>';
+
+    h += '<div class="card"><h2>🖼️ Proofs</h2>' + (q.proofNote ? '<div class="note">' + esc(q.proofNote) + '</div>' : '');
+    if (q.proofs.length) {
+        h += '<div class="proofs">' + q.proofs.map(function (f) {
+            return '<a class="proof" href="' + esc(f.url) + '" target="_blank" rel="noopener"><div class="th">' +
+                '<img src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(f.id) + '&sz=w800" alt="" onerror="this.parentNode.innerHTML=\'📄\'"></div>' +
+                '<div class="nm">' + esc(f.name) + '</div></a>';
+        }).join('') + '</div><div class="hint">Tap a proof to open it full size. The proofs are also attached to the email you received.</div>';
+    } else {
+        h += '<div class="hint">The proof files are attached to the email you received.</div>';
+    }
+    h += '</div>';
+
+    if (q.sketches.length) {
+        h += '<div class="card"><h2>📋 What’s being printed</h2>' + q.sketches.map(function (s, i) {
+            return '<div class="sk"><div style="font-weight:600;margin-bottom:6px;">Sketch ' + (i + 1) + '</div>' +
+                '<div><b>Items</b>' + esc(s.items.join(', ')) + '</div>' +
+                '<div><b>Locations</b>' + esc(s.locations.join(' + ') || '—') + '</div>' +
+                '<div><b>Inks</b>' + esc(s.inkColors.join(', ') || '—') + '</div></div>';
+        }).join('') + '</div>';
+    }
+
+    if (!open) {
+        h += '<div class="card state" style="padding:28px 20px;"><div class="big">ℹ️</div><div>' + esc(closedMsg) + '</div></div>';
+        document.getElementById('app').innerHTML = h;
+        return;
+    }
+
+    h += '<div class="card"><h2>✍️ Your decision</h2>' +
+        '<div class="err" id="err"></div>' +
+        '<div class="grid">' +
+          '<label>Your name<input type="text" id="bName" maxlength="80" autocomplete="name"></label>' +
+          '<label>Store / location<input type="text" id="bStore" maxlength="120" value="' + esc(q.institution || '') + '"></label>' +
+        '</div>' +
+        '<div class="choice"><button type="button" data-d="approve">✓ Approve</button><button type="button" data-d="revise">✎ Request changes</button></div>' +
+        '<label id="msgWrap" style="display:none;">What needs to change?<textarea id="bMsg" maxlength="4000" placeholder="e.g. Make the logo bigger. Change the blue ink to navy."></textarea></label>' +
+        '<button type="button" class="btn" id="send" disabled>Choose approve or request changes</button>' +
+        '<div class="hint">Your rep and the art department are notified as soon as you send this.' +
+        (q.needsLicensing ? ' Approved art goes to licensing review before it’s printed.' : '') + '</div></div>' +
+        '<div class="foot">Questions? Contact your sales rep, ' + esc(q.repName) + '.</div>';
+    document.getElementById('app').innerHTML = h;
+
+    document.querySelectorAll('.choice button').forEach(function (b) {
+        b.addEventListener('click', function () {
+            decision = b.getAttribute('data-d');
+            document.querySelectorAll('.choice button').forEach(function (x) { x.classList.toggle('on', x === b); });
+            document.getElementById('msgWrap').style.display = decision === 'revise' ? 'block' : 'none';
+            var send = document.getElementById('send');
+            send.disabled = false;
+            send.textContent = decision === 'approve' ? 'Approve these proofs' : 'Send my changes';
+            if (decision === 'revise') document.getElementById('bMsg').focus();
+        });
+    });
+    document.getElementById('send').addEventListener('click', submit);
+    ['bName', 'bStore', 'bMsg'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', function () {
+            this.classList.remove('field-error');
+            document.getElementById('err').style.display = 'none';
+        });
+    });
+}
+
+function submit() {
+    var name = val('bName'), store = val('bStore'), msg = val('bMsg');
+    ['bName', 'bStore', 'bMsg'].forEach(function (id) { document.getElementById(id).classList.remove('field-error'); });
+    if (!name) return fail('Enter your name.', 'bName');
+    if (!store) return fail('Enter your store or location.', 'bStore');
+    if (decision === 'revise' && !msg) return fail('Describe what needs to change.', 'bMsg');
+    if (decision === 'approve' && !confirm('Approve these proofs for ' + store + '?')) return;
+    var btn = document.getElementById('send');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    api('POST', { action: 'artBuyerRespond', id: REQ_ID, k: KEY, decision: decision, name: name, store: store, message: msg })
+        .then(function (r) {
+            if (!r || !r.success) {
+                btn.disabled = false; btn.textContent = decision === 'approve' ? 'Approve these proofs' : 'Send my changes';
+                return fail((r && r.message) || 'Something went wrong. Try again.');
+            }
+            stateBox(decision === 'approve' ? '✅' : '📨', decision === 'approve' ? 'Approved' : 'Changes sent', r.message);
+            window.scrollTo(0, 0);
+        });
+}
+
+function fail(msg, fieldId) {
+    var e = document.getElementById('err');
+    e.textContent = msg; e.style.display = 'block';
+    if (fieldId) { var f = document.getElementById(fieldId); f.classList.add('field-error'); f.focus(); }
+    else e.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+function val(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+load();
+</script>
+</body>
+</html>
