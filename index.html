@@ -258,7 +258,8 @@ $(document).ready(function(){
         // Show admin-only section for Admin role
         var role = String(auth.role || '').toLowerCase();
         var isAdmin = role === 'admin';
-        var isArtTeam = role === 'art';
+        var isArtAdmin = role === 'art admin';
+        var isArtTeam = role === 'art' || isArtAdmin;
         var isLicensing = role === 'licensing';
         if (isAdmin) {
             $('#adminSection').show();
@@ -283,7 +284,7 @@ $(document).ready(function(){
                 $('#artListTitle').text('Art Requests');
                 $('#artListDesc').text(isLicensing && !isAdmin ? 'Approved art waiting on licensing' : 'Assign, upload proofs, track every request');
             }
-            loadArtTurnCount(auth, { isAdmin: isAdmin, isArtTeam: isArtTeam, isLicensing: isLicensing });
+            loadArtTurnCount(auth, { isAdmin: isAdmin, isArtAdmin: isArtAdmin, isArtTeam: isArtTeam, isLicensing: isLicensing });
         }
 
         if (!hasAAFES && !hasNEXCOM) {
@@ -315,7 +316,8 @@ function loadArtTurnCount(auth, r) {
         if (!res || !res.success || !res.counts) return;
         var c = res.counts, n = 0, parts = [];
         function add(status, label) { if (c[status]) { n += c[status]; parts.push(c[status] + ' ' + label); } }
-        if (r.isArtTeam || r.isAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); add('Licensing', 'to submit for licensing'); }
+        if (r.isArtAdmin || r.isAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); add('Licensing', 'to submit for licensing'); }
+        else if (r.isArtTeam) { add('Revise', 'to revise'); }
         else if (r.isLicensing) { add('Licensing', 'in licensing'); }
         if (!r.isArtTeam && !r.isLicensing && !r.isAdmin) { add('Proof Ready', 'proof' + (c['Proof Ready'] === 1 ? '' : 's') + ' to review'); add('Ready to Order', 'ready to order'); }
         if (n) {

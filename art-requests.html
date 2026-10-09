@@ -253,11 +253,11 @@ function checkSession(r) {
 function waitingOn(r, u) {
     var mine = r.isMine;
     switch (r.status) {
-        case 'Submitted':      return { who: 'Art department to assign', me: u.isArt };
+        case 'Submitted':      return { who: 'Art Admin to assign', me: u.isArtAdmin };
         case 'In Art':         return { who: 'Designer working on proofs', me: u.isArt };
         case 'Revise':         return { who: 'Designer making revisions', me: u.isArt };
         case 'Proof Ready':    return { who: mine ? 'You: review the proofs' : 'Rep to review proofs', me: mine };
-        case 'Licensing':      return { who: u.isArt ? 'Art department: submit to licensing' : 'Licensing review', me: u.isArt || u.isLicensing };
+        case 'Licensing':      return { who: u.isArtAdmin ? 'Art Admin: submit to licensing' : 'Licensing review', me: u.isArtAdmin || u.isLicensing };
         case 'Ready to Order': return { who: mine ? 'You: place the order' : 'Rep to place the order', me: mine };
         case 'On Hold':        return { who: 'On hold', me: false };
         default:               return { who: '', me: false };
@@ -307,6 +307,7 @@ function renderListShell(r) {
     if (staff) {
         h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button><button data-scope="mine">Mine</button></div>' +
              '<select id="assignedSel"><option value="">Anyone assigned</option>' +
+             (r.user.isArt && !r.user.isArtAdmin ? '<option value="' + esc(r.user.name) + '"' + (list.assigned === r.user.name ? ' selected' : '') + '>Assigned to me</option>' : '') +
              (r.buckets || []).map(function (b) { return '<option' + (list.assigned === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('') + '</select>';
     }
     h += '</div><div class="list" id="reqList"></div><div class="loader-row" id="loaderRow"></div><div id="sentinel" style="height:1px;"></div>';
@@ -328,7 +329,7 @@ function updateTabs(r) {
     var tabs = [{ s: 'open', label: 'Open', n: r.openCount }];
     TABS.forEach(function (s) { if (r.counts[s] || ['Ordered', 'Cancelled'].indexOf(s) === -1) tabs.push({ s: s, label: s, n: r.counts[s] || 0 }); });
     tabs.push({ s: 'all', label: 'All', n: null });
-    var myTurn = { 'Proof Ready': !r.user.isStaff, 'Ready to Order': !r.user.isStaff, 'Submitted': r.user.isArt, 'Revise': r.user.isArt, 'Licensing': r.user.isArt || r.user.isLicensing };
+    var myTurn = { 'Proof Ready': !r.user.isStaff, 'Ready to Order': !r.user.isStaff, 'Submitted': r.user.isArtAdmin, 'Revise': r.user.isArt, 'Licensing': r.user.isArtAdmin || r.user.isLicensing };
     $('#tabs').html(tabs.map(function (t) {
         return '<button class="tab' + (t.s === list.status ? ' active' : '') + (myTurn[t.s] && t.n ? ' mine-turn' : '') + '" data-status="' + esc(t.s) + '">' +
             esc(t.label) + (t.n !== null ? '<span class="count">' + t.n + '</span>' : '') + '</button>';
@@ -485,7 +486,7 @@ function actionsHtml(q, buckets) {
             '<div class="btn-row">' + (page ? '<a class="btn-primary" href="' + page + '">Go to ' + esc(q.account) + ' ordering</a>' : '') +
             '<button class="btn-secondary" data-op="ordered">Mark ordered</button></div></div>');
     }
-    if (me.isArt && ['Submitted', 'In Art', 'Revise', 'On Hold'].indexOf(st) !== -1) {
+    if (me.isArtAdmin && ['Submitted', 'In Art', 'Revise', 'On Hold'].indexOf(st) !== -1) {
         blocks.push('<div class="action-block"><div class="lbl">' + (q.assignedTo ? 'Reassign' : 'Assign') + '</div>' +
             '<select id="assignTo"><option value="">Choose who works on this…</option>' + buckets.map(function (b) {
                 return '<option' + (b === q.assignedTo ? ' selected' : '') + '>' + esc(b) + '</option>';
@@ -501,7 +502,7 @@ function actionsHtml(q, buckets) {
     }
     if ((me.isArt || me.isLicensing) && st === 'Licensing') {
         blocks.push('<div class="action-block"><div class="lbl">Licensing</div>' +
-            (me.isArt ? '<div class="hint">Submit the approved art to licensing, then record the result here.</div>' : '') +
+            (me.isArtAdmin ? '<div class="hint">Submit the approved art to licensing, then record the result here.</div>' : '') +
             '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="licensed">✓ Licensing approved</button></div>' +
             '<textarea id="licMsg" placeholder="If it can’t be licensed as is, say what has to change."></textarea>' +
             '<button class="btn-secondary" data-op="licenseRejected" data-msg="#licMsg">Send back for changes</button></div>');
