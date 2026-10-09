@@ -197,6 +197,13 @@
                     <p>Start from existing art or ask for a new design</p>
                 </div>
             </a>
+            <a href="art-board.html" class="tool-card" id="artBoardCard">
+                <div class="tool-icon">📊</div>
+                <div>
+                    <h3>Art Board</h3>
+                    <p>Every request: stage, who has it, what's late</p>
+                </div>
+            </a>
             <a href="art-requests.html" class="tool-card" id="artListCard">
                 <span class="turn-badge" id="artBadge"></span>
                 <div class="tool-icon">🗂️</div>
@@ -220,6 +227,11 @@
                 <div style="font-size:48px;margin-bottom:15px;">⚙️</div>
                 <h2 style="margin:0 0 10px 0;font-size:24px;">Admin Panel</h2>
                 <p style="margin:0;opacity:0.9;font-size:14px;">Manage styles and settings</p>
+            </a>
+            <a href="art-board.html" class="nav-card" style="background:linear-gradient(135deg,#764ba2 0%,#4b2a70 100%);border-radius:8px;padding:30px;text-align:center;text-decoration:none;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size:48px;margin-bottom:15px;">📊</div>
+                <h2 style="margin:0 0 10px 0;font-size:24px;">Art Board</h2>
+                <p style="margin:0;opacity:0.9;font-size:14px;">Every NEXCOM art request at a glance</p>
             </a>
         </div>
     </div>
@@ -280,6 +292,7 @@ $(document).ready(function(){
         if (artStaff && !hasNEXCOM) {
             $('#artSection').show();
             $('#newArtCard').remove();
+            if (!isArtAdmin) $('#artBoardCard').remove();
             if (artStaff) {
                 $('#artListTitle').text('Art Requests');
                 $('#artListDesc').text(isLicensing && !isAdmin ? 'Approved art waiting on licensing' : 'Assign, upload proofs, track every request');

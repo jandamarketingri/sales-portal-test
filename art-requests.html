@@ -300,7 +300,8 @@ function renderListShell(r) {
     var h = '<div class="page-head"><div>' +
         '<div class="page-title">🎨 Art Requests</div>' +
         '<div class="page-subtitle">' + (staff ? 'Every NEXCOM art request, newest activity first.' : 'Your NEXCOM art requests, newest activity first.') + '</div></div>' +
-        '<a class="btn-primary" href="art-request.html">+ New request</a></div>';
+        '<div class="btn-row">' + (r.user.isArtAdmin ? '<a class="btn-secondary" href="art-board.html">📊 Art Board</a>' : '') +
+        '<a class="btn-primary" href="art-request.html">+ New request</a></div></div>';
     h += '<div class="tabs" id="tabs"></div>';
     h += '<div class="filters">' +
         '<input type="text" id="search" placeholder="Search by ID, project, rep, institution…" value="' + esc(list.q) + '">';

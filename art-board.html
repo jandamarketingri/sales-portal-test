@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Art Board - Sales Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Art Board: the Art Admin's (and Admins') overview of every art request.
+           Data comes from artBoard in ArtRequests.gs, through the Cloudflare relay. */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f4f0; --surface: #ffffff; --surface-2: #fafaf8; --border: #e2e0d8;
+            --text: #1a1a18; --text-muted: #7a7870; --accent: #667eea; --accent2: #764ba2; --accent-soft: #f0f4ff;
+            --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #2e7d32; --success-bg: #e8f5e9; --warning: #b45309; --warning-bg: #fff8e1;
+            --error: #c62828; --error-bg: #ffebee; --shadow: 0 2px 12px rgba(0,0,0,0.07); --radius: 10px;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { color: var(--accent); }
+
+        .portal-header {
+            background: var(--grad); color: white; padding: 0 32px; display: flex; align-items: center;
+            justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header h1 { font-size: 17px; font-weight: 600; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .rep-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; }
+        .btn-back { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: white; padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap; }
+        @media (max-width: 700px) { .portal-header { padding: 0 16px; } .rep-badge { display: none; } }
+
+        .page-body { max-width: 1440px; margin: 0 auto; padding: 28px 24px 80px; }
+        @media (max-width: 600px) { .page-body { padding: 20px 16px 80px; } }
+        .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+        .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+        .page-subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600;
+               cursor: pointer; text-decoration: none; border: 1.5px solid var(--border); background: var(--surface); color: var(--text); white-space: nowrap; }
+        .btn:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-primary { background: var(--grad); color: #fff; border-color: transparent; }
+        .btn-primary:hover { color: #fff; }
+
+        /* KPI tiles — click to filter */
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+        .kpi:hover { border-color: #c9cff5; }
+        .kpi.on { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
+        .kpi .n { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -1px; }
+        .kpi .l { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
+        .kpi.alert .n { color: var(--error); }
+        .kpi.zero .n { color: #c4c2ba; }
+
+        .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+        .filters input, .filters select { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-size: 14px; background: var(--surface); outline: none; }
+        .filters input[type=search] { flex: 1; min-width: 200px; }
+        .filters input:focus, .filters select:focus { border-color: var(--accent); }
+        .filters label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+        .seg { display: inline-flex; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; padding: 3px; }
+        .seg button { border: none; background: none; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+        .seg button.active { background: var(--grad); color: white; }
+        .active-filter { display: none; font-size: 13px; background: var(--accent-soft); color: #3a4a9a; padding: 6px 10px; border-radius: 8px; gap: 8px; align-items: center; }
+        .active-filter.on { display: inline-flex; }
+        .active-filter button { border: none; background: none; cursor: pointer; color: #3a4a9a; font-size: 15px; line-height: 1; }
+
+        .layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+        @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+        @media (max-width: 600px) {
+            .kpis { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+            .kpi { padding: 10px; }
+            .kpi .n { font-size: 22px; }
+            .kpi .l { font-size: 11px; }
+            .filters .seg { margin-left: 0 !important; }
+            .page-title { font-size: 22px; }
+        }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 20px; }
+        .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+        .card h3 .right { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+        /* Board */
+        .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(215px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 20px; }
+        .col { background: #eeede8; border-radius: var(--radius); padding: 10px; min-height: 120px; }
+        .col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 10px; font-size: 13px; font-weight: 700; }
+        .col-head .dot { width: 9px; height: 9px; border-radius: 50%; }
+        .col-head .cnt { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); background: var(--surface); border-radius: 10px; padding: 1px 8px; }
+        .col-sub { font-size: 11px; color: var(--text-muted); padding: 0 4px 8px; margin-top: -6px; }
+        .col-empty { font-size: 12px; color: #a9a79f; text-align: center; padding: 16px 0; }
+        .tile { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; text-decoration: none; color: inherit; border-left: 3px solid transparent; }
+        .tile:hover { border-color: #c9cff5; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+        .tile.late { border-left-color: var(--error); }
+        .tile.stale { border-left-color: var(--warning); }
+        .tile .top { display: flex; gap: 6px; align-items: center; }
+        .tile .id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); }
+        .tile .age { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+        .tile .age.warn { color: var(--warning); }
+        .tile .ttl { font-size: 13.5px; font-weight: 600; margin: 3px 0 4px; line-height: 1.3; }
+        .tile .meta { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+        .tile .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+        .tag { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: #eeede8; color: var(--text-muted); white-space: nowrap; }
+        .tag.who { background: var(--accent-soft); color: #3a4a9a; }
+        .tag.unassigned { background: var(--warning-bg); color: var(--warning); }
+        .tag.lic { background: #efe7f7; color: var(--accent2); }
+        .tag.late { background: var(--error-bg); color: var(--error); }
+        .tag.stale { background: var(--warning-bg); color: var(--warning); }
+        .tag.soon { background: #e6f0fa; color: #1f5f99; }
+
+        /* Table view */
+        .tbl-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 8px 10px; border-bottom: 1.5px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+        th.sorted::after { content: ' ▾'; } th.sorted.asc::after { content: ' ▴'; }
+        td { padding: 9px 10px; border-bottom: 1px solid #efeee9; vertical-align: top; }
+        tr.row { cursor: pointer; }
+        tr.row:hover td { background: var(--surface-2); }
+        td .mono { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
+
+        /* Status pills (same colors as the Art Requests page) */
+        .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .st-submitted { background: #eef0fb; color: #4451b0; } .st-inart { background: #f2ecf9; color: #6a3d9a; }
+        .st-proof { background: #fff3dd; color: #a35a00; } .st-revise { background: #fdeceb; color: #b23b32; }
+        .st-hold { background: #ececec; color: #555; } .st-licensing { background: #e6f0fa; color: #1f5f99; }
+        .st-ready { background: var(--success-bg); color: var(--success); } .st-ordered { background: #e7f3ef; color: #2b6b55; }
+        .st-cancelled { background: #f3f3f3; color: #999; }
+
+        /* Workload */
+        .wl { width: 100%; font-size: 13px; }
+        .wl td, .wl th { padding: 7px 6px; }
+        .wl th { cursor: default; }
+        .wl td.num { text-align: center; font-family: 'DM Mono', monospace; }
+        .wl td.num.z { color: #c4c2ba; }
+        .wl td.num.hot { color: var(--error); font-weight: 600; }
+        .wl tr.row td:first-child { font-weight: 600; }
+        .wl .role { font-size: 10.5px; color: var(--accent2); font-weight: 700; margin-left: 4px; }
+        .wl tr.on td { background: var(--accent-soft); }
+
+        /* Activity feed */
+        .feed { list-style: none; max-height: 420px; overflow-y: auto; margin-right: -8px; padding-right: 8px; }
+        .feed li { padding: 9px 0; border-bottom: 1px solid #efeee9; font-size: 13px; }
+        .feed li:last-child { border-bottom: none; }
+        .feed a { text-decoration: none; color: inherit; display: block; }
+        .feed a:hover .ev { color: var(--accent); }
+        .feed .ev { font-weight: 600; }
+        .feed .t { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+        .feed .m { font-size: 12.5px; color: var(--text); margin-top: 3px; background: var(--surface-2); padding: 5px 8px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+        .state-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 48px 20px; text-align: center; color: var(--text-muted); font-size: 14px; }
+        .spinner { width: 30px; height: 30px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .legend { font-size: 12px; color: var(--text-muted); display: flex; gap: 14px; flex-wrap: wrap; margin: -6px 0 14px; }
+        .legend span::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+        .legend .l-late::before { background: var(--error); } .legend .l-stale::before { background: var(--warning); }
+    </style>
+</head>
+<body>
+
+<div class="portal-header">
+    <h1>Sales Portal</h1>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge">Loading…</span>
+        <a href="art-requests.html" class="btn-back">Art Requests</a>
+        <a href="index.html" class="btn-back">← Portal</a>
+    </div>
+</div>
+
+<div class="page-body" id="app">
+    <div class="state-box"><div class="spinner"></div>Loading the Art Board…</div>
+</div>
+
+<script>
+// NEXCOM script (Nexcom.gs + ArtRequests.gs), reached through the Cloudflare relay.
+var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+var REFRESH_MINUTES = 5;
+
+// Board columns, in workflow order. "who" says whose move it is.
+var STAGES = [
+    { s: 'Submitted',      label: 'To assign',      who: 'Art Admin',       cls: 'st-submitted', color: '#4451b0' },
+    { s: 'In Art',         label: 'In Art',         who: 'Artist',          cls: 'st-inart',     color: '#6a3d9a' },
+    { s: 'Revise',         label: 'Revising',       who: 'Artist',          cls: 'st-revise',    color: '#b23b32' },
+    { s: 'Proof Ready',    label: 'Proof out',      who: 'Rep / buyer',     cls: 'st-proof',     color: '#a35a00' },
+    { s: 'Licensing',      label: 'Licensing',      who: 'Art Admin / licensing', cls: 'st-licensing', color: '#1f5f99' },
+    { s: 'Ready to Order', label: 'Ready to order', who: 'Rep',             cls: 'st-ready',     color: '#2e7d32' },
+    { s: 'On Hold',        label: 'On hold',        who: '',                cls: 'st-hold',      color: '#777' }
+];
+var CLOSED = [
+    { s: 'Ordered',   label: 'Ordered',   who: '', cls: 'st-ordered',   color: '#2b6b55' },
+    { s: 'Cancelled', label: 'Cancelled', who: '', cls: 'st-cancelled', color: '#999' }
+];
+var STAGE_BY = {};
+STAGES.concat(CLOSED).forEach(function (x) { STAGE_BY[x.s] = x; });
+
+var auth = null, data = null, timer = null;
+var view = { mode: 'board', q: '', who: '', account: '', kpi: '', closed: false, sort: 'daysInStage', asc: false };
+try { var saved = JSON.parse(localStorage.getItem('artBoardView') || '{}'); if (saved.mode) view.mode = saved.mode; view.closed = !!saved.closed; } catch (e) {}
+
+$(function () {
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')); } catch (e) {}
+    if (!auth || !auth.email || !auth.token) { sessionStorage.removeItem('salesPortalAuth'); location.href = 'login.html'; return; }
+    $('#repBadge').text(auth.name || auth.email);
+    load();
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && data && (Date.now() - new Date(data.generated)) > 60000) load(true); });
+});
+
+function load(quiet) {
+    clearTimeout(timer);
+    if (quiet) $('#refreshBtn').text('Refreshing…');
+    $.ajax({ url: ART_API_URL, method: 'GET', dataType: 'json', cache: false, timeout: 45000,
+             data: { action: 'artBoard', email: auth.email, token: auth.token } })
+        .done(function (r) {
+            if (r && r.sessionExpired) { sessionStorage.removeItem('salesPortalAuth'); location.href = 'login.html'; return; }
+            if (!r || !r.success) { $('#app').html('<div class="state-box">⚠ ' + esc((r && r.message) || 'Could not load the Art Board.') + '</div>'); return; }
+            data = r;
+            if (!$('#board').length) shell();
+            render();
+            timer = setTimeout(function () { load(true); }, REFRESH_MINUTES * 60000);
+        })
+        .fail(function () {
+            if (!data) $('#app').html('<div class="state-box">⚠ Could not reach the server.</div>');
+            else { $('#refreshBtn').text('↻ Refresh'); timer = setTimeout(function () { load(true); }, REFRESH_MINUTES * 60000); }
+        });
+}
+
+// ── Page shell (built once) ───────────────────────────────────────────────────
+function shell() {
+    var accounts = {};
+    data.items.forEach(function (it) { if (it.account) accounts[it.account] = 1; });
+    $('#app').html(
+        '<div class="page-head"><div><div class="page-title">🗂️ Art Board</div>' +
+          '<div class="page-subtitle" id="subtitle"></div></div>' +
+          '<div style="display:flex;gap:8px;"><button class="btn" id="refreshBtn">↻ Refresh</button></div></div>' +
+        '<div class="kpis" id="kpis"></div>' +
+        '<div class="filters">' +
+          '<input type="search" id="q" placeholder="Search ID, project, rep, institution…">' +
+          '<select id="who"><option value="">Everyone</option></select>' +
+          '<select id="account"><option value="">All accounts</option>' + Object.keys(accounts).sort().map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('') + '</select>' +
+          '<label class="chk"><input type="checkbox" id="closed"' + (view.closed ? ' checked' : '') + '> Closed in the last ' + data.closedDays + ' days</label>' +
+          '<span class="active-filter" id="kpiFilter"><span></span><button title="Clear">×</button></span>' +
+          '<div class="seg" style="margin-left:auto;"><button data-mode="board">Board</button><button data-mode="table">Table</button></div>' +
+        '</div>' +
+        '<div id="board"></div>' +
+        '<div class="layout"><div>' +
+          '<div class="card"><h3>👥 Workload<span class="right">open requests by person · click a name to filter</span></h3><div class="tbl-wrap" id="workload"></div></div>' +
+        '</div><div>' +
+          '<div class="card"><h3>🕒 Recent activity<span class="right" id="feedCount"></span></h3><ul class="feed" id="feed"></ul></div>' +
+        '</div></div>');
+
+    $('#refreshBtn').on('click', function () { load(true); });
+    var t;
+    $('#q').on('input', function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { view.q = v.trim().toLowerCase(); render(); }, 200); });
+    $('#who').on('change', function () { view.who = this.value; render(); });
+    $('#account').on('change', function () { view.account = this.value; render(); });
+    $('#closed').on('change', function () { view.closed = this.checked; savePrefs(); render(); });
+    $('.seg').on('click', 'button', function () { view.mode = $(this).data('mode'); savePrefs(); render(); });
+    $('#kpis').on('click', '.kpi', function () { var k = $(this).data('k'); view.kpi = view.kpi === k ? '' : k; render(); });
+    $('#kpiFilter button').on('click', function () { view.kpi = ''; render(); });
+    $('#workload').on('click', 'tr.row', function () { var w = $(this).data('who'); view.who = view.who === w ? '' : w; render(); });
+    $('#board').on('click', 'th[data-sort]', function () {
+        var k = $(this).data('sort');
+        if (view.sort === k) view.asc = !view.asc; else { view.sort = k; view.asc = k === 'title' || k === 'assignedTo'; }
+        render();
+    });
+    $('#board').on('click', 'tr.row', function () { location.href = 'art-requests.html?id=' + encodeURIComponent($(this).data('id')); });
+}
+function savePrefs() { try { localStorage.setItem('artBoardView', JSON.stringify({ mode: view.mode, closed: view.closed })); } catch (e) {} }
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+var KPIS = [
+    { k: 'open',      l: 'Open',                test: function (it) { return isOpen(it); } },
+    { k: 'assign',    l: 'To assign',           test: function (it) { return it.status === 'Submitted'; }, alert: true },
+    { k: 'artists',   l: 'With artists',        test: function (it) { return it.status === 'In Art' || it.status === 'Revise'; } },
+    { k: 'reps',      l: 'Waiting on reps',     test: function (it) { return it.status === 'Proof Ready' || it.status === 'Ready to Order'; } },
+    { k: 'licensing', l: 'In licensing',        test: function (it) { return it.status === 'Licensing'; } },
+    { k: 'late',      l: 'Proofs late',         test: function (it) { return it.proofsLate; }, alert: true },
+    { k: 'stale',     l: 'No activity ' + 5 + '+ days', test: function (it) { return it.stale; }, alert: true }
+];
+function isOpen(it) { return it.status !== 'Ordered' && it.status !== 'Cancelled'; }
+
+function filtered(skipWho) {
+    var kpi = KPIS.filter(function (k) { return k.k === view.kpi; })[0];
+    return data.items.filter(function (it) {
+        if (!view.closed && !isOpen(it)) return false;
+        if (!skipWho && view.who) {
+            if (view.who === '__none' ? !!it.assignedTo : it.assignedTo !== view.who) return false;
+        }
+        if (view.account && it.account !== view.account) return false;
+        if (kpi && !kpi.test(it)) return false;
+        if (view.q) {
+            var hay = [it.id, it.title, it.repName, it.institution, it.account, it.assignedTo].join(' ').toLowerCase();
+            if (hay.indexOf(view.q) === -1) return false;
+        }
+        return true;
+    });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+    KPIS[6].l = 'No activity ' + data.staleDays + '+ days';
+    var open = data.items.filter(isOpen);
+    $('#subtitle').text(open.length + ' open request' + (open.length === 1 ? '' : 's') + ' · updated ' + fmtTime(data.generated) + ' · refreshes every ' + REFRESH_MINUTES + ' min');
+    $('#refreshBtn').text('↻ Refresh');
+
+    $('#kpis').html(KPIS.map(function (k) {
+        var n = data.items.filter(function (it) { return isOpen(it) && k.test(it); }).length;
+        return '<button class="kpi' + (view.kpi === k.k ? ' on' : '') + (k.alert && n ? ' alert' : '') + (!n ? ' zero' : '') + '" data-k="' + k.k + '">' +
+            '<div class="n">' + n + '</div><div class="l">' + esc(k.l) + '</div></button>';
+    }).join(''));
+    var kpi = KPIS.filter(function (k) { return k.k === view.kpi; })[0];
+    $('#kpiFilter').toggleClass('on', !!kpi).find('span').text(kpi ? 'Showing: ' + kpi.l : '');
+
+    // People dropdown: team from the login sheet + anyone still assigned from before
+    var names = data.team.map(function (m) { return m.name; });
+    data.items.forEach(function (it) { if (it.assignedTo && names.indexOf(it.assignedTo) === -1) names.push(it.assignedTo); });
+    $('#who').html('<option value="">Everyone</option><option value="__none">Not assigned</option>' + names.map(function (n) {
+        return '<option value="' + esc(n) + '">' + esc(n) + '</option>';
+    }).join('')).val(view.who);
+    $('.seg button').removeClass('active').filter('[data-mode="' + view.mode + '"]').addClass('active');
+
+    var rows = filtered();
+    if (view.mode === 'board') renderBoard(rows); else renderTable(rows);
+    renderWorkload(names);
+    renderFeed();
+}
+
+function tileHtml(it) {
+    var st = STAGE_BY[it.status] || {};
+    var who = it.assignedTo ? '<span class="tag who">' + esc(it.assignedTo) + '</span>'
+                            : (isOpen(it) && it.status !== 'Submitted' ? '<span class="tag unassigned">Not assigned</span>' : '');
+    var tags = who +
+        (it.needsLicensing ? '<span class="tag lic">Licensing</span>' : '') +
+        (it.proofsLate ? '<span class="tag late">Proofs due ' + esc(it.proofsDue) + '</span>' : '') +
+        (it.stale && !it.proofsLate ? '<span class="tag stale">Quiet ' + daysSince(it.lastEvent ? it.lastEvent.at : it.updated) + 'd</span>' : '') +
+        (it.neededSoon ? '<span class="tag soon">In store ' + esc(it.neededBy) + '</span>' : '') +
+        (it.revisions ? '<span class="tag">' + it.revisions + ' revision' + (it.revisions === 1 ? '' : 's') + '</span>' : '');
+    return '<a class="tile' + (it.proofsLate ? ' late' : it.stale ? ' stale' : '') + '" href="art-requests.html?id=' + encodeURIComponent(it.id) + '">' +
+        '<div class="top"><span class="id">' + esc(it.id) + '</span>' +
+          '<span class="age' + (it.daysInStage >= data.staleDays && isOpen(it) ? ' warn' : '') + '" title="Time in this stage">' + ageText(it.daysInStage) + '</span></div>' +
+        '<div class="ttl">' + esc(it.title) + '</div>' +
+        '<div class="meta">' + esc(it.repName) + ' · ' + esc(it.account) + (it.institution ? ' · ' + esc(it.institution) : '') + '<br>' +
+          it.sketchCount + ' sketch' + (it.sketchCount == 1 ? '' : 'es') + (it.proofVersion ? ' · proof v' + it.proofVersion : '') +
+          (it.lastEvent ? '<br>Last: ' + esc(it.lastEvent.event) + ', ' + esc(fmtDate(it.lastEvent.at)) : '') + '</div>' +
+        (tags ? '<div class="tags">' + tags + '</div>' : '') + '</a>';
+}
+
+function renderBoard(rows) {
+    var cols = STAGES.concat(view.closed ? CLOSED : []);
+    var html = '<div class="legend"><span class="l-late">Proofs past due</span><span class="l-stale">No activity for ' + data.staleDays + '+ days</span><span>Age = time in this stage</span></div><div class="board">';
+    cols.forEach(function (c) {
+        var list = rows.filter(function (it) { return it.status === c.s; })
+                       .sort(function (a, b) { return b.daysInStage - a.daysInStage; });
+        if (c.s === 'On Hold' && !list.length) return;
+        html += '<div class="col"><div class="col-head"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.label) +
+            '<span class="cnt">' + list.length + '</span></div>' + (c.who ? '<div class="col-sub">Waiting on ' + esc(c.who) + '</div>' : '') +
+            (list.length ? list.map(tileHtml).join('') : '<div class="col-empty">Nothing here</div>') + '</div>';
+    });
+    $('#board').html(html + '</div>');
+}
+
+function renderTable(rows) {
+    var key = view.sort, dir = view.asc ? 1 : -1;
+    var order = STAGES.concat(CLOSED).map(function (x) { return x.s; });
+    rows = rows.slice().sort(function (a, b) {
+        var x = a[key], y = b[key];
+        if (key === 'status') { x = order.indexOf(a.status); y = order.indexOf(b.status); }
+        if (key === 'updated') { x = new Date(a.lastEvent ? a.lastEvent.at : a.updated); y = new Date(b.lastEvent ? b.lastEvent.at : b.updated); }
+        if (x == null) x = ''; if (y == null) y = '';
+        return (x > y ? 1 : x < y ? -1 : 0) * dir;
+    });
+    function th(k, label) { return '<th data-sort="' + k + '" class="' + (view.sort === k ? 'sorted' + (view.asc ? ' asc' : '') : '') + '">' + label + '</th>'; }
+    var html = '<div class="card" style="padding:6px 8px;"><div class="tbl-wrap"><table><thead><tr>' +
+        th('id', 'Request') + th('title', 'Project') + th('status', 'Stage') + th('daysInStage', 'In stage') + th('assignedTo', 'Assigned') +
+        th('repName', 'Rep') + th('proofsDue', 'Proofs due') + th('neededBy', 'In store') + th('updated', 'Last activity') + '</tr></thead><tbody>';
+    html += rows.map(function (it) {
+        var st = STAGE_BY[it.status] || {};
+        return '<tr class="row" data-id="' + esc(it.id) + '">' +
+            '<td><span class="mono">' + esc(it.id) + '</span></td>' +
+            '<td><b>' + esc(it.title) + '</b><div class="mono" style="font-family:inherit;">' + esc(it.account) + (it.institution ? ' · ' + esc(it.institution) : '') + '</div></td>' +
+            '<td><span class="pill ' + (st.cls || '') + '">' + esc(st.label || it.status) + '</span>' + (it.needsLicensing ? ' <span class="tag lic">Lic</span>' : '') + '</td>' +
+            '<td>' + ageText(it.daysInStage) + '</td>' +
+            '<td>' + (it.assignedTo ? esc(it.assignedTo) : '<span class="tag unassigned">None</span>') + '</td>' +
+            '<td>' + esc(it.repName) + '</td>' +
+            '<td>' + (it.proofsLate ? '<span class="tag late">' + esc(it.proofsDue) + '</span>' : esc(it.proofsDue)) + '</td>' +
+            '<td>' + esc(it.neededBy) + '</td>' +
+            '<td>' + (it.lastEvent ? esc(it.lastEvent.event) + '<div class="mono" style="font-family:inherit;">' + esc(fmtDate(it.lastEvent.at)) + ' · ' + esc(it.lastEvent.by) + '</div>' : '') + '</td></tr>';
+    }).join('');
+    if (!rows.length) html += '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:28px;">Nothing matches.</td></tr>';
+    $('#board').html(html + '</tbody></table></div></div>');
+}
+
+function renderWorkload(names) {
+    var open = filtered(true).filter(isOpen);
+    var cols = ['In Art', 'Revise', 'Proof Ready', 'Licensing', 'Ready to Order', 'On Hold'];
+    var people = names.concat(['__none']);
+    var admins = {};
+    data.team.forEach(function (m) { if (m.isArtAdmin) admins[m.name] = 1; });
+    var html = '<table class="wl"><thead><tr><th>Person</th>' + cols.map(function (c) { return '<th style="text-align:center;">' + esc((STAGE_BY[c] || {}).label || c) + '</th>'; }).join('') +
+        '<th style="text-align:center;">Open</th><th style="text-align:center;">Late</th></tr></thead><tbody>';
+    people.forEach(function (p) {
+        var mine = open.filter(function (it) { return p === '__none' ? !it.assignedTo : it.assignedTo === p; });
+        if (p === '__none' && !mine.length) return;
+        var late = mine.filter(function (it) { return it.proofsLate; }).length;
+        html += '<tr class="row' + (view.who === p ? ' on' : '') + '" data-who="' + esc(p) + '"><td>' +
+            (p === '__none' ? '<i>Not assigned</i>' : esc(p) + (admins[p] ? '<span class="role">ADMIN</span>' : '')) + '</td>' +
+            cols.map(function (c) { var n = mine.filter(function (it) { return it.status === c; }).length; return '<td class="num' + (n ? '' : ' z') + '">' + n + '</td>'; }).join('') +
+            '<td class="num' + (mine.length ? '' : ' z') + '"><b>' + mine.length + '</b></td>' +
+            '<td class="num' + (late ? ' hot' : ' z') + '">' + late + '</td></tr>';
+    });
+    $('#workload').html(html + '</tbody></table>');
+}
+
+function renderFeed() {
+    var list = data.recent.filter(function (a) {
+        if (!view.q) return true;
+        return [a.id, a.title, a.by, a.event].join(' ').toLowerCase().indexOf(view.q) !== -1;
+    });
+    $('#feedCount').text('last ' + data.recent.length);
+    $('#feed').html(list.map(function (a) {
+        return '<li><a href="art-requests.html?id=' + encodeURIComponent(a.id) + '">' +
+            '<div class="ev">' + esc(a.event) + '</div>' +
+            '<div class="t"><span style="font-family:\'DM Mono\',monospace;">' + esc(a.id) + '</span> · ' + esc(a.title) + '</div>' +
+            '<div class="t">' + esc(a.by) + ' · ' + esc(fmtTime(a.at)) + '</div>' +
+            (a.message ? '<div class="m">' + esc(a.message) + '</div>' : '') + '</a></li>';
+    }).join('') || '<li style="color:var(--text-muted);">No activity yet.</li>');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function ageText(d) { return d === 0 ? 'today' : d === 1 ? '1 day' : d + ' days'; }
+function daysSince(iso) { return Math.max(0, Math.floor((Date.now() - new Date(iso)) / 86400000)); }
+function fmtDate(v) { var d = new Date(v); return isNaN(d) ? String(v || '') : (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear(); }
+function fmtTime(v) {
+    var d = new Date(v); if (isNaN(d)) return String(v || '');
+    var t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return (new Date().toDateString() === d.toDateString() ? 'today' : fmtDate(v)) + ' ' + t;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+</script>
+</body>
+</html>
