@@ -296,19 +296,19 @@ function loadList(reset) {
 }
 
 function renderListShell(r) {
-    var staff = r.user.isStaff;
+    var artistOnly = !!r.user.isArtistOnly;
+    var staff = r.user.isStaff && !artistOnly;
     var h = '<div class="page-head"><div>' +
         '<div class="page-title">🎨 Art Requests</div>' +
-        '<div class="page-subtitle">' + (staff ? 'Every NEXCOM art request, newest activity first.' : 'Your NEXCOM art requests, newest activity first.') + '</div></div>' +
+        '<div class="page-subtitle">' + (artistOnly ? 'Art requests assigned to you, newest activity first.' : staff ? 'Every NEXCOM art request, newest activity first.' : 'Your NEXCOM art requests, newest activity first.') + '</div></div>' +
         '<div class="btn-row">' + (r.user.isArtAdmin ? '<a class="btn-secondary" href="art-board.html">📊 Art Board</a>' : '') +
-        '<a class="btn-primary" href="art-request.html">+ New request</a></div></div>';
+        (artistOnly ? '' : '<a class="btn-primary" href="art-request.html">+ New request</a>') + '</div></div>';
     h += '<div class="tabs" id="tabs"></div>';
     h += '<div class="filters">' +
         '<input type="text" id="search" placeholder="Search by ID, project, rep, institution…" value="' + esc(list.q) + '">';
     if (staff) {
         h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button><button data-scope="mine">Mine</button></div>' +
              '<select id="assignedSel"><option value="">Anyone assigned</option>' +
-             (r.user.isArt && !r.user.isArtAdmin ? '<option value="' + esc(r.user.name) + '"' + (list.assigned === r.user.name ? ' selected' : '') + '>Assigned to me</option>' : '') +
              (r.buckets || []).map(function (b) { return '<option' + (list.assigned === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('') + '</select>';
     }
     h += '</div><div class="list" id="reqList"></div><div class="loader-row" id="loaderRow"></div><div id="sentinel" style="height:1px;"></div>';

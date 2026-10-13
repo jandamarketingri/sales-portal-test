@@ -198,7 +198,7 @@ function loadArtTurnCount(auth) {
         var c = res.counts, u = res.user || {}, n = 0, parts = [];
         function add(status, label) { if (c[status]) { n += c[status]; parts.push(c[status] + ' ' + label); } }
         if (u.isArtAdmin) { add('Submitted', 'to assign'); add('Revise', 'to revise'); add('Licensing', 'to submit for licensing'); }
-        else if (u.isArt) { add('Revise', 'to revise'); }
+        else if (u.isArt) { add('In Art', 'to work on'); add('Revise', 'to revise'); }
         else if (u.isLicensing) { add('Licensing', 'in licensing'); }
         else { add('Proof Ready', 'proof' + (c['Proof Ready'] === 1 ? '' : 's') + ' to review'); add('Ready to Order', 'ready to order'); }
         if (u.isArtAdmin) $('#artBoardCard').show();
