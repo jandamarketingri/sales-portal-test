@@ -232,6 +232,7 @@ function shell() {
         '<div class="kpis" id="kpis"></div>' +
         '<div class="filters">' +
           '<input type="search" id="q" placeholder="Search ID, project, rep, institution…">' +
+          '<button class="btn" id="myWork" style="display:none;">✋ My work</button>' +
           '<select id="who"><option value="">Everyone</option></select>' +
           '<select id="account"><option value="">All accounts</option>' + Object.keys(accounts).sort().map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('') + '</select>' +
           '<label class="chk"><input type="checkbox" id="closed"' + (view.closed ? ' checked' : '') + '> Closed in the last ' + data.closedDays + ' days</label>' +
@@ -249,6 +250,7 @@ function shell() {
     var t;
     $('#q').on('input', function () { var v = this.value; clearTimeout(t); t = setTimeout(function () { view.q = v.trim().toLowerCase(); render(); }, 200); });
     $('#who').on('change', function () { view.who = this.value; render(); });
+    $('#myWork').on('click', function () { view.who = view.who === data.user.name ? '' : data.user.name; render(); });
     $('#account').on('change', function () { view.account = this.value; render(); });
     $('#closed').on('change', function () { view.closed = this.checked; savePrefs(); render(); });
     $('.seg').on('click', 'button', function () { view.mode = $(this).data('mode'); savePrefs(); render(); });
@@ -315,6 +317,9 @@ function render() {
         return '<option value="' + esc(n) + '">' + esc(n) + '</option>';
     }).join('')).val(view.who);
     $('.seg button').removeClass('active').filter('[data-mode="' + view.mode + '"]').addClass('active');
+    // "My work" = the requests assigned to me (the Art Admin also does art)
+    var onTeam = data.team.some(function (m) { return m.name === data.user.name; });
+    $('#myWork').toggle(onTeam).toggleClass('btn-primary', view.who === data.user.name);
 
     var rows = filtered();
     if (view.mode === 'board') renderBoard(rows); else renderTable(rows);

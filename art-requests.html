@@ -213,6 +213,7 @@ var TABS = ['Submitted', 'In Art', 'Proof Ready', 'Revise', 'On Hold', 'Licensin
 
 var auth = null, me = null;
 var list = { status: 'open', scope: null, q: '', assigned: '', offset: 0, loading: false, hasMore: false, observer: null };
+try { var savedView = JSON.parse(sessionStorage.getItem('artListView') || 'null'); if (savedView) { list.scope = savedView.scope || null; list.assigned = savedView.assigned || ''; } } catch (e) {}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 $(function () {
@@ -312,16 +313,28 @@ function renderListShell(r) {
     h += '<div class="filters">' +
         '<input type="text" id="search" placeholder="Search by ID, project, rep, institution…" value="' + esc(list.q) + '">';
     if (staff) {
-        h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button><button data-scope="mine">Mine</button></div>' +
+        h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button>' +
+             (r.user.isArtAdmin && (r.buckets || []).indexOf(r.user.name) !== -1
+                ? '<button data-scope="assigned-me">Assigned to me</button>'
+                : '<button data-scope="mine">Mine</button>') + '</div>' +
              '<select id="assignedSel"><option value="">Anyone assigned</option>' +
              (r.buckets || []).map(function (b) { return '<option' + (list.assigned === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('') + '</select>';
     }
     h += '</div><div class="list" id="reqList"></div><div class="loader-row" id="loaderRow"></div><div id="sentinel" style="height:1px;"></div>';
     $('#app').html(h);
 
-    $('#scopeSeg button').removeClass('active').filter('[data-scope="' + list.scope + '"]').addClass('active');
-    $('#scopeSeg').on('click', 'button', function () { list.scope = $(this).data('scope'); $('#scopeSeg button').removeClass('active'); $(this).addClass('active'); loadList(true); });
+    var segNow = list.assigned && list.assigned === r.user.name && $('#scopeSeg [data-scope="assigned-me"]').length ? 'assigned-me' : list.scope;
+    $('#scopeSeg button').removeClass('active').filter('[data-scope="' + segNow + '"]').addClass('active');
+    $('#scopeSeg').on('click', 'button', function () {
+        var sc = $(this).data('scope');
+        if (sc === 'assigned-me') { list.scope = 'all'; list.assigned = r.user.name; }
+        else { list.scope = sc; if (list.assigned === r.user.name) list.assigned = ''; }
+        try { sessionStorage.setItem('artListView', JSON.stringify({ scope: list.scope, assigned: list.assigned })); } catch (e) {}
+        loadList(true);
+    });
     $('#assignedSel').on('change', function () { list.assigned = $(this).val(); loadList(true); });
+    // re-render keeps the seg/dropdown in step with list.assigned
+    $('#assignedSel').val(list.assigned || '');
     var t;
     $('#search').on('input', function () { var v = $(this).val(); clearTimeout(t); t = setTimeout(function () { list.q = v.trim(); loadList(true); }, 350); });
     $('#tabs').on('click', '.tab', function () { list.status = $(this).data('status'); loadList(true); });
@@ -498,7 +511,9 @@ function actionsHtml(q, buckets) {
                 return '<option' + (b === q.assignedTo ? ' selected' : '') + '>' + esc(b) + '</option>';
             }).join('') + '</select>' +
             '<input type="text" id="assignNote" placeholder="Note for the designer (optional)">' +
-            '<button class="btn-' + (st === 'Submitted' ? 'primary' : 'secondary') + '" data-op="assign">Assign</button></div>');
+            '<div class="btn-row"><button class="btn-' + (st === 'Submitted' ? 'primary' : 'secondary') + '" data-op="assign">Assign</button>' +
+            (buckets.indexOf(me.name) !== -1 && !q.assignedToMe ? '<button class="btn-secondary" data-op="assign" data-self="1">✋ Assign to me</button>' : '') +
+            '</div></div>');
     }
     if (me.isArt && ['In Art', 'Revise', 'Proof Ready'].indexOf(st) !== -1) {
         blocks.push('<div class="action-block"><div class="lbl">' + (st === 'Proof Ready' ? 'Send a corrected proof' : 'Send proofs to the rep') + '</div>' +
@@ -557,7 +572,7 @@ function bindActions(q) {
         }
         if ($b.data('confirm') && !confirm($b.data('confirm'))) return;
         if (op === 'assign') {
-            payload.assignTo = $('#assignTo').val();
+            payload.assignTo = $b.data('self') ? me.name : $('#assignTo').val();
             payload.message = $('#assignNote').val().trim();
             if (!payload.assignTo) return toast('Choose who should work on this.', true);
         }
