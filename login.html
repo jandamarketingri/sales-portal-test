@@ -263,14 +263,34 @@
     // (see auth-relay-worker.js) — so this is just a normal fetch() to a
     // same-purpose endpoint we control, the way any ordinary website talks
     // to its own backend. No popups, iframes, or JSONP needed anymore.
+    // Gives up after AUTH_TIMEOUT_MS so a stuck request shows a clear message
+    // instead of spinning forever.
+    var AUTH_TIMEOUT_MS = 30000;
+    var lastAuthTimedOut = false;
     function callAuth(params) {
         var query = Object.keys(params).map(function (k) {
             return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
         }).join('&');
-        return fetch(RELAY_URL + '?' + query)
+        var ctrl = window.AbortController ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, AUTH_TIMEOUT_MS) : null;
+        lastAuthTimedOut = false;
+        return fetch(RELAY_URL + '?' + query, ctrl ? { signal: ctrl.signal } : {})
             .then(function (res) { return res.json(); })
-            .catch(function () { return null; });
+            .catch(function (err) { if (err && err.name === 'AbortError') lastAuthTimedOut = true; return null; })
+            .finally(function () { if (timer) clearTimeout(timer); });
     }
+    function unreachableMessage() {
+        return lastAuthTimedOut
+            ? 'The server is taking too long to answer. Please try again in a moment.'
+            : 'Unable to reach authentication service';
+    }
+
+    // The salt isn't secret (it's sent to anyone who asks for it), so it's
+    // remembered on this device. Next login then needs one trip to the server
+    // instead of two. If the password was reset, the old salt fails once and
+    // we fetch the new one.
+    function savedSalt(email) { try { return localStorage.getItem('portalSalt:' + email) || ''; } catch (e) { return ''; } }
+    function saveSalt(email, salt) { try { if (salt) localStorage.setItem('portalSalt:' + email, salt); else localStorage.removeItem('portalSalt:' + email); } catch (e) {} }
 
     async function handleLogin() {
         var email = $('#email').val().trim();
@@ -285,8 +305,17 @@
         $('#loadingMsg').show();
         hideMessages();
 
+        email = email.toLowerCase();
+        var cachedSalt = savedSalt(email);
+        if (cachedSalt) {
+            var quick = await callAuth({ action: 'login', email: email, hash: await hashPasswordClient(password, cachedSalt) });
+            if (quick && quick.success) { completeLogin(email, quick); return; }
+            if (!quick) { showError(unreachableMessage()); resetLoginButton(); return; }
+            saveSalt(email, '');   // wrong password, or the salt changed: do the full check below
+        }
+
         var saltResponse = await callAuth({ action: 'getSalt', email: email });
-        if (!saltResponse) { showError('Unable to reach authentication service'); resetLoginButton(); return; }
+        if (!saltResponse) { showError(unreachableMessage()); resetLoginButton(); return; }
 
         if (saltResponse.needsSetup) {
             pendingEmail = email;
@@ -301,6 +330,7 @@
         var loginResponse = await callAuth({ action: 'login', email: email, hash: hash });
 
         if (loginResponse && loginResponse.success) {
+            saveSalt(email, saltResponse.salt);
             completeLogin(email, loginResponse);
         } else if (loginResponse && loginResponse.needsSetup) {
             pendingEmail = email;
@@ -311,7 +341,7 @@
             showError(loginResponse.message || 'Login failed');
             resetLoginButton();
         } else {
-            showError('Unable to reach authentication service');
+            showError(unreachableMessage());
             resetLoginButton();
         }
     }
@@ -331,6 +361,7 @@
         var response = await callAuth({ action: 'setPassword', email: pendingEmail, salt: salt, hash: hash });
 
         if (response && response.success) {
+            saveSalt(String(pendingEmail).toLowerCase(), salt);
             completeLogin(pendingEmail, response);
         } else if (response) {
             showError(response.message || 'Could not set password');
