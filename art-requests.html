@@ -160,6 +160,8 @@
         .log .msg { font-size: 13.5px; margin-top: 4px; padding: 8px 10px; background: var(--surface-2); border-radius: 6px; white-space: pre-wrap; }
         .log .files { margin-top: 4px; font-size: 12.5px; }
 
+        .lic-files { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
+        .lic-files b { width: 100%; font-size: 12px; color: var(--text-muted); }
         .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
         .ap-grid label { font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; }
         .ap-grid label input { margin-top: 4px; }
@@ -260,7 +262,7 @@ function waitingOn(r, u) {
         case 'Revise':         return r.assignedToMe ? { who: 'You: make the revisions', me: true }
                                       : { who: (u.isStaff && r.assignedTo ? r.assignedTo : 'Designer') + ' making revisions', me: false };
         case 'Proof Ready':    return { who: mine ? 'You: review the proofs' : 'Rep to review proofs', me: mine };
-        case 'Licensing':      return { who: u.isArtAdmin ? 'Art Admin: submit to licensing' : 'Licensing review', me: u.isArtAdmin || u.isLicensing };
+        case 'Licensing':      return { who: u.isArtAdmin ? 'You: send to licensing, then mark it approved here' : u.isLicensing ? 'You: licensing review' : 'Licensing review', me: u.isArtAdmin || u.isLicensing };
         case 'Ready to Order': return { who: mine ? 'You: place the order' : 'Rep to place the order', me: mine };
         case 'On Hold':        return { who: 'On hold', me: false };
         default:               return { who: '', me: false };
@@ -504,10 +506,16 @@ function actionsHtml(q, buckets) {
             '<textarea id="proofMsg" placeholder="Note to the rep (optional). Your name isn’t shown, emails come from the Art Department."></textarea>' +
             '<button class="btn-primary" data-op="proof" data-msg="#proofMsg" data-files="#proofDrop">Send proofs</button></div>');
     }
-    if ((me.isArt || me.isLicensing) && st === 'Licensing') {
+    if ((me.isArtAdmin || me.isLicensing) && st === 'Licensing') {
+        var lp = (q.activity || []).filter(function (a) { return /^Proof v\d+/.test(a.event) && a.files && a.files.length; }).pop();
         blocks.push('<div class="action-block"><div class="lbl">Licensing</div>' +
-            (me.isArtAdmin ? '<div class="hint">Submit the approved art to licensing, then record the result here.</div>' : '') +
-            '<div class="btn-row" style="margin-bottom:10px;"><button class="btn-primary" data-op="licensed">✓ Licensing approved</button></div>' +
+            '<div class="hint">1. Download the approved proof and send it to licensing.<br>2. When licensing approves it, mark it approved here. The rep is emailed and can place the order.</div>' +
+            (lp ? '<div class="lic-files"><b>' + esc(lp.event.replace(' uploaded', '')) + ' (approved)</b>' + lp.files.map(function (f) {
+                return '<a class="btn-secondary btn-sm" target="_blank" rel="noopener" href="https://drive.google.com/uc?export=download&id=' + encodeURIComponent(f.id) + '">⬇ ' + esc(f.name) + '</a>';
+            }).join('') + '</div>' : '') +
+            '<input type="text" id="licNote" placeholder="Licensing reference or note (optional)">' +
+            '<div class="btn-row" style="margin-bottom:14px;"><button class="btn-primary" data-op="licensed" data-msg="#licNote" data-confirm="Mark this art as approved by licensing? The rep will be told it\u2019s ready to order.">✓ Licensing approved</button></div>' +
+            '<div class="lbl">Or, if licensing wants changes</div>' +
             '<textarea id="licMsg" placeholder="If it can’t be licensed as is, say what has to change."></textarea>' +
             '<button class="btn-secondary" data-op="licenseRejected" data-msg="#licMsg">Send back for changes</button></div>');
     }
