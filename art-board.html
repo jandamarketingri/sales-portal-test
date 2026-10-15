@@ -231,7 +231,7 @@ function shell() {
           '<div style="display:flex;gap:8px;"><button class="btn" id="refreshBtn">↻ Refresh</button></div></div>' +
         '<div class="kpis" id="kpis"></div>' +
         '<div class="filters">' +
-          '<input type="search" id="q" placeholder="Search ID, project, rep, institution…">' +
+          '<input type="search" id="q" placeholder="Search ID, art #, project, rep, institution…">' +
           '<button class="btn" id="myWork" style="display:none;">✋ My work</button>' +
           '<select id="who"><option value="">Everyone</option></select>' +
           '<select id="account"><option value="">All accounts</option>' + Object.keys(accounts).sort().map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('') + '</select>' +
@@ -288,7 +288,7 @@ function filtered(skipWho) {
         if (view.account && it.account !== view.account) return false;
         if (kpi && !kpi.test(it)) return false;
         if (view.q) {
-            var hay = [it.id, it.title, it.repName, it.institution, it.account, it.assignedTo].join(' ').toLowerCase();
+            var hay = [it.id, it.title, it.repName, it.institution, it.account, it.assignedTo].concat(it.artNumbers || []).join(' ').toLowerCase();
             if (hay.indexOf(view.q) === -1) return false;
         }
         return true;

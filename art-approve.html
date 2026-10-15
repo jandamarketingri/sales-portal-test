@@ -128,7 +128,8 @@ function render(q, open, closedMsg) {
 
     if (q.sketches.length) {
         h += '<div class="card"><h2>📋 What’s being printed</h2>' + q.sketches.map(function (s, i) {
-            return '<div class="sk"><div style="font-weight:600;margin-bottom:6px;">Sketch ' + (i + 1) + '</div>' +
+            return '<div class="sk"><div style="font-weight:600;margin-bottom:6px;">Sketch ' + (i + 1) +
+                (s.artNumber ? ' <span style="font-family:\'DM Mono\',monospace;font-weight:600;font-size:12.5px;color:#4a2a75;background:#f3ecfa;border-radius:5px;padding:1px 7px;margin-left:4px;">Art # ' + esc(s.artNumber) + '</span>' : '') + '</div>' +
                 '<div><b>Items</b>' + esc(s.items.join(', ')) + '</div>' +
                 '<div><b>Locations</b>' + esc(s.locations.map(locText).join(' + ') || '—') + '</div>' +
                 '<div><b>Inks</b>' + esc(s.inkColors.join(', ') || '—') + '</div></div>';

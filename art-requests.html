@@ -72,6 +72,16 @@
         .req-card.my-turn { border-color: var(--accent2); }
         .req-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .req-id { font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--text-muted); }
+        .art-num { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 600; color: #4a2a75; background: #f3ecfa; border: 1px solid #ddcdee; border-radius: 5px; padding: 1px 7px; }
+        .order-nums { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0 12px; }
+        .order-nums .art-num { font-size: 15px; padding: 3px 10px; }
+        .on-sk { font-size: 12px; color: var(--text-muted); }
+        .num-box { border: 1px solid #e6dcf1; background: #faf7fd; border-radius: 8px; padding: 10px 12px; margin: 8px 0; }
+        .num-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0; font-size: 13px; }
+        .num-row label { font-size: 12.5px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin: 0; }
+        .action-block .num-row input.js-suffix { width: 52px; padding: 4px 6px; font-family: 'DM Mono', monospace; font-size: 13px; text-transform: uppercase; margin: 0; text-align: center; }
+        .num-row .hint { width: 100%; }
+        .on-pair { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; margin-right: 6px; }
         .req-title { font-size: 15.5px; font-weight: 600; }
         .req-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
         .req-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -217,7 +227,7 @@ var STATUS_CLASS = {
 };
 var TABS = ['Submitted', 'In Art', 'Proof Ready', 'Revise', 'On Hold', 'Licensing', 'Ready to Order', 'Ordered', 'Cancelled'];
 
-var auth = null, me = null;
+var auth = null, me = null, numberInfo = { prefixes: {}, licensedSuffix: 'NY' };
 var list = { status: 'open', scope: null, q: '', assigned: '', offset: 0, loading: false, hasMore: false, observer: null };
 try { var savedView = JSON.parse(sessionStorage.getItem('artListView') || 'null'); if (savedView) { list.scope = savedView.scope || null; list.assigned = savedView.assigned || ''; } } catch (e) {}
 
@@ -317,7 +327,7 @@ function renderListShell(r) {
         (artistOnly ? '' : '<a class="btn-primary" href="art-request.html">+ New request</a>') + '</div></div>';
     h += '<div class="tabs" id="tabs"></div>';
     h += '<div class="filters">' +
-        '<input type="text" id="search" placeholder="Search by ID, project, rep, institution…" value="' + esc(list.q) + '">';
+        '<input type="text" id="search" placeholder="Search by ID, art #, project, rep, institution…" value="' + esc(list.q) + '">';
     if (staff) {
         h += '<div class="seg" id="scopeSeg"><button data-scope="all">All requests</button>' +
              (r.user.isArtAdmin && (r.buckets || []).indexOf(r.user.name) !== -1
@@ -397,6 +407,7 @@ function loadDetail(id) {
             return;
         }
         me = r.user;
+        numberInfo = { prefixes: r.numberPrefixes || {}, licensedSuffix: r.licensedSuffix || 'NY' };
         renderDetail(r.request, r.buckets || []);
     });
 }
@@ -465,7 +476,8 @@ function proofsHtml(q) {
 function sketchHtml(s, i) {
     var items = (s.items || []).map(function (it) { return esc(it.description || it.style) + (it.color ? ' — ' + esc(it.color) : ''); }).join('<br>');
     return '<div class="sketch"><div class="hd"><span class="num">' + (i + 1) + '</span>' +
-        '<b>' + (s.artType === 'new' ? 'New design' : 'Existing art' + (s.referToArt ? ' <span class="req-id">' + esc(s.referToArt) + '</span>' : '')) + '</b>' +
+        '<b>' + (s.artType === 'new' ? 'New design' + (s.artNumber ? ' <span class="art-num" title="Art #">' + esc(s.artNumber) + '</span>' : ' <span class="tag grey" title="Given when the Art Admin assigns it">Art # pending</span>')
+                                     : 'Existing art' + (s.referToArt ? ' <span class="req-id">' + esc(s.referToArt) + '</span>' : '')) + '</b>' +
         (s.priceTier ? '<span class="tag grey">' + esc(s.priceTier) + '</span>' : '') +
         (s.needsLicensing ? '<span class="tag">Licensing</span>' : '') + '</div>' +
         '<div class="row"><b>Items</b><br>' + items + '</div>' +
@@ -511,6 +523,7 @@ function actionsHtml(q, buckets) {
         var page = ORDER_PAGES[q.account];
         blocks.push('<div class="action-block"><div class="lbl">Ready to order</div>' +
             '<div class="hint">The art is approved' + (q.needsLicensing ? ' and licensed' : '') + '. Place the order, then mark it ordered.</div>' +
+            orderNumbersHtml(q.data || {}) +
             '<div class="btn-row">' + (page ? '<a class="btn-primary" href="' + page + '">Go to ' + esc(q.account) + ' ordering</a>' : '') +
             '<button class="btn-secondary" data-op="ordered">Mark ordered</button></div></div>');
     }
@@ -519,6 +532,7 @@ function actionsHtml(q, buckets) {
             '<select id="assignTo"><option value="">Choose who works on this…</option>' + buckets.map(function (b) {
                 return '<option' + (b === q.assignedTo ? ' selected' : '') + '>' + esc(b) + '</option>';
             }).join('') + '</select>' +
+            assignNumbersHtml(q) +
             '<input type="text" id="assignNote" placeholder="Note for the designer (optional)">' +
             '<div class="btn-row"><button class="btn-' + (st === 'Submitted' ? 'primary' : 'secondary') + '" data-op="assign">Assign</button>' +
             (buckets.indexOf(me.name) !== -1 && !q.assignedToMe ? '<button class="btn-secondary" data-op="assign" data-self="1">✋ Assign to me</button>' : '') +
@@ -534,6 +548,7 @@ function actionsHtml(q, buckets) {
         var lp = (q.activity || []).filter(function (a) { return /^Proof v\d+/.test(a.event) && a.files && a.files.length; }).pop();
         blocks.push('<div class="action-block"><div class="lbl">Licensing</div>' +
             '<div class="hint">1. Download the approved proof and send it to licensing.<br>2. When licensing approves it, mark it approved here. The rep is emailed and can place the order.</div>' +
+            orderNumbersHtml(q.data || {}, 'Art #') +
             (lp ? '<div class="lic-files"><b>' + esc(lp.event.replace(' uploaded', '')) + ' (approved)</b>' + lp.files.map(function (f) {
                 return '<a class="btn-secondary btn-sm" target="_blank" rel="noopener" href="https://drive.google.com/uc?export=download&id=' + encodeURIComponent(f.id) + '">⬇ ' + esc(f.name) + '</a>';
             }).join('') + '</div>' : '') +
@@ -564,6 +579,11 @@ function bindActions(q) {
     $('.file-drop').each(function () { bindDrop($(this)); });
     $('#apName, #apStore, #apDate').on('input change', function () { $(this).removeClass('field-error'); });
     $('.ap-chk').on('change', function () { $('.ap-checks').removeClass('field-error'); });
+    if ($('.num-box').length) {
+        $('#assignTo').on('change', function () { updateNumberPreview(q); });
+        $('.js-suffix').on('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z]/g, ''); $(this).removeClass('field-error'); updateNumberPreview(q); });
+        updateNumberPreview(q);
+    }
     $('#copyBuyerLink').on('click', function () {
         var el = document.getElementById('buyerLink');
         el.select();
@@ -603,6 +623,14 @@ function bindActions(q) {
             payload.assignTo = $b.data('self') ? me.name : $('#assignTo').val();
             payload.message = $('#assignNote').val().trim();
             if (!payload.assignTo) return toast('Choose who should work on this.', true);
+            var sufs = {}, badSuf = false;
+            $('.js-suffix').each(function () {
+                var v = $(this).val().trim().toUpperCase().replace(/^_/, '');
+                if (!/^[A-Z]{2}$/.test(v)) { badSuf = true; $(this).addClass('field-error'); }
+                sufs[$(this).data('i')] = v;
+            });
+            if (badSuf) return toast('Each licensing suffix is 2 letters, e.g. NY, or XX for no licensing.', true);
+            if ($('.js-suffix').length) payload.suffixes = sufs;
         }
         if (op === 'revise' && !payload.message) { $('#reviseMsg').focus(); return toast('Describe what needs to change.', true); }
         if (op === 'licenseRejected' && !payload.message) { $('#licMsg').focus(); return toast('Say what has to change.', true); }
@@ -681,6 +709,54 @@ function fileLink(f) {
 function filesLine(label, files) {
     if (!files || !files.length) return '';
     return '<div class="row" style="font-size:13px;margin-top:10px;"><b style="color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">' + label + '</b> ' + files.map(fileLink).join(' · ') + '</div>';
+}
+
+// ── Art numbers ───────────────────────────────────────────────────────────────
+// Art # per sketch to order with: new designs' assigned #, existing art's #.
+function orderNumbersHtml(d, label) {
+    var list = (d.sketches || []).map(function (s, i) {
+        return { n: i + 1, num: s.artType === 'new' ? s.artNumber : s.referToArt };
+    }).filter(function (x) { return x.num; });
+    if (!list.length) return '';
+    return '<div class="lbl" style="margin:8px 0 4px;">' + (label || 'Art # to order with') + '</div><div class="order-nums">' + list.map(function (x) {
+        return '<span class="on-pair">' + (list.length > 1 ? '<span class="on-sk">Sketch ' + x.n + '</span>' : '') + '<span class="art-num">' + esc(x.num) + '</span></span>';
+    }).join('') + '</div>';
+}
+// Assign box: the licensing suffix for each new design, and what its art # will be.
+function assignNumbersHtml(q) {
+    var d = q.data || {}, rows = [];
+    (d.sketches || []).forEach(function (s, i) {
+        if (s.artType !== 'new') return;
+        var m = /^([A-Z]{2}\d+)_([A-Z]{2})$/.exec(s.artNumber || '');
+        var suf = m ? m[2] : (s.needsLicensing ? numberInfo.licensedSuffix : 'XX');
+        rows.push('<div class="num-row"><span class="on-sk">Sketch ' + (i + 1) + '</span>' +
+            '<span class="art-num js-num-preview" data-i="' + i + '" data-cur="' + esc(m ? m[1] : '') + '"></span>' +
+            '<label>Suffix _<input type="text" class="js-suffix" data-i="' + i + '" maxlength="2" value="' + esc(suf) + '"></label>' +
+            (s.needsLicensing && !m ? '<span class="hint" style="margin:0;">rep marked: needs licensing</span>' : '') + '</div>');
+    });
+    if (!rows.length) return '';
+    return '<div class="num-box"><div class="lbl" style="margin-bottom:6px;">Art # for new designs</div>' + rows.join('') +
+        '<div class="hint js-num-team" style="margin:6px 0 0;"></div></div>';
+}
+function updateNumberPreview(q) {
+    var who = $('#assignTo').val(), info = numberInfo.prefixes[who];
+    var proofsSent = (q.proofVersion || 0) > 0;
+    $('.js-num-preview').each(function () {
+        var $p = $(this), cur = $p.data('cur') || '', suf = ($('.js-suffix[data-i="' + $p.data('i') + '"]').val() || '').toUpperCase();
+        var base;
+        if (cur && (!info || cur.slice(0, 2) === info.prefix || proofsSent)) base = cur;
+        else base = info ? info.prefix + '####' : '??####';
+        $p.text(base + '_' + (suf || '??'));
+    });
+    var msg = '';
+    if (info) {
+        var changes = $('.js-num-preview').filter(function () { var c = $(this).data('cur') || ''; return c && c.slice(0, 2) !== info.prefix; }).length;
+        msg = esc(who) + '’s work is numbered <b>' + esc(info.prefix) + '</b> (' + esc(info.team) + '). The next ' + esc(info.prefix) + ' number is given when you assign.';
+        if (changes && !proofsSent) msg += ' The current number will be replaced with a new ' + esc(info.prefix) + ' number.';
+        if (changes && proofsSent) msg += ' Proofs already went out, so the current number stays.';
+    } else msg = 'Choose who works on this to see the art #.';
+    msg += ' Suffix XX = no licensing; any other suffix sends it to licensing.';
+    $('.js-num-team').html(msg);
 }
 
 // Who approved the art for the store (latest approval, plus earlier ones).
