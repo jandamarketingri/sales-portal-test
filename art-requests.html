@@ -209,6 +209,7 @@ var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
 var PAGE_SIZE = 25;
 var ORDER_PAGES = { 'Souvenir': 'souvenirs.html', 'Local Navy Pride': 'navy-pride.html' };
 var MAX_FILE_MB = 10;
+var PROOF_EXT = /\.(pdf|jpe?g|png|gif|webp)$/i;   // proofs go to reps and buyers: flattened files only
 
 var STATUS_CLASS = {
     'Submitted': 'st-submitted', 'In Art': 'st-inart', 'Proof Ready': 'st-proof', 'Revise': 'st-revise',
@@ -235,10 +236,10 @@ $(function () {
 });
 
 // ── API ───────────────────────────────────────────────────────────────────────
-function apiGet(params) {
+function apiGet(params, timeoutMs) {
     params.email = auth.email;
     params.token = auth.token || '';
-    return $.ajax({ url: ART_API_URL, method: 'GET', data: params, dataType: 'json', cache: false, timeout: 30000 })
+    return $.ajax({ url: ART_API_URL, method: 'GET', data: params, dataType: 'json', cache: false, timeout: timeoutMs || 30000 })
         .then(checkSession, function () { return { success: false, message: 'Could not reach the server.' }; });
 }
 function apiPost(payload) {
@@ -525,7 +526,7 @@ function actionsHtml(q, buckets) {
     }
     if (me.isArt && ['In Art', 'Revise', 'Proof Ready'].indexOf(st) !== -1) {
         blocks.push('<div class="action-block"><div class="lbl">' + (st === 'Proof Ready' ? 'Send a corrected proof' : 'Send proofs to the rep') + '</div>' +
-            '<div class="file-drop" id="proofDrop"><button type="button" class="btn-secondary btn-sm js-pick">📎 Choose proof files</button><span class="hint" style="margin:0;">PDF or images, up to ' + MAX_FILE_MB + ' MB each</span><input type="file" multiple hidden><div class="file-list"></div></div>' +
+            '<div class="file-drop" id="proofDrop"><button type="button" class="btn-secondary btn-sm js-pick">📎 Choose proof files</button><span class="hint" style="margin:0;">PDF, JPG or PNG only (no .ai, .eps, .psd or .svg), up to ' + MAX_FILE_MB + ' MB each</span><input type="file" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"><div class="file-list"></div></div>' +
             '<textarea id="proofMsg" placeholder="Note to the rep (optional). Your name isn’t shown, emails come from the Art Department."></textarea>' +
             '<button class="btn-primary" data-op="proof" data-msg="#proofMsg" data-files="#proofDrop">Send proofs</button></div>');
     }
@@ -570,6 +571,24 @@ function bindActions(q) {
         if (navigator.clipboard) navigator.clipboard.writeText(el.value).then(done, function () { document.execCommand('copy'); done(); });
         else { document.execCommand('copy'); done(); }
     });
+    $('#app').on('click.act', '.js-staff-file', function (e) {
+        e.preventDefault();
+        var $a = $(this);
+        if ($a.data('busy')) return;
+        $a.data('busy', 1).css('opacity', 0.5);
+        toast('Downloading the original…');
+        apiGet({ action: 'artFile', id: q.id, fileId: $a.data('fid') }, 120000).then(function (r) {
+            $a.data('busy', 0).css('opacity', '');
+            if (!r.success) return toast(r.message || 'Download failed.', true);
+            var bin = atob(r.data), bytes = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            var url = URL.createObjectURL(new Blob([bytes], { type: r.mimeType || 'application/octet-stream' }));
+            var link = document.createElement('a');
+            link.href = url; link.download = r.name || 'art';
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+        });
+    });
     $('#app').on('click.act', '[data-op]', function () {
         var $b = $(this), op = $b.data('op');
         var payload = { action: 'artUpdate', id: q.id, op: op };
@@ -602,6 +621,10 @@ function bindActions(q) {
         }
         var files = $b.data('files') ? ($($b.data('files')).data('files') || []) : [];
         if (op === 'proof' && !files.length) return toast('Choose the proof file(s) first.', true);
+        if (op === 'proof') {
+            var bad = files.filter(function (f) { return !PROOF_EXT.test(f.name); }).map(function (f) { return f.name; });
+            if (bad.length) return toast('Proofs must be PDF or JPG/PNG images. Remove: ' + bad.join(', ') + '. Source files (.ai, .eps, .psd, .svg) stay with the art team.', true);
+        }
         if (op === 'comment' && !payload.message && !files.length) return toast('Write a comment first.', true);
 
         $('[data-op]').prop('disabled', true);
@@ -649,7 +672,12 @@ function readFiles(list) {
         });
     }));
 }
-function fileLink(f) { return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>'; }
+function fileLink(f) {
+    // Full-size library art is private; the art team downloads it through the portal.
+    if (f.staffOnly) return '<a href="#" class="js-staff-file" data-fid="' + esc(f.id) + '" title="Original file. Only the art team can see this.">⬇ ' +
+        esc(f.name) + '</a> <span class="tag grey" style="font-size:10px;">Original · art team only</span>';
+    return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>';
+}
 function filesLine(label, files) {
     if (!files || !files.length) return '';
     return '<div class="row" style="font-size:13px;margin-top:10px;"><b style="color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">' + label + '</b> ' + files.map(fileLink).join(' · ') + '</div>';
