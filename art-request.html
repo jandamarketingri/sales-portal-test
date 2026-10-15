@@ -368,6 +368,11 @@
         .print-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
         @media (max-width: 700px) { .print-grid { grid-template-columns: 1fr; } }
         .loc-list, .ink-list { display: grid; gap: 8px; }
+        .ink-mode { display: flex; width: max-content; border: 1.5px solid var(--border); border-radius: 8px; padding: 3px; margin-bottom: 8px; background: var(--surface); }
+        .ink-mode button { border: none; background: none; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+        .ink-mode button.on { background: var(--grad); color: #fff; }
+        .ac-box { border: 1.5px dashed #d9c6ec; background: #f7f1fc; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+        .ac-box input { margin-top: 8px; }
         .ink-combo { position: relative; }
         .ink-combo .ink-sw { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.18); background: repeating-linear-gradient(45deg,#eee 0 3px,#fff 3px 6px); pointer-events: none; }
         .ink-combo input { padding-left: 34px; }
@@ -980,7 +985,11 @@ function buildSketch(num) {
             '<div class="print-note js-print-note"></div>' +
             '<div class="print-grid">' +
               '<div class="form-group"><label>Location(s) <span class="required">*</span></label><div class="loc-list js-locs"></div></div>' +
-              '<div class="form-group"><label>Ink colors <span class="required">*</span></label><div class="ink-list js-inks"></div></div>' +
+              '<div class="form-group"><label>Ink colors <span class="required">*</span></label>' +
+                '<div class="ink-mode js-ink-mode"><button type="button" data-mode="pick" class="on">Pick inks</button><button type="button" data-mode="artist">Artist\u2019s choice</button></div>' +
+                '<div class="ink-list js-inks"></div>' +
+                '<div class="ac-box js-ac" style="display:none;"><b>The artist will choose the ink colors</b><span class="js-ac-max"></span>.' +
+                  '<input type="text" class="js-ac-note" maxlength="200" placeholder="Note for the artist (optional), e.g. match the uploaded logo"></div></div>' +
             '</div>' +
 
             '<div class="sub-label js-changes-label">Changes</div>' +
@@ -1010,6 +1019,7 @@ function buildSketch(num) {
         $(this).addClass('selected');
         applyArtType($card);
     });
+    $card.on('click', '.js-ink-mode button', function () { setInkMode($card, $(this).data('mode')); });
     $card.on('click', '.js-add-garment', function () { addGarmentRow($card); updateSummary(); });
     $card.on('click', '.js-remove-garment', function () {
         $(this).closest('.garment-row').remove();
@@ -1071,6 +1081,23 @@ function sketchTier($card) {
     return { minInks: t0.minInks, maxInks: t0.maxInks, locs: t0.locs, mixed: mixed, label: t0.tier };
 }
 
+// "FC" → "FC - Full Chest" (older requests stored just the code)
+function locLabel(code) {
+    var l = LOCATIONS.filter(function (x) { return x[0] === code; })[0];
+    return l ? l[0] + ' - ' + l[1] : code;
+}
+
+// Ink colors: the rep picks each ink, or leaves it to the artist ("Artist's choice")
+function inkModeOf($card) { return $card.data('inkMode') || 'pick'; }
+function setInkMode($card, mode) {
+    $card.data('inkMode', mode);
+    $card.find('.js-ink-mode button').removeClass('on').filter('[data-mode="' + mode + '"]').addClass('on');
+    $card.find('.js-inks').toggle(mode === 'pick');
+    $card.find('.js-ac').toggle(mode === 'artist');
+    $card.find('.js-ink').removeClass('field-error');
+    renderPrint($card);
+}
+
 function renderPrint($card) {
     var tier = sketchTier($card);
     var $note = $card.find('.js-print-note');
@@ -1080,7 +1107,7 @@ function renderPrint($card) {
 
     var nLocs = tier ? tier.locs : 1;
     var locOpts = '<option value="">Select…</option>' + LOCATIONS.map(function (l) {
-        return '<option value="' + l[0] + '">' + l[0] + ' — ' + l[1] + '</option>';
+        return '<option value="' + l[0] + '">' + l[0] + ' - ' + l[1] + '</option>';
     }).join('');
     var locHtml = '';
     for (var i = 0; i < nLocs; i++) locHtml += '<select class="js-loc">' + locOpts + '</select>';
@@ -1103,9 +1130,11 @@ function renderPrint($card) {
     } else if (tier) {
         $note.attr('class', 'print-note js-print-note').html('Price point: <b>' + esc(tier.label) + '</b>. Pick ' +
             (tier.minInks === tier.maxInks ? tier.maxInks : tier.minInks + '–' + tier.maxInks) + ' ink colors and ' + tier.locs +
-            ' location' + (tier.locs > 1 ? 's' : '') + '. Choose each ink from the ink chart. No “artist’s choice”.');
+            ' location' + (tier.locs > 1 ? 's' : '') + '. Pick each ink from the ink chart, or choose <b>Artist\u2019s choice</b> and the artist picks them.');
+        $card.find('.js-ac-max').text(' (up to ' + tier.maxInks + ' for this price point)');
     } else {
         $note.attr('class', 'print-note js-print-note').html('Pick an apparel item to see how many ink colors and locations its price point includes. For other items, inks are optional.');
+        $card.find('.js-ac-max').text('');
     }
 }
 
@@ -1620,19 +1649,19 @@ function validate() {
             if (v && locs.indexOf(v) !== -1) { $(this).addClass('field-error'); errors.push('Sketch ' + n + ': the two locations must be different'); }
             locs.push(v);
         });
-        var picked = [], badInk = false;
-        $c.find('.js-ink').each(function () {
+        var picked = [], badInk = false, artistInks = inkModeOf($c) === 'artist';
+        $c.find(artistInks ? '.no-inks' : '.js-ink').each(function () {
             var $i = $(this), v = $i.data('ink');
             if (v) {
                 if (picked.indexOf(v) !== -1) { $i.addClass('field-error'); errors.push('Sketch ' + n + ': ' + v + ' is listed twice'); }
                 picked.push(v);
             } else if ($i.val().trim()) { $i.addClass('field-error'); badInk = true; }
         });
-        if (badInk) errors.push('Sketch ' + n + ': choose each ink from the ink chart list (no “artist’s choice”)');
-        if (tier && picked.length < tier.minInks) {
+        if (badInk) errors.push('Sketch ' + n + ': choose each ink from the ink chart list, or switch to Artist\u2019s choice');
+        if (tier && !artistInks && picked.length < tier.minInks) {
             $c.find('.js-ink.req').each(function () { if (!$(this).data('ink')) $(this).addClass('field-error'); });
             errors.push('Sketch ' + n + ': choose ' + (tier.minInks === tier.maxInks ? tier.maxInks : 'at least ' + tier.minInks) +
-                ' ink color' + (tier.minInks > 1 ? 's' : '') + ' for this price point' + (tier.minInks > 1 ? ', or pick a lower-priced item' : ''));
+                ' ink color' + (tier.minInks > 1 ? 's' : '') + ' for this price point, or choose Artist\u2019s choice');
         }
         need($c.find('.js-desc'), 'Sketch ' + n + ': description');
 
@@ -1700,8 +1729,11 @@ function buildPayload() {
             number: $c.data('num'),
             artType: isNew ? 'new' : 'existing',
             referToArt: isNew ? '' : $c.find('.js-refer').val().trim().toUpperCase(),
-            locations: $c.find('.js-loc').map(function () { return $(this).val(); }).get().filter(Boolean),
-            inkColors: $c.find('.js-ink').map(function () { return $(this).data('ink') || ''; }).get().filter(Boolean),
+            locations: $c.find('.js-loc').map(function () { return $(this).val(); }).get().filter(Boolean).map(locLabel),
+            inkMode: inkModeOf($c),
+            inkColors: inkModeOf($c) === 'artist'
+                ? ['Artist\u2019s choice' + (tier ? ' (up to ' + tier.maxInks + ')' : '') + ($c.find('.js-ac-note').val().trim() ? ': ' + $c.find('.js-ac-note').val().trim() : '')]
+                : $c.find('.js-ink').map(function () { return $(this).data('ink') || ''; }).get().filter(Boolean),
             priceTier: tier ? tier.label : '',
             items: garments,
             changes: changes,

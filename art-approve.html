@@ -43,6 +43,10 @@
             font: inherit; font-size: 15px; color: var(--text); background: var(--surface); outline: none; }
         input:focus, textarea:focus { border-color: var(--accent); }
         textarea { min-height: 96px; resize: vertical; }
+        .checks { display: none; border: 1.5px solid #f0d58c; background: #fff8e1; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; }
+        .checks .hd { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #7a4b00; }
+        .checks label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; font-weight: 500; color: var(--text); margin: 0 0 8px; cursor: pointer; }
+        .checks input { width: 20px; height: 20px; margin-top: 1px; flex-shrink: 0; accent-color: #2e7d32; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
         @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
         .choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 14px; }
@@ -69,6 +73,16 @@
 <script>
 // NEXCOM script, reached through the Cloudflare relay (same as the portal pages).
 var ART_API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+
+// Shown before the buyer can approve; every box must be ticked (same list as the rep's approve box).
+var APPROVAL_CHECKS = [
+    'Spelling of every name, word and date is correct',
+    'Ink colors are correct',
+    'Items and garment colors are correct',
+    'Artwork details are correct (logos, aircraft, ships, equipment)',
+    'Size and placement are correct'
+];
+function allChecked() { var c = document.querySelectorAll('.chk'); return c.length > 0 && Array.prototype.every.call(c, function (x) { return x.checked; }); }
 
 var params = new URLSearchParams(location.search);
 var REQ_ID = params.get('id') || '', KEY = params.get('k') || '';
@@ -116,7 +130,7 @@ function render(q, open, closedMsg) {
         h += '<div class="card"><h2>📋 What’s being printed</h2>' + q.sketches.map(function (s, i) {
             return '<div class="sk"><div style="font-weight:600;margin-bottom:6px;">Sketch ' + (i + 1) + '</div>' +
                 '<div><b>Items</b>' + esc(s.items.join(', ')) + '</div>' +
-                '<div><b>Locations</b>' + esc(s.locations.join(' + ') || '—') + '</div>' +
+                '<div><b>Locations</b>' + esc(s.locations.map(locText).join(' + ') || '—') + '</div>' +
                 '<div><b>Inks</b>' + esc(s.inkColors.join(', ') || '—') + '</div></div>';
         }).join('') + '</div>';
     }
@@ -134,6 +148,9 @@ function render(q, open, closedMsg) {
           '<label>Store / location<input type="text" id="bStore" maxlength="120" value="' + esc(q.institution || '') + '"></label>' +
         '</div>' +
         '<div class="choice"><button type="button" data-d="approve">✓ Approve</button><button type="button" data-d="revise">✎ Request changes</button></div>' +
+        '<div class="checks" id="checks"><div class="hd">Before you approve, please check each item:</div>' + APPROVAL_CHECKS.map(function (c, i) {
+            return '<label><input type="checkbox" class="chk" data-i="' + i + '"><span>' + esc(c) + '</span></label>';
+        }).join('') + '<div class="hint" style="margin-top:2px;">Approving confirms these are correct.</div></div>' +
         '<label id="msgWrap" style="display:none;">What needs to change?<textarea id="bMsg" maxlength="4000" placeholder="e.g. Make the logo bigger. Change the blue ink to navy."></textarea></label>' +
         '<button type="button" class="btn" id="send" disabled>Choose approve or request changes</button>' +
         '<div class="hint">Your rep and the art department are notified as soon as you send this.' +
@@ -146,13 +163,19 @@ function render(q, open, closedMsg) {
             decision = b.getAttribute('data-d');
             document.querySelectorAll('.choice button').forEach(function (x) { x.classList.toggle('on', x === b); });
             document.getElementById('msgWrap').style.display = decision === 'revise' ? 'block' : 'none';
+            document.getElementById('checks').style.display = decision === 'approve' ? 'block' : 'none';
             var send = document.getElementById('send');
-            send.disabled = false;
+            send.disabled = decision === 'approve' && !allChecked();
             send.textContent = decision === 'approve' ? 'Approve these proofs' : 'Send my changes';
             if (decision === 'revise') document.getElementById('bMsg').focus();
         });
     });
     document.getElementById('send').addEventListener('click', submit);
+    document.querySelectorAll('.chk').forEach(function (c) {
+        c.addEventListener('change', function () {
+            if (decision === 'approve') document.getElementById('send').disabled = !allChecked();
+        });
+    });
     ['bName', 'bStore', 'bMsg'].forEach(function (id) {
         document.getElementById(id).addEventListener('input', function () {
             this.classList.remove('field-error');
@@ -167,10 +190,11 @@ function submit() {
     if (!name) return fail('Enter your name.', 'bName');
     if (!store) return fail('Enter your store or location.', 'bStore');
     if (decision === 'revise' && !msg) return fail('Describe what needs to change.', 'bMsg');
+    if (decision === 'approve' && !allChecked()) return fail('Please check every item in the yellow box before approving.');
     if (decision === 'approve' && !confirm('Approve these proofs for ' + store + '?')) return;
     var btn = document.getElementById('send');
     btn.disabled = true; btn.textContent = 'Sending…';
-    api('POST', { action: 'artBuyerRespond', id: REQ_ID, k: KEY, decision: decision, name: name, store: store, message: msg })
+    api('POST', { action: 'artBuyerRespond', id: REQ_ID, k: KEY, decision: decision, name: name, store: store, message: msg, confirmed: decision === 'approve' && allChecked() })
         .then(function (r) {
             if (!r || !r.success) {
                 btn.disabled = false; btn.textContent = decision === 'approve' ? 'Approve these proofs' : 'Send my changes';
@@ -180,6 +204,11 @@ function submit() {
             window.scrollTo(0, 0);
         });
 }
+
+// Print locations: older requests stored just the code ("FC"); show "FC - Full Chest".
+var LOC_NAMES = { FC: 'Full Chest', LC: 'Left Chest', RC: 'Right Chest', FB: 'Full Back', UB: 'Upper Back', LS: 'Left Sleeve',
+                  RS: 'Right Sleeve', LEG: 'Leg', HOOD: 'Hood', OTH: 'Other' };
+function locText(l) { return LOC_NAMES[l] ? l + ' - ' + LOC_NAMES[l] : l; }
 
 function fail(msg, fieldId) {
     var e = document.getElementById('err');

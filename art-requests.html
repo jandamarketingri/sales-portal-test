@@ -160,6 +160,11 @@
         .log .msg { font-size: 13.5px; margin-top: 4px; padding: 8px 10px; background: var(--surface-2); border-radius: 6px; white-space: pre-wrap; }
         .log .files { margin-top: 4px; font-size: 12.5px; }
 
+        .ap-checks { border: 1.5px solid #f0d58c; background: #fff8e1; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+        .ap-checks .hd { font-weight: 700; color: #7a4b00; margin-bottom: 6px; }
+        .ap-checks label { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 5px; cursor: pointer; }
+        .ap-checks input { margin-top: 2px; accent-color: #2e7d32; }
+        .ap-checks.field-error { border-color: var(--error); background: var(--error-bg); }
         .lic-files { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; font-size: 13px; }
         .lic-files b { width: 100%; font-size: 12px; color: var(--text-muted); }
         .ap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
@@ -463,7 +468,7 @@ function sketchHtml(s, i) {
         (s.priceTier ? '<span class="tag grey">' + esc(s.priceTier) + '</span>' : '') +
         (s.needsLicensing ? '<span class="tag">Licensing</span>' : '') + '</div>' +
         '<div class="row"><b>Items</b><br>' + items + '</div>' +
-        '<div class="row"><b>Locations</b>' + esc((s.locations || []).join(' + ')) + '</div>' +
+        '<div class="row"><b>Locations</b>' + esc((s.locations || []).map(locText).join(' + ')) + '</div>' +
         '<div class="row"><b>Inks</b>' + esc((s.inkColors || []).join(', ') || '—') + '</div>' +
         ((s.changes || []).length ? '<div class="row"><b>Changes</b><br>' + s.changes.map(function (c) {
             return '<span class="swap"><s>' + esc(c.omit) + '</s> → <span>' + esc(c.add) + '</span></span>';
@@ -491,6 +496,9 @@ function actionsHtml(q, buckets) {
               '<label>Store / location<input type="text" id="apStore" placeholder="e.g. NAS Jacksonville" maxlength="120" value="' + esc(q.institution || '') + '"></label>' +
               '<label>Date approved<input type="date" id="apDate" value="' + todayIso() + '" max="' + todayIso() + '"></label>' +
             '</div>' +
+            '<div class="ap-checks"><div class="hd">Confirm the buyer checked:</div>' + APPROVAL_CHECKS.map(function (c) {
+                return '<label><input type="checkbox" class="ap-chk"> ' + esc(c) + '</label>';
+            }).join('') + '</div>' +
             '<div class="file-drop" id="apDrop" style="padding:6px 10px;"><button type="button" class="btn-secondary btn-sm js-pick">📎 Attach the buyer’s OK</button>' +
               '<span class="hint" style="margin:0;">Optional: a screenshot or photo of their email or text</span><input type="file" multiple hidden accept="image/*,.pdf,.eml,.msg"><div class="file-list"></div></div>' +
             '<div class="btn-row" style="margin-bottom:14px;"><button class="btn-primary" data-op="approve" data-files="#apDrop">✓ Approve proofs</button></div>' +
@@ -554,6 +562,7 @@ function bindActions(q) {
     $('#app').off('click.act');
     $('.file-drop').each(function () { bindDrop($(this)); });
     $('#apName, #apStore, #apDate').on('input change', function () { $(this).removeClass('field-error'); });
+    $('.ap-chk').on('change', function () { $('.ap-checks').removeClass('field-error'); });
     $('#copyBuyerLink').on('click', function () {
         var el = document.getElementById('buyerLink');
         el.select();
@@ -584,6 +593,8 @@ function bindActions(q) {
             if (!ap.name) { $('#apName').addClass('field-error').focus(); return toast('Enter who approved it at the store.', true); }
             if (!ap.store) { $('#apStore').addClass('field-error').focus(); return toast('Enter the store or location.', true); }
             if (!ap.date) { $('#apDate').addClass('field-error').focus(); return toast('Enter the date they approved it.', true); }
+            if ($('.ap-chk').not(':checked').length) { $('.ap-checks').addClass('field-error'); return toast('Tick every item in the checklist first.', true); }
+            ap.confirmed = true;
             ap.date = fmtDate(ap.date + 'T12:00:00');
             if (!confirm('Approve these proofs for ' + ap.store + ' (approved by ' + ap.name + ' on ' + ap.date + ')? ' +
                 (q.needsLicensing ? 'They’ll go to licensing next.' : 'The art will be ready to order.'))) return;
@@ -651,7 +662,7 @@ function approvalHtml(d) {
     var a = list[list.length - 1];
     var h = '<div class="approval"><div class="lbl">✓ Store approval</div>' +
         '<div><b>' + esc(a.name) + '</b> · ' + esc(a.store) + ' · ' + esc(a.date) + '</div>' +
-        '<div class="sub">Proof v' + esc(a.version) + ' · ' + esc(a.via) + (a.recordedBy ? ' (recorded by ' + esc(a.recordedBy) + ')' : '') + '</div>' +
+        '<div class="sub">Proof v' + esc(a.version) + ' · ' + esc(a.via) + (a.recordedBy ? ' (recorded by ' + esc(a.recordedBy) + ')' : '') + (a.checked ? ' · checklist confirmed' : '') + '</div>' +
         (a.files && a.files.length ? '<div class="sub">' + a.files.map(fileLink).join(' · ') + '</div>' : '');
     if (list.length > 1) {
         h += '<details class="older"><summary>Earlier approvals (' + (list.length - 1) + ')</summary><ul>' +
@@ -662,6 +673,20 @@ function approvalHtml(d) {
     return h + '</div>';
 }
 function todayIso() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+
+// Checklist shown before approving proofs (same list as the buyer page).
+var APPROVAL_CHECKS = [
+    'Spelling of every name, word and date is correct',
+    'Ink colors are correct',
+    'Items and garment colors are correct',
+    'Artwork details are correct (logos, aircraft, ships, equipment)',
+    'Size and placement are correct'
+];
+
+// Print locations: older requests stored just the code ("FC"); show "FC - Full Chest".
+var LOC_NAMES = { FC: 'Full Chest', LC: 'Left Chest', RC: 'Right Chest', FB: 'Full Back', UB: 'Upper Back', LS: 'Left Sleeve',
+                  RS: 'Right Sleeve', LEG: 'Leg', HOOD: 'Hood', OTH: 'Other' };
+function locText(l) { return LOC_NAMES[l] ? l + ' - ' + LOC_NAMES[l] : l; }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fact(label, val) { return val || val === 0 ? '<div class="fact"><label>' + esc(label) + '</label><div>' + esc(val) + '</div></div>' : ''; }
