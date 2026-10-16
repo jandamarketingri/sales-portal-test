@@ -152,7 +152,8 @@
             margin-top: 20px;
         }
 
-        #setupPanel { display: none; }
+        #forgotPanel { display: none; }
+        .forgot-link { margin-top: 12px; }
     </style>
 </head>
 
@@ -182,6 +183,7 @@
 
         <button id="loginBtn" type="submit">Log In</button>
         </form>
+        <a class="link-btn forgot-link" id="forgotLink" onclick="showForgotPanel()">Forgot your password?</a>
 
         <button class="request-access-btn" onclick="window.location.href='request-access.html'">
             Request Access
@@ -190,19 +192,16 @@
         <div class="loading" id="loadingMsg">Checking access…</div>
     </div>
 
-    <!-- ============= FIRST-TIME PASSWORD SETUP PANEL ============= -->
-    <div id="setupPanel">
-        <form id="setupForm" onsubmit="event.preventDefault(); handleSetPassword();">
+    <!-- ============= FORGOT PASSWORD PANEL ============= -->
+    <!-- Emails a one-time link to reset-password.html (Authentication script:
+         PasswordReset.gs). Same answer whether or not the email has an account. -->
+    <div id="forgotPanel">
+        <form id="forgotForm" onsubmit="event.preventDefault(); handleForgot();">
         <div class="form-group">
-            <label>Create a Password *</label>
-            <input type="password" id="newPassword" placeholder="At least 8 characters" autocomplete="new-password">
+            <label>Email Address *</label>
+            <input type="email" id="forgotEmail" placeholder="your.email@company.com" autocomplete="email">
         </div>
-        <div class="form-group">
-            <label>Confirm Password *</label>
-            <input type="password" id="confirmPassword" placeholder="Re-enter password" autocomplete="new-password">
-        </div>
-
-        <button id="setupBtn" type="submit">Set Password &amp; Log In</button>
+        <button id="forgotBtn" type="submit">Email Me a Link</button>
         </form>
         <a class="link-btn" onclick="showLoginPanel()">← Back to login</a>
     </div>
@@ -216,7 +215,6 @@
     var RELAY_URL = 'https://blue-silence-0a95.will1298.workers.dev';
     var CLIENT_HASH_ITERATIONS = 1000; // sequential Web Crypto calls — fast enough (well under a second) to keep login snappy
 
-    var pendingEmail = ''; // carried from login attempt into the setup panel
 
     // Auto-redirect if already authenticated
     $(document).ready(function () {
@@ -231,7 +229,7 @@
         }
         if (!window.crypto || !window.crypto.subtle) {
             showError('This browser is missing required security features. Please use an up-to-date browser.');
-            $('#loginBtn, #setupBtn').prop('disabled', true);
+            $('#loginBtn, #forgotBtn').prop('disabled', true);
         }
     });
 
@@ -252,11 +250,6 @@
             value = await sha256Hex(value);
         }
         return value;
-    }
-    function generateSalt() {
-        var bytes = new Uint8Array(16);
-        window.crypto.getRandomValues(bytes);
-        return Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
     }
 
     // A Cloudflare Worker relay now sits between this page and Auth.gs
@@ -317,10 +310,8 @@
         var saltResponse = await callAuth({ action: 'getSalt', email: email });
         if (!saltResponse) { showError(unreachableMessage()); resetLoginButton(); return; }
 
-        if (saltResponse.needsSetup) {
-            pendingEmail = email;
-            showInfo('No password set yet for this account. Create one below to continue.');
-            showSetupPanel();
+        if (saltResponse.needsSetup) {   // first time: a set-password link was emailed
+            showInfo(saltResponse.message || 'We’ve emailed you a link to set your password.');
             resetLoginButton();
             return;
         }
@@ -333,9 +324,7 @@
             saveSalt(email, saltResponse.salt);
             completeLogin(email, loginResponse);
         } else if (loginResponse && loginResponse.needsSetup) {
-            pendingEmail = email;
-            showInfo('No password set yet for this account. Create one below to continue.');
-            showSetupPanel();
+            showInfo(loginResponse.message || 'We’ve emailed you a link to set your password.');
             resetLoginButton();
         } else if (loginResponse) {
             showError(loginResponse.message || 'Login failed');
@@ -346,30 +335,18 @@
         }
     }
 
-    async function handleSetPassword() {
-        var newPassword = $('#newPassword').val();
-        var confirmPassword = $('#confirmPassword').val();
-
-        if (!newPassword || newPassword.length < 8) { showError('Password must be at least 8 characters'); return; }
-        if (newPassword !== confirmPassword) { showError('Passwords do not match'); return; }
-
-        $('#setupBtn').prop('disabled', true).text('Setting up…');
+    async function handleForgot() {
+        var email = $('#forgotEmail').val().trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter your email address'); return; }
+        $('#forgotBtn').prop('disabled', true).text('Sending…');
         hideMessages();
-
-        var salt = generateSalt();
-        var hash = await hashPasswordClient(newPassword, salt);
-        var response = await callAuth({ action: 'setPassword', email: pendingEmail, salt: salt, hash: hash });
-
-        if (response && response.success) {
-            saveSalt(String(pendingEmail).toLowerCase(), salt);
-            completeLogin(pendingEmail, response);
-        } else if (response) {
-            showError(response.message || 'Could not set password');
-            $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
-        } else {
-            showError('Unable to reach authentication service');
-            $('#setupBtn').prop('disabled', false).text('Set Password & Log In');
-        }
+        var r = await callAuth({ action: 'requestPasswordLink', email: email });
+        $('#forgotBtn').prop('disabled', false).text('Email Me a Link');
+        if (!r) { showError(unreachableMessage()); return; }
+        if (!r.success) { showError(r.message || 'Something went wrong. Please try again.'); return; }
+        showLoginPanel();
+        $('#email').val(email);
+        showInfo(r.message);
     }
 
     function completeLogin(email, response) {
@@ -385,13 +362,16 @@
         window.location.href = 'index.html';
     }
 
-    function showSetupPanel() {
+    function showForgotPanel() {
+        $('#forgotEmail').val($('#email').val().trim());
         $('#loginPanel').hide();
-        $('#setupPanel').show();
-        $('#subtitleText').text('Set a password for ' + pendingEmail);
+        $('#forgotPanel').show();
+        $('#subtitleText').text('We’ll email you a link to set a new password');
+        hideMessages();
+        $('#forgotEmail').focus();
     }
     function showLoginPanel() {
-        $('#setupPanel').hide();
+        $('#forgotPanel').hide();
         $('#loginPanel').show();
         $('#subtitleText').text('Enter your email and password to continue');
         hideMessages();
