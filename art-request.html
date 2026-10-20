@@ -491,6 +491,8 @@
         .lib-item .th { aspect-ratio: 1; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .lib-item .th img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .lib-item .th .none { font-size: 28px; color: #bbb; }
+        .lib-item .th .none:empty { width: 100%; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #f1f1f5 0%, #e7e7ee 50%, #f1f1f5 100%); background-size: 200% 100%; animation: thumbWait 1.2s ease-in-out infinite; }
+        @keyframes thumbWait { from { background-position: 100% 0; } to { background-position: -100% 0; } }
         .lib-item .art { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; }
         .lib-item .w { font-size: 12px; color: var(--text-muted); line-height: 1.3; }
         .lib-item .tag-lic { margin-left: 0; align-self: flex-start; }
@@ -1809,6 +1811,7 @@ function openLibrary($card) {
     loadLibrary().then(function (r) {
         var note = libraryItems.length + ' design' + (libraryItems.length === 1 ? '' : 's');
         if (r.skipped && r.skipped.length) note += ' · ' + r.skipped.length + ' file(s) skipped: no art # in the name (' + r.skipped.slice(0, 3).join(', ') + (r.skipped.length > 3 ? '…' : '') + ')';
+        if (r.full) note += ' · The library is full: only the first ' + r.full + ' files are listed. Ask William to raise the limit.';
         $('#libStatus').data('base', note);
         renderLibrary();
         setTimeout(function () { $('#libSearch').trigger('focus'); }, 50);
@@ -1832,12 +1835,62 @@ function renderLibrary() {
     $('#libGrid').html(hits.slice(0, 200).map(function (it) {
         var suf = artSuffixOf(it.art);
         return '<div class="lib-cell"><button type="button" class="lib-item" data-id="' + esc(it.id) + '">' +
-            '<div class="th">' + (it.thumb ? '<img src="' + it.thumb + '" alt="" loading="lazy">' : '<span class="none">🖼️</span>') + '</div>' +
+            '<div class="th" data-id="' + esc(it.id) + '">' + (it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<span class="none">' + (it.thumb === '' ? '🖼️' : '') + '</span>') + '</div>' +
             '<div class="art">' + esc(it.art) + '</div>' +
             (it.words ? '<div class="w">' + esc(it.words) + '</div>' : '') +
             (suf && suf !== 'XX' ? '<span class="tag-lic">Licensing</span>' : '') +
         '</button><button type="button" class="lib-zoom" data-id="' + esc(it.id) + '" title="See it larger">🔍</button></div>';
     }).join(''));
+    watchThumbs();
+}
+
+// ── Small pictures, loaded as they scroll into view ──────────────────────────
+// The list comes without pictures (it can hold thousands of designs); the
+// pictures are fetched in small batches for the cards the rep can see.
+var THUMB_BATCH = 20, THUMB_PARALLEL = 3;
+var thumbQueue = [], thumbBusy = 0, thumbObserver = null, thumbTimer = null;
+function libItem(id) { for (var i = 0; i < libraryItems.length; i++) if (libraryItems[i].id === id) return libraryItems[i]; return null; }
+function watchThumbs() {
+    if (thumbObserver) thumbObserver.disconnect();
+    var cells = $('#libGrid .th[data-id]').filter(function () { var it = libItem($(this).data('id')); return it && it.thumb === undefined; });
+    if (!cells.length) return;
+    if (!window.IntersectionObserver) { cells.each(function () { queueThumb($(this).data('id')); }); return; }
+    thumbObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+            if (!e.isIntersecting) return;
+            thumbObserver.unobserve(e.target);
+            queueThumb($(e.target).data('id'));
+        });
+    }, { rootMargin: '300px' });
+    cells.each(function () { thumbObserver.observe(this); });
+}
+function queueThumb(id) {
+    var it = libItem(id);
+    if (!it || it.thumb !== undefined || it.thumbPending) return;
+    it.thumbPending = true;
+    thumbQueue.push(id);
+    clearTimeout(thumbTimer);
+    thumbTimer = setTimeout(pumpThumbs, 60);
+}
+function pumpThumbs() {
+    while (thumbBusy < THUMB_PARALLEL && thumbQueue.length) fetchThumbs(thumbQueue.splice(0, THUMB_BATCH));
+}
+function fetchThumbs(ids) {
+    thumbBusy++;
+    sendToServer({ action: 'artLibraryThumbs', ids: ids }).then(function (r) {
+        var got = (r && r.success && r.thumbs) || {};
+        ids.forEach(function (id) {
+            var it = libItem(id);
+            if (!it || !(id in got)) return;
+            it.thumb = got[id] || '';   // '' = no picture available
+            var $th = $('#libGrid .th[data-id="' + id + '"]');
+            $th.html(it.thumb ? '<img src="' + it.thumb + '" alt="">' : '<span class="none">🖼️</span>');
+        });
+    }).catch(function () {}).then(function () {
+        ids.forEach(function (id) { var it = libItem(id); if (it) it.thumbPending = false; });   // failed ones can be retried
+        thumbBusy--;
+        pumpThumbs();
+    });
 }
 
 function setLibraryPick($card, it) {
