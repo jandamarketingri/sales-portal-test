@@ -538,7 +538,8 @@ function actionsHtml(q, buckets) {
             (buckets.indexOf(me.name) !== -1 && !q.assignedToMe ? '<button class="btn-secondary" data-op="assign" data-self="1">✋ Assign to me</button>' : '') +
             '</div></div>');
     }
-    if (me.isArt && ['In Art', 'Revise', 'Proof Ready'].indexOf(st) !== -1) {
+    // Only the person the request is assigned to (the artist, or the Art Admin if he took it himself).
+    if (me.isArt && q.assignedToMe && ['In Art', 'Revise', 'Proof Ready'].indexOf(st) !== -1) {
         blocks.push('<div class="action-block"><div class="lbl">' + (st === 'Proof Ready' ? 'Send a corrected proof' : 'Send proofs to the rep') + '</div>' +
             '<div class="file-drop" id="proofDrop"><button type="button" class="btn-secondary btn-sm js-pick">📎 Choose proof files</button><span class="hint" style="margin:0;">PDF, JPG or PNG only (no .ai, .eps, .psd or .svg), up to ' + MAX_FILE_MB + ' MB each</span><input type="file" multiple hidden accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"><div class="file-list"></div></div>' +
             '<textarea id="proofMsg" placeholder="Note to the rep (optional). Your name isn’t shown, emails come from the Art Department."></textarea>' +
