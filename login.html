@@ -101,6 +101,9 @@
             font-size: 14px;
         }
 
+        a.request-access-btn { display: block; box-sizing: border-box; width: 100%; padding: 14px; border-radius: 6px; text-align: center; font-weight: bold; text-decoration: none; }
+        .access-note { text-align: center; color: #888; font-size: 12px; margin: 6px 0 0; }
+
         .request-access-btn:hover {
             background: #e5e7eb;
         }
@@ -185,9 +188,11 @@
         </form>
         <a class="link-btn forgot-link" id="forgotLink" onclick="showForgotPanel()">Forgot your password?</a>
 
-        <button class="request-access-btn" onclick="window.location.href='request-access.html'">
+        <a class="request-access-btn" id="requestAccess"
+           href="mailto:william@jamarketing.net?subject=Sales%20Portal%20access%20request&body=Hi%20William%2C%0A%0APlease%20set%20me%20up%20on%20the%20Sales%20Portal.%0A%0AName%3A%20%0AEmail%20I%20use%20to%20log%20in%3A%20%0ARep%20%23%20(if%20any)%3A%20%0AWhich%20program(s)%3A%20%0A%0AThanks!">
             Request Access
-        </button>
+        </a>
+        <p class="access-note">Opens an email to William Morgan. You'll get a link to set your password once you're added.</p>
 
         <div class="loading" id="loadingMsg">Checking access…</div>
     </div>
