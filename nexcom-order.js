@@ -14,7 +14,11 @@
 //   productsCsvUrl: '',                // published Google Sheet CSV — see README.
 //                                      // Leave blank to run on embedded DEMO data.
 //   colorsJsonUrl: 'garment-colors.json',
-//   artCsvUrl: 'art-index.csv',        // see art-index-template.csv
+//   artAccount: 'Souvenir',            // art list comes live from the NEXCOM script:
+//                                      // this rep's approved art requests for this
+//                                      // account + the whole Art Library. (artCsvUrl
+//                                      // is only used when artAccount isn't set.)
+//   artCsvUrl: 'art-index.csv',        // old demo list, see art-index-template.csv
 //   orderSubmissionUrl: '',            // same Apps Script POST endpoint as apparel.html
 //   logo: 'nex-logo.jpg'
 // }
@@ -133,7 +137,10 @@ function loadEverything() {
             function () { console.warn('garment-colors.json failed to load — using embedded demo colors instead.'); }
         ));
     }
-    if (CFG.artCsvUrl) {
+    if (CFG.artAccount && CFG.orderSubmissionUrl) {
+        artIndex = [];
+        sideTasks.push(loadPortalArt());
+    } else if (CFG.artCsvUrl) {
         sideTasks.push($.get(CFG.artCsvUrl).then(
             function (text) { artIndex = buildArtIndex(parseCSV(text)); },
             function () { console.warn('art-index.csv failed to load — using embedded demo art list instead.'); }
@@ -183,6 +190,76 @@ function buildProducts(rows) {
 function garmentLabel(key) {
     var labels = { TEE: 'Core Cotton Tee', LS: 'Long Sleeve Tee', MW: 'Moisture Wick Tee', FLC: 'Fleece Crewneck', HDY: 'Fleece Hoodie', MTNK: "Men's Tank", LTNK: "Ladies Tank" };
     return labels[key] || key;
+}
+
+// ---------------------------------------------------------
+// Art from the portal: approved art requests first, then the Art Library.
+// ---------------------------------------------------------
+var artLoadState = 'idle';   // idle | loading | ready | failed
+function loadPortalArt() {
+    var auth = {};
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')) || {}; } catch (e) {}
+    artLoadState = 'loading';
+    var d = $.Deferred();
+    fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify({ action: 'artOrderList', account: CFG.artAccount, email: auth.email, token: auth.token || '' }) })
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (r && r.sessionExpired) { sessionStorage.removeItem('salesPortalAuth'); window.location.href = 'login.html'; return; }
+            if (!r || !r.success) throw new Error((r && r.message) || 'failed');
+            var mine = r.scope !== 'all';
+            artIndex = (r.requests || []).map(function (a) {
+                return { id: a.art, label: a.label, source: 'request', requestId: a.requestId, sketch: a.sketch, status: a.status,
+                         rep: a.rep || '', thumbId: a.thumbId || '',
+                         keywords: (a.label + ' ' + a.requestId + ' ' + (a.rep || '')).toLowerCase(),
+                         tag: (mine ? 'Your request ' : (a.rep ? a.rep + ' · ' : 'Request ')) + a.requestId + (a.status === 'Ordered' ? ' · reorder' : '') };
+            }).concat((r.library || []).map(function (a) {
+                return { id: a.art, label: a.label || '', source: 'library', thumbId: a.thumbId || '', requestId: '',
+                         keywords: ((a.label || '') + ' ' + (a.folder || '')).toLowerCase(), tag: 'Art Library' + (a.folder ? ' · ' + a.folder : '') };
+            }));
+            artLoadState = 'ready';
+            d.resolve();
+        })
+        .catch(function (e) {
+            console.warn('Could not load the art list: ' + e.message);
+            artLoadState = 'failed';
+            d.resolve();
+        });
+    return d.promise();
+}
+
+// Small pictures, fetched in batches as they're needed (same as Browse art on the request form).
+var thumbCache = {}, thumbWanted = [], thumbTimer = null, thumbPending = {};
+function thumbFor(id) {
+    if (!id) return '';
+    if (thumbCache[id] !== undefined) return thumbCache[id];
+    if (!thumbPending[id]) { thumbPending[id] = true; thumbWanted.push(id); clearTimeout(thumbTimer); thumbTimer = setTimeout(fetchThumbs, 80); }
+    return '';
+}
+function fetchThumbs() {
+    var auth = {};
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')) || {}; } catch (e) {}
+    while (thumbWanted.length) {
+        (function (ids) {
+            fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify({ action: 'artLibraryThumbs', ids: ids, email: auth.email, token: auth.token || '' }) })
+                .then(function (r) { return r.json(); })
+                .then(function (r) {
+                    var got = (r && r.thumbs) || {};
+                    ids.forEach(function (id) { if (id in got) thumbCache[id] = got[id] || ''; delete thumbPending[id]; });
+                    paintThumbs();
+                })
+                .catch(function () { ids.forEach(function (id) { delete thumbPending[id]; }); });
+        })(thumbWanted.splice(0, 20));
+    }
+}
+function thumbStyle(id, fallbackBg) {
+    var t = thumbFor(id);
+    return t ? 'background:#fff url(\'' + t + '\') center/contain no-repeat;' : 'background:' + (fallbackBg || '#888') + ';';
+}
+function paintThumbs() {
+    $('[data-thumb]').each(function () {
+        var t = thumbCache[$(this).attr('data-thumb')];
+        if (t) $(this).css({ background: '#fff url(\'' + t + '\') center/contain no-repeat' }).text('');
+    });
 }
 
 function buildArtIndex(rows) {
@@ -319,7 +396,11 @@ function initArtComboFor(key) {
         $('#artError-' + key).hide();
         var q = input.val().trim().toLowerCase();
         if (!q) { $('#artDropdown-' + key).hide(); showArtPreview(key, null, false); return; }
-        var matches = artIndex.filter(function (a) { return a.id.toLowerCase().indexOf(q) !== -1 || a.label.toLowerCase().indexOf(q) !== -1 || a.keywords.indexOf(q) !== -1; });
+        var words = q.split(/\s+/);
+        var matches = artIndex.filter(function (a) {
+            var hay = a.id.toLowerCase() + ' ' + a.label.toLowerCase() + ' ' + a.keywords;
+            return words.every(function (w) { return hay.indexOf(w) !== -1; });
+        }).slice(0, 60);
         artComboState[key].filtered = matches;
         artComboState[key].highlight = matches.length ? 0 : -1;
         renderArtDropdown(key);
@@ -335,6 +416,7 @@ function initArtComboFor(key) {
     });
     input.on('blur', function () {
         setTimeout(function () {
+            if (document.activeElement === input[0]) return;   // clicked back in and typing again
             $('#artDropdown-' + key).hide();
             if (artComboState[key].confirmed) return;
             var typed = input.val().trim().toLowerCase();
@@ -343,7 +425,7 @@ function initArtComboFor(key) {
             var exact = artIndex.filter(function (a) {
                 return a.id.toLowerCase() === typed || (a.id + ' — ' + a.label).toLowerCase() === typed;
             });
-            if (exact.length === 1) { selectArt(key, exact[0]); return; }
+            if (exact.length) { selectArt(key, exact[0]); return; }   // approved requests are listed first
             input.addClass('invalid'); $('#artError-' + key).show();
         }, 150);
     });
@@ -368,11 +450,24 @@ function initArtComboFor(key) {
 function renderArtDropdown(key) {
     var st = artComboState[key];
     var dd = $('#artDropdown-' + key);
-    if (!st.filtered.length) { dd.html('<div class="art-empty">No approved designs match that.</div>').show(); return; }
+    if (!st.filtered.length) {
+        var msg = artLoadState === 'loading' ? 'Loading the art list…' :
+                  artLoadState === 'failed' ? 'Couldn’t load the art list. Refresh the page to try again.' : 'No approved designs match that.';
+        dd.html('<div class="art-empty">' + msg + '</div>').show(); return;
+    }
+    var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+    var lastSource = null;
     var html = st.filtered.map(function (a, i) {
-        return '<div class="art-option' + (i === st.highlight ? ' highlighted' : '') + '" data-i="' + i + '">' +
-            '<div class="art-option-thumb" style="background:#888;">🖼️</div>' +
-            '<div class="art-option-text"><div class="art-id">' + a.id + '</div><div class="art-desc">' + a.label + '</div></div></div>';
+        var head = '';
+        if (a.source && a.source !== lastSource) {
+            head = '<div class="art-group">' + (a.source === 'request' ? 'Approved art requests' : 'Art Library: proven designs') + '</div>';
+            lastSource = a.source;
+        }
+        var t = thumbFor(a.thumbId);
+        return head + '<div class="art-option' + (i === st.highlight ? ' highlighted' : '') + '" data-i="' + i + '">' +
+            '<div class="art-option-thumb" data-thumb="' + esc(a.thumbId || '') + '" style="' + thumbStyle(a.thumbId) + '">' + (t ? '' : '🖼️') + '</div>' +
+            '<div class="art-option-text"><div class="art-id">' + esc(a.id) + '</div><div class="art-desc">' + esc(a.label) + '</div>' +
+            (a.tag ? '<div class="art-tag' + (a.source === 'request' ? ' req' : '') + '">' + esc(a.tag) + '</div>' : '') + '</div></div>';
     }).join('');
     dd.html(html).show();
 }
@@ -382,7 +477,10 @@ function showArtPreview(key, art, locked) {
     var panel = $('#artPreview-' + key), thumb = $('#artPreviewThumb-' + key), empty = $('#artPreviewEmpty-' + key), text = $('#artPreviewText-' + key), status = $('#artPreviewStatus-' + key);
     if (!art) { panel.removeClass('locked'); thumb.css('background', '#ddd').text('🖼️'); empty.show(); text.hide(); status.text(''); return; }
     empty.hide(); text.show();
-    thumb.css('background', '#607D8B').text('🖼️');
+    var t = thumbFor(art.thumbId);
+    thumb.attr('data-thumb', art.thumbId || '');
+    if (t) thumb.css({ background: '#fff url(\'' + t + '\') center/contain no-repeat' }).text('');
+    else thumb.css('background', '#607D8B').text('🖼️');
     $('#artPreviewId-' + key).text(art.id);
     $('#artPreviewDesc-' + key).text(art.label);
     panel.toggleClass('locked', locked);
@@ -415,6 +513,7 @@ function addGridToCart(garmentType) {
                 category: 'APPAREL', isCustom: true,
                 style: tier.baseSKU, styleDesc: tier.description,
                 color: st.color, artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
+                artRequestId: st.art && st.art.requestId ? st.art.requestId : '',
                 cost: parseFloat(tier.prices[sz]) || 0
             });
             addedAny = true;
@@ -479,6 +578,7 @@ function addHardgoodToCart(key) {
         category: rec.category, isCustom: rec.requiresArt,
         style: rec.baseSKU, styleDesc: rec.description,
         color: st.color || '', artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
+        artRequestId: st.art && st.art.requestId ? st.art.requestId : '',
         cost: parseFloat(rec.prices.OS) || parseFloat(rec.prices.S) || 0
     });
     $('#qty-' + key).val(0);
