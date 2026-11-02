@@ -1293,6 +1293,18 @@ function copyGarmentsFromFirst($card) {
 }
 
 // Put an item (or nothing) into a row and update its label, chips and color hint
+// Dropdown line: the parent RIN, plus the size RIN that matched a typed number.
+function rinMatchText(style, q) {
+    var d = RIN_DATA[style];
+    if (!d) return '';
+    var digits = String(q || '').trim().replace(/[oO]/g, '0'), hit = '';
+    if (/^\d{3,}$/.test(digits) && (d.p || '').indexOf(digits) === -1) {
+        var m = d.r.filter(function (x) { return x[1].indexOf(digits) !== -1; })[0];
+        if (m) hit = ' · ' + (m[0] ? m[0] + ' ' : 'RIN ') + m[1];
+    }
+    return (d.p ? ' · Parent RIN ' + esc(d.p) : '') + esc(hit);
+}
+
 // Parent RIN + the RIN for each size (from the order template; update_rins.py keeps RIN_DATA current).
 function rinHtml(style) {
     var d = RIN_DATA[style];
@@ -1350,6 +1362,7 @@ function searchItems(query) {
     var list = catalog[state.account] || [];
     // A pasted style # (with or without a size suffix) or RIN / parent RIN jumps straight to its item.
     var rin = query.trim().toUpperCase().replace(/-(XS|S|M|L|XL|XX|XXL|2X|3X|XXX|3XL|4X|OS|OSFA|OSFM|SM|MD|LG)$/, '');
+    if (/^[\dO]{6,}$/.test(rin) && /\d/.test(rin)) rin = rin.replace(/O/g, '0');
     var exact = list.filter(function (it) {
         if (it.style.toUpperCase() === rin) return true;
         var d = RIN_DATA[it.style];
@@ -1358,6 +1371,15 @@ function searchItems(query) {
     if (exact.length) return exact;
     var tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (!tokens.length) return list;
+    // Part of a RIN (3+ digits) finds every item whose parent or size RIN contains it.
+    // A letter O typed among digits counts as a zero.
+    var digits = query.trim().replace(/[oO]/g, '0');
+    if (/^\d{3,}$/.test(digits)) {
+        return list.filter(function (it) {
+            var d = RIN_DATA[it.style];
+            return !!(d && ((d.p || '').indexOf(digits) !== -1 || d.r.some(function (x) { return x[1].indexOf(digits) !== -1; })));
+        });
+    }
     return list.filter(function (it) {
         var hay = (it.desc + ' ' + it.style).toLowerCase();
         return tokens.every(function (t) { return hay.indexOf(t) !== -1; });
@@ -1389,7 +1411,7 @@ function renderItemDropdown($row) {
         html += '<div class="item-group">' + esc(c) + ' · ' + byCat[c].length + '</div>';
         byCat[c].forEach(function (it) {
             html += '<div class="item-opt" data-i="' + ordered.length + '"><div class="d">' + highlight(it.desc, q) +
-                    '</div><div class="c">' + esc(it.style) + (RIN_DATA[it.style] && RIN_DATA[it.style].p ? ' · Parent RIN ' + esc(RIN_DATA[it.style].p) : '') + '</div></div>';
+                    '</div><div class="c">' + esc(it.style) + rinMatchText(it.style, q) + '</div></div>';
             ordered.push(it);
         });
     });
