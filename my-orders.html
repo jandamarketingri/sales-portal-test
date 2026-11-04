@@ -502,6 +502,19 @@
         .art-chip   { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #e0f2f1; color: #00695c; font-family: 'DM Mono', monospace; white-space: nowrap; }
         .status-drinkware { background: #e0f2f1; color: #00695c; }
     </style>
+<script>
+// Role shown next to the person's name in the top bar. Blank role on the login sheet = a sales rep.
+function portalRoleLabel(role) {
+    var r = String(role || '').trim(), k = r.toLowerCase();
+    if (!k || k === 'user') return 'Sales Rep';
+    return { 'admin': 'Admin', 'art admin': 'Art Admin', 'art': 'Art', 'licensing': 'Licensing' }[k] || r;
+}
+function portalRoleTag(role, onDark) {
+    var t = portalRoleLabel(role).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    return '<span class="portal-role-tag" style="display:inline-block;margin-left:7px;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.2px;vertical-align:1px;' +
+        (onDark ? 'background:rgba(255,255,255,.25);color:#fff;' : 'background:#f1eaf7;color:#764ba2;') + '">' + t + '</span>';
+}
+</script>
 </head>
 <body>
 
@@ -703,7 +716,7 @@ $(document).ready(function () {
         var auth = JSON.parse(raw);
         repEmailGlobal = (auth.email || '').toLowerCase().trim();
         sessionTokenGlobal = auth.token || '';
-        $('#repBadge').text(auth.name || auth.email);
+        $('#repBadge').text(auth.name || auth.email).append(portalRoleTag(auth.role, true));
         loadOrders();
     } catch (e) {
         window.location.href = 'login.html';
