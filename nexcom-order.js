@@ -475,7 +475,8 @@ function artHover(key, i) { artComboState[key].highlight = i; renderArtDropdown(
 function artPick(key, i) { selectArt(key, artComboState[key].filtered[i]); }
 function showArtPreview(key, art, locked) {
     var panel = $('#artPreview-' + key), thumb = $('#artPreviewThumb-' + key), empty = $('#artPreviewEmpty-' + key), text = $('#artPreviewText-' + key), status = $('#artPreviewStatus-' + key);
-    if (!art) { panel.removeClass('locked'); thumb.css('background', '#ddd').text('🖼️'); empty.show(); text.hide(); status.text(''); return; }
+    if (!art) { panel.removeClass('locked zoomable').removeData('art').removeAttr('title'); thumb.css('background', '#ddd').text('🖼️'); empty.show(); text.hide(); status.text(''); return; }
+    panel.data('art', art).addClass('zoomable').attr('title', 'Click to see this design larger');
     empty.hide(); text.show();
     var t = thumbFor(art.thumbId);
     thumb.attr('data-thumb', art.thumbId || '');
@@ -486,6 +487,62 @@ function showArtPreview(key, art, locked) {
     panel.toggleClass('locked', locked);
     status.text(locked ? 'Selected' : 'Previewing');
 }
+// ---------------------------------------------------------
+// Larger view of a design: click the preview box under the Artwork search.
+// Shows the small picture right away, then swaps in a bigger one.
+// ---------------------------------------------------------
+var artZoomCache = {}, artZoomId = null;
+function ensureArtZoom() {
+    if ($('#artZoom').length) return;
+    $('head').append('<style>' +
+        '.art-preview.zoomable { cursor: zoom-in; position: relative; }' +
+        '.art-preview.zoomable:hover { border-color: #764ba2; }' +
+        '.art-preview.zoomable::after { content: "🔍"; position: absolute; right: 6px; bottom: 5px; font-size: 11px; opacity: .7; }' +
+        '#artZoom { position: fixed; inset: 0; background: rgba(20,20,30,.72); z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px; }' +
+        '#artZoom.open { display: flex; }' +
+        '#artZoom .az-box { background: #fff; border-radius: 12px; width: 100%; max-width: 820px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.35); }' +
+        '#artZoom .az-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eee; }' +
+        '#artZoom .az-title { font-weight: 700; font-size: 15px; } #artZoom .az-sub { font-size: 12px; color: #666; }' +
+        '#artZoom .az-close { border: none; background: none; font-size: 20px; cursor: pointer; color: #777; line-height: 1; }' +
+        '#artZoom .az-img { flex: 1; min-height: 240px; background: #f4f4f4; display: flex; align-items: center; justify-content: center; }' +
+        '#artZoom .az-img img { max-width: 100%; max-height: calc(92vh - 110px); object-fit: contain; display: block; }' +
+        '#artZoom .az-img img.lowres { width: 320px; max-width: 80%; image-rendering: auto; filter: blur(.3px); opacity: .85; }' +
+        '#artZoom .az-note { padding: 8px 16px; font-size: 12px; color: #777; border-top: 1px solid #eee; min-height: 32px; }' +
+        '</style>');
+    $('body').append('<div id="artZoom" role="dialog" aria-modal="true"><div class="az-box">' +
+        '<div class="az-head"><div><div class="az-title" id="azTitle"></div><div class="az-sub" id="azSub"></div></div>' +
+        '<button type="button" class="az-close" aria-label="Close">✕</button></div>' +
+        '<div class="az-img" id="azImg"></div><div class="az-note" id="azNote"></div></div></div>');
+    $('#artZoom').on('click', function (e) { if (e.target === this || $(e.target).closest('.az-close').length) closeArtZoom(); });
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') closeArtZoom(); });
+}
+function closeArtZoom() { $('#artZoom').removeClass('open'); artZoomId = null; }
+function openArtZoom(art) {
+    ensureArtZoom();
+    var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+    $('#azTitle').text(art.id);
+    $('#azSub').text([art.label, art.tag].filter(Boolean).join(' · '));
+    var small = thumbFor(art.thumbId);
+    $('#azImg').html(small ? '<img class="lowres" src="' + esc(small) + '" alt="">' : '<span style="font-size:48px;color:#bbb;">🖼️</span>');
+    $('#artZoom').addClass('open');
+    artZoomId = art.thumbId || '';
+    if (!art.thumbId || !CFG.orderSubmissionUrl) { $('#azNote').text(small ? '' : 'No picture is available for this design.'); return; }
+    var show = function (r) {
+        if (artZoomId !== art.thumbId) return;   // closed, or switched to another design
+        if (r && r.url) { $('#azImg').html('<img src="' + esc(r.url) + '" alt="' + esc(art.id) + '">'); $('#azNote').text(''); }
+        else $('#azNote').text(small ? 'A larger picture isn’t available for this design, so this is the small one.' : 'No picture is available for this design.');
+    };
+    if (artZoomCache[art.thumbId]) return show(artZoomCache[art.thumbId]);
+    $('#azNote').text('Loading a larger picture…');
+    var auth = {};
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')) || {}; } catch (e) {}
+    fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify({ action: 'artLibraryPreview', id: art.thumbId, email: auth.email, token: auth.token || '' }) })
+        .then(function (r) { return r.json(); })
+        .then(function (r) { if (r && r.success && r.url) artZoomCache[art.thumbId] = r; show(r); })
+        .catch(function () { show(null); });
+}
+$(document).on('click', '.art-preview.zoomable', function () { var art = $(this).data('art'); if (art) openArtZoom(art); });
+
 function selectArt(key, art) {
     artComboState[key].confirmed = art;
     if (gridState[key]) gridState[key].art = art;
