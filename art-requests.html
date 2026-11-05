@@ -136,6 +136,7 @@
         .oe-sizes { display: flex; flex-wrap: wrap; gap: 8px; }
         .oe-sizes label { display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 600; color: var(--text-muted); gap: 2px; }
         .oe-sizes input { width: 66px; padding: 7px 6px; text-align: center; border: 1.5px solid var(--border); border-radius: 6px; font-family: 'DM Mono', monospace; font-size: 14px; }
+        .based-on { font-weight: 400; font-size: 12px; color: var(--text-muted); margin-left: 6px; }
         .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 24px; margin-bottom: 20px; }
         @media (max-width: 600px) { .card { padding: 18px; } }
         .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
@@ -516,8 +517,9 @@ function sketchHtml(s, i) {
             (it.parentRin ? ' <span class="item-rin" title="' + esc((it.rins || []).map(function (x) { return (x[0] ? x[0] + ' ' : 'RIN ') + x[1]; }).join(' · ')) + '">Parent RIN ' + esc(it.parentRin) + '</span>' : '');
     }).join('<br>');
     return '<div class="sketch"><div class="hd"><span class="num">' + (i + 1) + '</span>' +
-        '<b>' + (s.artType === 'new' ? 'New design' + (s.artNumber ? ' <span class="art-num" title="Art #">' + esc(s.artNumber) + '</span>' : ' <span class="tag grey" title="Given when the Art Admin assigns it">Art # pending</span>')
-                                     : 'Existing art' + (s.referToArt ? ' <span class="req-id">' + esc(s.referToArt) + '</span>' : '')) + '</b>' +
+        '<b>' + (s.artNumber ? '<span class="art-num" title="Art #">' + esc(s.artNumber) + '</span>'
+                             : '<span class="tag grey" title="Every sketch gets its own art # when the Art Admin assigns it">Art # pending</span>') +
+        (s.artType === 'new' ? ' <span class="based-on">New design</span>' : (s.referToArt ? ' <span class="based-on">based on <span class="req-id">' + esc(s.referToArt) + '</span></span>' : '')) + '</b>' +
         (s.priceTier ? '<span class="tag grey">' + esc(s.priceTier) + '</span>' : '') +
         (s.licenseSuffix ? (s.licenseSuffix === 'XX' ? '<span class="tag grey">Not licensed</span>' : '<span class="tag">Licensing: ' + esc(licenseLabel(s.licenseSuffix)) + '</span>')
                          : (s.needsLicensing ? '<span class="tag">Licensing</span>' : '')) + '</div>' +
@@ -850,10 +852,13 @@ function filesLine(label, files) {
 }
 
 // ── Art numbers ───────────────────────────────────────────────────────────────
-// Art # per sketch to order with: new designs' assigned #, existing art's #.
+// Each sketch gets its own art # when the Art Admin assigns it. Requests assigned
+// before Nov 2026 only numbered new designs; their existing-art sketches use the
+// art # they started from.
+function sketchNumber(s) { return s.artNumber || (s.artType === 'new' ? '' : (s.referToArt || '')); }
 function orderNumbersHtml(d, label) {
     var list = (d.sketches || []).map(function (s, i) {
-        return { n: i + 1, num: s.artType === 'new' ? s.artNumber : s.referToArt };
+        return { n: i + 1, num: sketchNumber(s) };
     }).filter(function (x) { return x.num; });
     if (!list.length) return '';
     return '<div class="lbl" style="margin:8px 0 4px;">' + (label || 'Art # to order with') + '</div><div class="order-nums">' + list.map(function (x) {
@@ -874,25 +879,25 @@ function licenseLabel(suf) { var n = licenseName(suf); return suf ? (n ? n + ' (
 // it has a base/branch name, else not licensed.
 function suggestedSuffix(s) {
     if (s.licenseSuffix) return s.licenseSuffix;
-    var m = /_([A-Z]{2})$/.exec(s.artType === 'new' ? (s.artNumber || '') : String(s.referToArt || '').toUpperCase());
-    if (m && !(m[1] === 'XX' && s.needsLicensing && s.artType !== 'new')) return m[1];   // _XX art + a base/branch name → licensed
+    var fromRef = !s.artNumber && s.artType !== 'new';
+    var m = /_([A-Z]{2})$/.exec(fromRef ? String(s.referToArt || '').toUpperCase() : (s.artNumber || ''));
+    if (m && !(m[1] === 'XX' && s.needsLicensing && fromRef)) return m[1];   // _XX art + a base/branch name → licensed
     return s.needsLicensing ? numberInfo.licensedSuffix : 'XX';
 }
-// Assign box: licensing for every sketch, and the art # new designs will get.
+// Assign box: licensing for every sketch, and the new art # each one will get.
 function assignNumbersHtml(q) {
-    var d = q.data || {}, rows = [], anyNew = false;
+    var d = q.data || {}, rows = [], anyNew = true;
     (d.sketches || []).forEach(function (s, i) {
         var isNew = s.artType === 'new';
-        if (isNew) anyNew = true;
         var m = /^([A-Z]{2}\d+)_([A-Z]{2})$/.exec(s.artNumber || '');
         var suf = suggestedSuffix(s), known = !!licenseName(suf);
         var refXXlic = !isNew && /_XX$/i.test(s.referToArt || '') && s.needsLicensing;
         var why = s.licenseSuffix ? 'set earlier' :
-            (!isNew && /_[A-Z]{2}$/i.test(s.referToArt || '') && !refXXlic) ? 'from ' + s.referToArt :
+            (!isNew && /_[A-Z]{2}$/i.test(s.referToArt || '') && !refXXlic) ? 'same licensing as the original' :
             (s.needsLicensing ? 'rep said it has a base or branch name' : '');
         rows.push('<div class="num-row"><span class="on-sk">Sketch ' + (i + 1) + '</span>' +
-            (isNew ? '<span class="art-num js-num-preview" data-i="' + i + '" data-cur="' + esc(m ? m[1] : '') + '"></span>'
-                   : '<span class="req-id">' + esc(s.referToArt || 'Existing art') + '</span>') +
+            '<span class="art-num js-num-preview" data-i="' + i + '" data-cur="' + esc(m ? m[1] : '') + '"></span>' +
+            (!isNew && s.referToArt ? '<span class="hint" style="margin:0;">based on ' + esc(s.referToArt) + '</span>' : '') +
             '<select class="js-lic-sel" data-i="' + i + '">' + LICENSE_TYPES.map(function (t) {
                 return '<option value="' + t[0] + '"' + (t[0] === suf ? ' selected' : '') + '>' + t[0] + ' · ' + esc(t[1]) + '</option>';
             }).join('') + '<option value="OTHER"' + (known ? '' : ' selected') + '>Other…</option></select>' +
