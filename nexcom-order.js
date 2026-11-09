@@ -334,8 +334,7 @@ function renderGridCard(garmentType, group) {
     }).join('');
 
     var sizeInputs = SIZE_ORDER.map(function (sz) {
-        return '<div class="size-item"><div class="size-label">' + sz + '</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + garmentType + '-' + sz + '">' +
-            '<div class="size-rin" id="rin-' + garmentType + '-' + sz + '"></div></div>';
+        return '<div class="size-item"><div class="size-label">' + sz + '</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + garmentType + '-' + sz + '"></div>';
     }).join('');
 
     return '<div class="sku-card" data-garment="' + garmentType + '">' +
@@ -353,6 +352,7 @@ function renderGridCard(garmentType, group) {
         '</div>' +
         '<div class="section-label" style="margin-top:14px;">Quantities</div>' +
         '<div class="size-grid">' + sizeInputs + '</div>' +
+        '<div class="size-rins" id="sizeRins-' + garmentType + '"></div>' +
         '<button class="add-btn" onclick="addGridToCart(\'' + garmentType + '\')">Add to Cart</button>' +
         '</div>';
 }
@@ -593,15 +593,16 @@ function rinLineHtml(style, sizes) {
 function updateGridRins(garmentType) {
     var st = gridState[garmentType], tier = st && gridGroups[garmentType].tiers[st.tierKey];
     if (!tier) return;
-    var any = false;
+    var chips = [];
     SIZE_ORDER.forEach(function (sz) {
         var rin = tier.skus[sz] ? rinFor(tier.baseSKU, sz, tier.skus[sz]) : '';
-        if (rin) any = true;
-        $('#rin-' + garmentType + '-' + sz).text(rin).attr('title', rin ? 'RIN ' + rin + ' · SKU ' + tier.skus[sz] : '');
+        if (rin) chips.push('<span class="sr-chip" title="SKU ' + rinEsc(tier.skus[sz]) + '"><span class="sr-size">' + sz + '</span>' + rinEsc(rin) + '</span>');
     });
+    var any = chips.length > 0;
+    $('#sizeRins-' + garmentType).html(any ? '<div class="sr-label">RIN by size</div><div class="sr-chips">' + chips.join('') + '</div>' : '');
     var parent = parentRinFor(tier.baseSKU);
     $('#rinLine-' + garmentType).html(parent || any
-        ? 'Parent RIN <b>' + rinEsc(parent || '—') + '</b> · Style <b>' + rinEsc(tier.baseSKU) + '</b>' + (any ? ' <span class="rin-none">· size RINs below</span>' : '')
+        ? 'Parent RIN <b>' + rinEsc(parent || '—') + '</b> · Style <b>' + rinEsc(tier.baseSKU) + '</b>' + ''
         : '<span class="rin-none">RIN not assigned yet</span> · Style <b>' + rinEsc(tier.baseSKU) + '</b>');
 }
 
@@ -632,9 +633,13 @@ function buildRinIndex() {
 function ensureRinFinder() {
     if (!$('#rinFind').length) {
         $('head').append('<style>' +
-            '.rin-line { font-size: 12px; color: #555; margin: -8px 0 10px; } .rin-line b { font-family: Menlo, Consolas, monospace; font-weight: 600; color: #333; }' +
+            '.rin-line { font-size: 13.5px; color: #555; margin: -8px 0 10px; line-height: 1.5; } .rin-line b { font-family: Menlo, Consolas, monospace; font-weight: 700; color: #222; font-size: 14px; }' +
+            '.size-rins { margin-top: 10px; } .sr-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #666; margin-bottom: 6px; }' +
+            '.sr-chips { display: flex; flex-wrap: wrap; gap: 6px; }' +
+            '.sr-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 4px; border: 1px solid #e3d9ee; background: #faf7fd; border-radius: 14px; font-family: Menlo, Consolas, monospace; font-size: 14px; font-weight: 600; color: #222; }' +
+            '.sr-size { font-family: Arial, sans-serif; font-size: 11px; font-weight: 700; color: #fff; background: #764ba2; border-radius: 10px; padding: 2px 7px; min-width: 14px; text-align: center; }' +
             '.rin-none { color: #999; font-style: italic; }' +
-            '.size-rin { font-family: Menlo, Consolas, monospace; font-size: 9.5px; color: #777; margin-top: 3px; letter-spacing: -.3px; min-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: clip; }' +
+            
             '.rin-find { background: white; margin: -6px 30px 20px; padding: 14px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }' +
             '.rin-find label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 6px; }' +
             '.rf-wrap { position: relative; max-width: 560px; }' +
@@ -648,7 +653,7 @@ function ensureRinFinder() {
             '.rf-empty { padding: 9px 10px; font-size: 12.5px; color: #888; font-style: italic; }' +
             '.rf-hint { font-size: 11.5px; color: #888; margin-top: 6px; }' +
             '.rin-flash { animation: rinFlash 1.6s ease-out; } @keyframes rinFlash { 0%,40% { box-shadow: 0 0 0 3px #764ba2; } 100% { box-shadow: 0 0 0 0 transparent; } }' +
-            '@media (max-width: 480px) { .rin-find { margin-left: 14px; margin-right: 14px; } .size-rin { font-size: 8px; letter-spacing: -.5px; } }' +
+            '@media (max-width: 480px) { .rin-find { margin-left: 14px; margin-right: 14px; } .sr-chip { font-size: 13px; } }' +
             '</style>');
         $('.rep-info-bar').after('<div class="rin-find"><label for="rinFind">Find an item by RIN or SKU</label>' +
             '<div class="rf-wrap"><input type="text" id="rinFind" autocomplete="off" inputmode="search"><div class="rf-list" id="rinFindList"></div></div>' +
@@ -712,6 +717,7 @@ function goToRinEntry(e) {
     $card[0].scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     $card.removeClass('rin-flash'); void $card[0].offsetWidth; $card.addClass('rin-flash');
     $qty.closest('.size-item').removeClass('rin-flash'); void $card[0].offsetWidth; $qty.closest('.size-item').addClass('rin-flash');
+    if (e.kind === 'grid' && e.rin) $card.find('.sr-chip').filter(function () { return $(this).text().indexOf(e.rin) !== -1; }).removeClass('rin-flash').addClass('rin-flash');
     setTimeout(function () { $qty.trigger('focus').trigger('select'); }, 450);
 }
 
