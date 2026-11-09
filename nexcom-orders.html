@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Orders - NEXCOM - Sales Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f4f0; --surface: #ffffff; --surface-2: #fafaf8; --border: #e2e0d8;
+            --text: #1a1a18; --text-muted: #7a7870; --accent: #667eea; --accent2: #764ba2; --accent-soft: #f0f4ff;
+            --grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: #2e7d32; --success-bg: #e8f5e9; --warning: #b45309; --warning-bg: #fff8e1;
+            --error: #c62828; --error-bg: #ffebee; --shadow: 0 2px 12px rgba(0,0,0,0.07); --radius: 10px;
+        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { color: var(--accent); }
+        .portal-header {
+            background: var(--grad); color: white; padding: 0 32px; display: flex; align-items: center;
+            justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 16px rgba(102,126,234,0.3);
+        }
+        .portal-header .logo-area { display: flex; align-items: center; gap: 14px; }
+        .portal-header img.logo { max-height: 38px; max-width: 120px; object-fit: contain; }
+        .portal-header h1 { font-size: 17px; font-weight: 600; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .rep-badge { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; }
+        .btn-back { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: white; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; }
+        @media (max-width: 600px) { .portal-header { padding: 0 16px; } .rep-badge { display: none; } .portal-header h1 { font-size: 15px; } }
+
+        .page-body { max-width: 1000px; margin: 0 auto; padding: 32px 24px 80px; }
+        @media (max-width: 600px) { .page-body { padding: 22px 16px 80px; } }
+        .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+        .page-title { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+        .page-subtitle { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+        .btn-primary, .btn-secondary {
+            display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+            font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; white-space: nowrap;
+        }
+        .btn-primary { background: var(--grad); color: white; box-shadow: 0 3px 12px rgba(102,126,234,0.3); }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+        .tab { padding: 10px 12px; font-size: 13.5px; font-weight: 500; color: var(--text-muted); white-space: nowrap; cursor: pointer; border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; font-family: 'DM Sans', sans-serif; }
+        .tab:hover { color: var(--accent); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+        .tab .count { display: inline-block; min-width: 20px; padding: 1px 6px; margin-left: 4px; border-radius: 10px; background: #eeede8; font-size: 11px; font-family: 'DM Mono', monospace; text-align: center; }
+        .filters { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .filters input, .filters select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); outline: none; color: var(--text); }
+        .filters input[type="search"] { flex: 1; min-width: 200px; }
+        .all-toggle input { width: 16px; height: 16px; accent-color: var(--accent2); }
+        .filters input:focus, .filters select:focus { border-color: var(--accent); }
+        .all-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; }
+
+        .order { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 12px; overflow: hidden; }
+        .order-top { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; padding: 16px 18px 12px; }
+        .po { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; letter-spacing: 0.2px; }
+        .order-store { font-size: 14.5px; font-weight: 600; margin-top: 3px; }
+        .order-meta { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .order-right { text-align: right; }
+        .order-total { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; margin-top: 6px; }
+        .order-total small { display: block; font-family: 'DM Sans', sans-serif; color: var(--text-muted); font-size: 12px; font-weight: 400; }
+        .pill { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .pill.open { background: var(--accent-soft); color: #4553b8; }
+        .pill.wait { background: var(--warning-bg); color: var(--warning); }
+        .pill.done { background: var(--success-bg); color: var(--success); }
+        .pill.cancelled { background: #eeede8; color: var(--text-muted); }
+        .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #f1eaf7; color: var(--accent2); margin-left: 6px; vertical-align: 2px; }
+        .tag.grey { background: #eeede8; color: var(--text-muted); }
+        .order-notes { padding: 0 18px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+        .note-art { background: var(--warning-bg); border: 1px solid #f3dca6; border-radius: 8px; padding: 8px 12px; }
+        .note-art.done { background: var(--surface-2); border-color: var(--border); }
+        .note-ship { background: var(--success-bg); border: 1px solid #c3e6cb; border-radius: 8px; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+        .track { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 12px; background: white; border: 1px solid #c3e6cb; font-family: 'DM Mono', monospace; font-size: 12px; text-decoration: none; color: var(--text); }
+        .track b { font-family: 'DM Sans', sans-serif; font-size: 10.5px; color: var(--success); }
+        details.lines { border-top: 1px solid var(--border); }
+        details.lines summary { padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; list-style: none; }
+        details.lines summary::-webkit-details-marker { display: none; }
+        details.lines summary::before { content: '▸ '; }
+        details.lines[open] summary::before { content: '▾ '; }
+        .tbl-wrap { overflow-x: auto; padding: 0 18px 14px; }
+        table.items { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+        table.items th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; padding: 6px 6px; border-bottom: 1.5px solid var(--border); }
+        table.items td { padding: 7px 6px; border-bottom: 1px solid #efeee9; vertical-align: top; }
+        table.items td.n, table.items th.n { text-align: right; font-family: 'DM Mono', monospace; white-space: nowrap; }
+        table.items .mono { font-family: 'DM Mono', monospace; font-size: 12px; }
+        table.items .sub { color: var(--text-muted); font-size: 12px; }
+        table.items tr.tot td { font-weight: 700; border-bottom: none; }
+
+        .state-box { text-align: center; padding: 56px 20px; color: var(--text-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); }
+        .state-box .icon { font-size: 32px; margin-bottom: 10px; }
+        .state-box p { font-size: 14px; line-height: 1.6; }
+        .spinner { width: 28px; height: 28px; border: 3px solid #e0e0f5; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        mark { background: #fff1a8; color: inherit; padding: 0 1px; border-radius: 2px; }
+        @media (max-width: 600px) {
+            .order-top { grid-template-columns: 1fr; }
+            .order-right { text-align: left; display: flex; gap: 12px; align-items: center; }
+            .order-total { margin-top: 0; }
+        }
+    </style>
+<script>
+function portalRoleLabel(role) {
+    var r = String(role || '').trim(), k = r.toLowerCase();
+    if (!k || k === 'user') return 'Sales Rep';
+    return { 'admin': 'Admin', 'art admin': 'Art Admin', 'art': 'Art', 'licensing': 'Licensing' }[k] || r;
+}
+function portalRoleTag(role, onDark) {
+    var t = portalRoleLabel(role).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    return '<span class="portal-role-tag" style="display:inline-block;margin-left:7px;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.2px;vertical-align:1px;' +
+        (onDark ? 'background:rgba(255,255,255,.25);color:#fff;' : 'background:#f1eaf7;color:#764ba2;') + '">' + t + '</span>';
+}
+</script>
+</head>
+<body>
+
+<header class="portal-header">
+    <div class="logo-area">
+        <img class="logo" src="nex-logo.jpg" alt="NEXCOM" onerror="this.style.display='none'">
+        <h1>My Orders</h1>
+    </div>
+    <div class="header-right">
+        <span class="rep-badge" id="repBadge"></span>
+        <a class="btn-back" href="nexcom-hub.html">← NEXCOM Hub</a>
+    </div>
+</header>
+
+<main class="page-body">
+    <div class="page-head">
+        <div>
+            <div class="page-title">My Orders</div>
+            <div class="page-subtitle" id="subtitle">Every NEXCOM order you’ve placed: from the Souvenir and Local Navy Pride order pages, and orders placed with an art request.</div>
+        </div>
+        <div class="head-actions">
+            <a class="btn-secondary" href="art-requests.html">🎨 Art Requests</a>
+            <a class="btn-primary" href="nexcom-hub.html">＋ New Order</a>
+        </div>
+    </div>
+
+    <div class="tabs" id="tabs">
+        <button class="tab active" data-stage="open">In progress <span class="count" id="cOpen">0</span></button>
+        <button class="tab" data-stage="done">Shipped &amp; completed <span class="count" id="cDone">0</span></button>
+        <button class="tab" data-stage="cancelled">Cancelled <span class="count" id="cCancelled">0</span></button>
+        <button class="tab" data-stage="all">All <span class="count" id="cAll">0</span></button>
+    </div>
+    <div class="filters">
+        <input type="search" id="search" placeholder="Search by PO, store, item, RIN, art # or art request…">
+        <select id="range">
+            <option value="all">Any date</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last 12 months</option>
+        </select>
+        <label class="all-toggle" id="allToggle" style="display:none;"><input type="checkbox" id="allReps"> All reps (admin)</label>
+    </div>
+
+    <div id="list"><div class="state-box"><div class="spinner"></div><p>Loading your orders…</p></div></div>
+</main>
+
+<script>
+// Same relay the order and art pages use (NEXCOM script, action nxMyOrders in NexcomOrders.gs).
+var API_URL = 'https://blue-silence-0a95.will1298.workers.dev/nexcom';
+
+var auth = null, orders = [], stage = 'open', allMode = false;
+
+// Plain-language status for reps. Anything else the office types in the
+// Status column (e.g. "In Production") is shown as written.
+var STATUS_TEXT = { 'Awaiting Art': 'Waiting on art approval', 'New': 'Received', 'Cancelled': 'Cancelled' };
+var ART_STATUS_TEXT = {
+    'Submitted': 'The art team has the request and will assign an artist.',
+    'In Art': 'An artist is working on the proofs.',
+    'Revise': 'The artist is making the changes that were asked for.',
+    'On Hold': 'The art request is on hold.',
+    'Proof Ready': 'Proofs are ready. Waiting on the buyer’s approval.',
+    'Licensing': 'The buyer approved. Waiting on licensing approval.',
+    'Ready to Order': 'The art is approved. The order is being released.'
+};
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function money(n) { return '$' + Number(n || 0).toFixed(2); }
+
+$(function () {
+    try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')); } catch (e) {}
+    if (!auth || !auth.email) { window.location.href = 'login.html'; return; }
+    $('#repBadge').text(auth.name || auth.email).append(portalRoleTag(auth.role, true));
+    try { var t = localStorage.getItem('nxOrdersTab'); if (t) stage = t; } catch (e) {}
+    $('#tabs .tab').removeClass('active').filter('[data-stage="' + stage + '"]').addClass('active');
+
+    $('#tabs').on('click', '.tab', function () {
+        stage = $(this).data('stage');
+        $('#tabs .tab').removeClass('active'); $(this).addClass('active');
+        try { localStorage.setItem('nxOrdersTab', stage); } catch (e) {}
+        render();
+    });
+    $('#search').on('input', render);
+    $('#range').on('change', render);
+    $('#allReps').on('change', function () { allMode = this.checked; load(); });
+    load();
+});
+
+function load() {
+    $('#list').html('<div class="state-box"><div class="spinner"></div><p>Loading ' + (allMode ? 'all reps’' : 'your') + ' orders…</p></div>');
+    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'nxMyOrders', email: auth.email, token: auth.token || '', all: allMode }) })
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (r && r.sessionExpired) {
+                $('#list').html('<div class="state-box"><div class="icon">🔒</div><p>Your login has expired.<br><a href="login.html" onclick="sessionStorage.removeItem(\'salesPortalAuth\')">Log in again</a> to see your orders.</p></div>');
+                return;
+            }
+            if (!r || !r.success) {
+                $('#list').html('<div class="state-box"><div class="icon">⚠️</div><p>' + esc((r && r.message) || 'Could not load your orders.') + '</p></div>');
+                return;
+            }
+            orders = r.orders || [];
+            if (r.canSeeAll) $('#allToggle').show();
+            $('#subtitle').text(allMode ? 'Every NEXCOM order, from all reps.'
+                : 'Every NEXCOM order you’ve placed: from the Souvenir and Local Navy Pride order pages, and orders placed with an art request.');
+            render();
+        })
+        .catch(function () {
+            $('#list').html('<div class="state-box"><div class="icon">⚠️</div><p>Could not reach the server. Check your connection and <a href="#" onclick="load();return false;">try again</a>.</p></div>');
+        });
+}
+
+function searchText(o) {
+    return [o.po, o.storeName, o.shipTo, o.catalog, o.status, o.artRequestId, o.repName, o.tracking]
+        .concat(o.lines.map(function (l) { return [l.sku, l.style, l.description, l.size, l.color, l.artNumber, l.art].join(' '); }))
+        .join(' ').toLowerCase();
+}
+
+function render() {
+    var q = $.trim($('#search').val()).toLowerCase(), days = $('#range').val(), now = Date.now();
+    var base = orders.filter(function (o) {
+        if (days !== 'all') {
+            var t = Date.parse(o.placed);
+            if (isNaN(t) || t < now - (+days) * 86400000) return false;
+        }
+        return !q || searchText(o).indexOf(q) !== -1;
+    });
+    var count = function (s) { return base.filter(function (o) { return o.stage === s; }).length; };
+    $('#cOpen').text(count('open')); $('#cDone').text(count('done')); $('#cCancelled').text(count('cancelled')); $('#cAll').text(base.length);
+    var shown = stage === 'all' ? base : base.filter(function (o) { return o.stage === stage; });
+
+    if (!orders.length) {
+        $('#list').html('<div class="state-box"><div class="icon">📦</div><p>' + (allMode ? 'No NEXCOM orders yet.' : 'You haven’t placed any NEXCOM orders yet.') +
+            '<br>Orders you place on the order pages or with an art request will show up here.</p></div>');
+        return;
+    }
+    if (!shown.length) {
+        var what = { open: 'in progress', done: 'shipped or completed', cancelled: 'cancelled', all: '' }[stage];
+        $('#list').html('<div class="state-box"><div class="icon">🔍</div><p>No ' + (what ? what + ' ' : '') + 'orders' + (q ? ' match “' + esc(q) + '”' : '') +
+            (days !== 'all' ? ' in this date range' : '') + '.</p></div>');
+        return;
+    }
+    $('#list').html(shown.map(orderHtml).join(''));
+}
+
+function hl(s, q) {
+    s = esc(s);
+    if (!q) return s;
+    var i = s.toLowerCase().indexOf(esc(q));
+    return i === -1 ? s : s.slice(0, i) + '<mark>' + s.slice(i, i + esc(q).length) + '</mark>' + s.slice(i + esc(q).length);
+}
+
+function pillHtml(o) {
+    var cls = o.stage === 'done' ? 'done' : o.stage === 'cancelled' ? 'cancelled' : o.status === 'Awaiting Art' ? 'wait' : 'open';
+    var txt = o.stage === 'done' && !/^(shipped|complete|completed|delivered|closed|invoiced)$/i.test(o.status) ? 'Shipped' : (STATUS_TEXT[o.status] || o.status);
+    return '<span class="pill ' + cls + '">' + esc(txt) + '</span>';
+}
+
+function orderHtml(o) {
+    var q = $.trim($('#search').val()).toLowerCase();
+    var h = '<div class="order"><div class="order-top"><div>' +
+        '<div><span class="po">' + hl(o.po, q) + '</span><span class="tag">' + esc(o.catalog || 'NEXCOM') + '</span>' +
+        (o.artRequestId ? '<span class="tag grey">With art request</span>' : '') + '</div>' +
+        '<div class="order-store">' + hl(o.storeName, q) + (o.shipTo ? ' <span style="color:var(--text-muted);font-weight:400;">(' + esc(o.shipTo) + ')</span>' : '') + '</div>' +
+        '<div class="order-meta"><span>Placed ' + esc(o.placedText || '—') + '</span>' +
+        (o.beginShip ? '<span>Ships ' + esc(o.beginShip) + (o.shipBy ? ' – ' + esc(o.shipBy) : '') + '</span>' : '') +
+        (allMode ? '<span>Rep: ' + hl(o.repName || o.repEmail, q) + '</span>' : '') + '</div>' +
+        '</div><div class="order-right">' + pillHtml(o) +
+        '<div class="order-total">' + money(o.totalCost) + '<small>' + o.totalQty + ' pcs</small></div></div></div>';
+
+    var notes = '';
+    if (o.artRequestId) {
+        var link = '<a href="art-requests.html?id=' + encodeURIComponent(o.artRequestId) + '">' + hl(o.artRequestId, q) + '</a>';
+        if (o.status === 'Awaiting Art') {
+            notes += '<div class="note-art">🎨 <b>Art request ' + link + ':</b> ' +
+                esc(ART_STATUS_TEXT[o.artStatus] || 'Waiting on the art.') +
+                ' This order goes to production automatically once the art is approved.</div>';
+        } else {
+            notes += '<div class="note-art done">🎨 Placed with art request ' + link + '.</div>';
+        }
+    }
+    if (o.shipped || o.tracking) {
+        notes += '<div class="note-ship">🚚 <b>Shipped' + (o.shipped ? ' ' + esc(o.shipped) : '') + '</b>' +
+            (o.tracking ? o.tracking.split(',').map(trackHtml).join('') : '') + '</div>';
+    }
+    if (notes) h += '<div class="order-notes">' + notes + '</div>';
+
+    h += '<details class="lines"' + (q && o.lines.some(function (l) { return [l.sku, l.style, l.description, l.artNumber].join(' ').toLowerCase().indexOf(q) !== -1; }) ? ' open' : '') + '>' +
+        '<summary>' + o.lines.length + ' line' + (o.lines.length === 1 ? '' : 's') + '</summary><div class="tbl-wrap"><table class="items">' +
+        '<tr><th>Item</th><th>RIN / SKU</th><th>Size</th><th>Art #</th><th class="n">Qty</th><th class="n">Cost</th><th class="n">Total</th></tr>' +
+        o.lines.map(function (l) {
+            return '<tr><td>' + hl(l.description || l.style, q) + (l.color ? '<div class="sub">' + esc(l.color) + '</div>' : '') +
+                (l.style && l.style !== l.description ? '<div class="sub mono">' + hl(l.style, q) + '</div>' : '') + '</td>' +
+                '<td class="mono">' + hl(l.sku, q) + '</td><td>' + esc(l.size || '—') + '</td>' +
+                '<td class="mono">' + (l.artNumber ? hl(l.artNumber, q) : (o.status === 'Awaiting Art' ? '<span class="sub">pending</span>' : '—')) + '</td>' +
+                '<td class="n">' + l.qty + '</td><td class="n">' + money(l.cost) + '</td><td class="n">' + money(l.ext) + '</td></tr>';
+        }).join('') +
+        '<tr class="tot"><td colspan="4">Total</td><td class="n">' + o.totalQty + '</td><td></td><td class="n">' + money(o.totalCost) + '</td></tr>' +
+        '</table></div></details>';
+    return h + '</div>';
+}
+
+// Tracking numbers → carrier links (same rules as the AAFES My Orders page).
+function trackHtml(num) {
+    var n = String(num).replace(/\s+/g, '');
+    if (!n) return '';
+    var c = /^1Z/i.test(n) ? ['UPS', 'https://www.ups.com/track?tracknum=']
+          : /^9\d{19,21}$/.test(n) ? ['USPS', 'https://tools.usps.com/go/TrackConfirmAction?tLabels=']
+          : (/^\d{12}$/.test(n) || /^\d{15}$/.test(n) || /^\d{20}$/.test(n)) ? ['FedEx', 'https://www.fedex.com/fedextrack/?trknbr=']
+          : ['Track', 'https://www.google.com/search?q='];
+    return '<a class="track" target="_blank" rel="noopener" href="' + esc(c[1] + encodeURIComponent(c[0] === 'Track' ? n + ' tracking' : n)) + '"><b>' + c[0] + '</b>' + esc(n) + '</a>';
+}
+</script>
+</body>
+</html>

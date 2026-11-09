@@ -74,7 +74,7 @@ function renderTopBar(auth) {
     var bar = '<div style="position:fixed;top:20px;right:20px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:flex;gap:10px;align-items:center;z-index:1000;">' +
         '<span style="color:#666;font-size:14px;">👤 ' + auth.name + portalRoleTag(auth.role) + '</span>' +
         '<a href="nexcom-hub.html" style="background:#667eea;color:white;padding:6px 12px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;">⇄ NEXCOM Hub</a>' +
-        '<a href="my-orders.html" style="background:#764ba2;color:white;padding:6px 12px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;">📋 My Orders</a>' +
+        '<a href="nexcom-orders.html" style="background:#764ba2;color:white;padding:6px 12px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;">📋 My Orders</a>' +
         '<button onclick="logoutNexcom()" style="background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:600;">Logout</button>' +
         '</div>';
     $('body').append(bar);
