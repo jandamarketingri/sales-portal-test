@@ -567,6 +567,21 @@ function selectArt(key, art) {
     showArtPreview(key, art, true);
 }
 
+// NEXCOM's RIN for an item and size, from rin-data.js (the order template).
+// Blank when the item has no RIN yet (e.g. Local Navy Pride today).
+function rinFor(style, size, sku) {
+    var data = window.RIN_DATA || {}, d = data[style];
+    if (!d) { var k = Object.keys(data).filter(function (x) { return x.toUpperCase() === String(style || '').toUpperCase(); })[0]; d = k && data[k]; }
+    if (!d || !d.r) return '';
+    var want = String(sku || '').toUpperCase(), sz = String(size || '').toUpperCase();
+    if (sz === '2XL' || sz === 'XX') sz = 'XXL';
+    if (sz === 'OS') sz = '';
+    var hit = d.r.filter(function (x) { return want && String(x[3] || '').toUpperCase() === want; })[0] ||
+              d.r.filter(function (x) { return String(x[0] || '').toUpperCase() === sz; })[0] ||
+              (d.r.length === 1 ? d.r[0] : null);
+    return hit ? String(hit[1] || '') : '';
+}
+
 function addGridToCart(garmentType) {
     var st = gridState[garmentType];
     var tier = gridGroups[garmentType].tiers[st.tierKey];
@@ -578,7 +593,7 @@ function addGridToCart(garmentType) {
         if (qty > 0 && tier.skus[sz]) {
             cart.push({
                 productName: garmentLabel(garmentType) + ' — ' + tier.colorRange + ' Color/' + tier.locCount + ' Loc',
-                sku: tier.skus[sz], size: sz, quantity: qty,
+                sku: tier.skus[sz], rin: rinFor(tier.baseSKU, sz, tier.skus[sz]), size: sz, quantity: qty,
                 category: 'APPAREL', isCustom: true,
                 style: tier.baseSKU, styleDesc: tier.description,
                 color: st.color, artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
@@ -643,7 +658,7 @@ function addHardgoodToCart(key) {
     var qty = parseInt($('#qty-' + key).val()) || 0;
     if (qty === 0) { alert('Please enter a quantity.'); return; }
     cart.push({
-        productName: rec.baseSKU, sku: rec.skus.OS || rec.baseSKU, size: 'OS', quantity: qty,
+        productName: rec.baseSKU, sku: rec.skus.OS || rec.baseSKU, rin: rinFor(rec.baseSKU, 'OS', rec.skus.OS || rec.baseSKU), size: 'OS', quantity: qty,
         category: rec.category, isCustom: rec.requiresArt,
         style: rec.baseSKU, styleDesc: rec.description,
         color: st.color || '', artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
@@ -678,7 +693,7 @@ function renderCartDrawer() {
     var html = cart.map(function (item, i) {
         return '<div class="cart-line">' +
             '<div><b>' + item.productName + '</b><br>' +
-            '<span style="font-size:11px;color:#666;">SKU: ' + item.sku + ' · Size: ' + item.size + (item.color ? ' · Color: ' + item.color : '') + (item.artId ? ' · Art: ' + item.artId : '') + '</span></div>' +
+            '<span style="font-size:11px;color:#666;">' + (item.rin ? 'RIN: ' + item.rin + ' · ' : '') + 'SKU: ' + item.sku + ' · Size: ' + item.size + (item.color ? ' · Color: ' + item.color : '') + (item.artId ? ' · Art: ' + item.artId : '') + '</span></div>' +
             '<div style="display:flex;align-items:center;gap:10px;"><span>×' + item.quantity + '</span><button onclick="removeCartItem(' + i + ')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:16px;">✕</button></div>' +
             '</div>';
     }).join('');

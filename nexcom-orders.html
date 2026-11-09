@@ -227,7 +227,7 @@ function load() {
 
 function searchText(o) {
     return [o.po, o.storeName, o.shipTo, o.catalog, o.status, o.artRequestId, o.repName, o.tracking]
-        .concat(o.lines.map(function (l) { return [l.sku, l.style, l.description, l.size, l.color, l.artNumber, l.art].join(' '); }))
+        .concat(o.lines.map(function (l) { return [l.rin, l.sku, l.description, l.size, l.color, l.artNumber, l.art].join(' '); }))
         .join(' ').toLowerCase();
 }
 
@@ -300,17 +300,17 @@ function orderHtml(o) {
     }
     if (notes) h += '<div class="order-notes">' + notes + '</div>';
 
-    h += '<details class="lines"' + (q && o.lines.some(function (l) { return [l.sku, l.style, l.description, l.artNumber].join(' ').toLowerCase().indexOf(q) !== -1; }) ? ' open' : '') + '>' +
+    h += '<details class="lines"' + (q && o.lines.some(function (l) { return [l.rin, l.sku, l.description, l.artNumber].join(' ').toLowerCase().indexOf(q) !== -1; }) ? ' open' : '') + '>' +
         '<summary>' + o.lines.length + ' line' + (o.lines.length === 1 ? '' : 's') + '</summary><div class="tbl-wrap"><table class="items">' +
-        '<tr><th>Item</th><th>RIN / SKU</th><th>Size</th><th>Art #</th><th class="n">Qty</th><th class="n">Cost</th><th class="n">Total</th></tr>' +
+        '<tr><th>Item</th><th>RIN</th><th>SKU</th><th>Size</th><th>Art #</th><th class="n">Qty</th><th class="n">Cost</th><th class="n">Total</th></tr>' +
         o.lines.map(function (l) {
             return '<tr><td>' + hl(l.description || l.style, q) + (l.color ? '<div class="sub">' + esc(l.color) + '</div>' : '') +
-                (l.style && l.style !== l.description ? '<div class="sub mono">' + hl(l.style, q) + '</div>' : '') + '</td>' +
-                '<td class="mono">' + hl(l.sku, q) + '</td><td>' + esc(l.size || '—') + '</td>' +
+'</td>' +
+                '<td class="mono">' + (l.rin ? hl(l.rin, q) : '<span class="sub">—</span>') + '</td><td class="mono">' + hl(l.sku, q) + '</td><td>' + esc(l.size || '—') + '</td>' +
                 '<td class="mono">' + (l.artNumber ? hl(l.artNumber, q) : (o.status === 'Awaiting Art' ? '<span class="sub">pending</span>' : '—')) + '</td>' +
                 '<td class="n">' + l.qty + '</td><td class="n">' + money(l.cost) + '</td><td class="n">' + money(l.ext) + '</td></tr>';
         }).join('') +
-        '<tr class="tot"><td colspan="4">Total</td><td class="n">' + o.totalQty + '</td><td></td><td class="n">' + money(o.totalCost) + '</td></tr>' +
+        '<tr class="tot"><td colspan="5">Total</td><td class="n">' + o.totalQty + '</td><td></td><td class="n">' + money(o.totalCost) + '</td></tr>' +
         '</table></div></details>';
     return h + '</div>';
 }
