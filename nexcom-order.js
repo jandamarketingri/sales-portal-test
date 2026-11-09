@@ -358,8 +358,8 @@ function renderGridCard(garmentType, group) {
 }
 
 function priceLabel(tierRec) {
-    var p = tierRec.prices.S;
-    return p ? ('$' + parseFloat(p).toFixed(2) + ' ea') : 'TBD';
+    var p = costFor(tierRec.baseSKU, 'S', tierRec.skus.S, tierRec.prices.S);
+    return p ? ('$' + p.toFixed(2) + ' ea') : 'TBD';
 }
 
 var gridState = {}; // garmentType -> { tierKey, color, art }
@@ -715,19 +715,32 @@ function goToRinEntry(e) {
     setTimeout(function () { $qty.trigger('focus').trigger('select'); }, 450);
 }
 
+// Unit cost for an item and size: the order template's Unit Cost (rin-data.js,
+// same as art-request orders), else the price column on the products sheet.
+function costFor(style, size, sku, sheetPrice) {
+    var c = rinEntry(style, size, sku);
+    if (c && c[2] != null && c[2] !== '') return Number(c[2]) || 0;
+    return parseFloat(sheetPrice) || 0;
+}
+
 // NEXCOM's RIN for an item and size, from rin-data.js (the order template).
 // Blank when the item has no RIN yet (e.g. Local Navy Pride today).
 function rinFor(style, size, sku) {
+    var hit = rinEntry(style, size, sku);
+    return hit ? String(hit[1] || '') : '';
+}
+/** The template row [size, RIN, unit cost, vendor SKU] for an item and size, or null. */
+function rinEntry(style, size, sku) {
     var data = window.RIN_DATA || {}, d = data[style];
     if (!d) { var k = Object.keys(data).filter(function (x) { return x.toUpperCase() === String(style || '').toUpperCase(); })[0]; d = k && data[k]; }
-    if (!d || !d.r) return '';
+    if (!d || !d.r) return null;
     var want = String(sku || '').toUpperCase(), sz = String(size || '').toUpperCase();
     if (sz === '2XL' || sz === 'XX') sz = 'XXL';
     if (sz === 'OS') sz = '';
     var hit = d.r.filter(function (x) { return want && String(x[3] || '').toUpperCase() === want; })[0] ||
               d.r.filter(function (x) { return String(x[0] || '').toUpperCase() === sz; })[0] ||
               (d.r.length === 1 ? d.r[0] : null);
-    return hit ? String(hit[1] || '') : '';
+    return hit || null;
 }
 
 function addGridToCart(garmentType) {
@@ -746,7 +759,7 @@ function addGridToCart(garmentType) {
                 style: tier.baseSKU, styleDesc: tier.description,
                 color: st.color, artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
                 artRequestId: st.art && st.art.requestId ? st.art.requestId : '',
-                cost: parseFloat(tier.prices[sz]) || 0
+                cost: costFor(tier.baseSKU, sz, tier.skus[sz], tier.prices[sz])
             });
             addedAny = true;
             $('#qty-' + garmentType + '-' + sz).val(0);
@@ -812,7 +825,7 @@ function addHardgoodToCart(key) {
         style: rec.baseSKU, styleDesc: rec.description,
         color: st.color || '', artId: st.art ? st.art.id : '', artLabel: st.art ? st.art.label : '',
         artRequestId: st.art && st.art.requestId ? st.art.requestId : '',
-        cost: parseFloat(rec.prices.OS) || parseFloat(rec.prices.S) || 0
+        cost: costFor(rec.baseSKU, 'OS', rec.skus.OS || rec.baseSKU, rec.prices.OS || rec.prices.S)
     });
     $('#qty-' + key).val(0);
     updateCartBadge();
@@ -843,11 +856,13 @@ function renderCartDrawer() {
         return '<div class="cart-line">' +
             '<div><b>' + item.productName + '</b><br>' +
             '<span style="font-size:11px;color:#666;">' + (item.rin ? 'RIN: ' + item.rin + ' · ' : '') + 'SKU: ' + item.sku + ' · Size: ' + item.size + (item.color ? ' · Color: ' + item.color : '') + (item.artId ? ' · Art: ' + item.artId : '') + '</span></div>' +
-            '<div style="display:flex;align-items:center;gap:10px;"><span>×' + item.quantity + '</span><button onclick="removeCartItem(' + i + ')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:16px;">✕</button></div>' +
+            '<div style="display:flex;align-items:center;gap:10px;"><span style="text-align:right;">×' + item.quantity +
+            '<br><span style="font-size:11px;color:#666;">' + (item.cost ? '$' + (item.cost * item.quantity).toFixed(2) : 'no price') + '</span></span><button onclick="removeCartItem(' + i + ')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:16px;">✕</button></div>' +
             '</div>';
     }).join('');
     $('#cartItems').html(html);
-    $('#cartTotalQty').text(cart.reduce(function (s, i) { return s + i.quantity; }, 0));
+    $('#cartTotalQty').text(cart.reduce(function (s, i) { return s + i.quantity; }, 0) + ' · $' +
+        cart.reduce(function (s, i) { return s + (i.cost || 0) * i.quantity; }, 0).toFixed(2));
 }
 
 // ---------------------------------------------------------
