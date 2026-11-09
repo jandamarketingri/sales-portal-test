@@ -294,6 +294,8 @@ function renderCatalog() {
     }).join('');
     $('#catTabs').html(tabHtml);
     selectCategory('APPAREL');
+    buildRinIndex();
+    ensureRinFinder();
 }
 
 function categoryLabel(cat) {
@@ -332,12 +334,14 @@ function renderGridCard(garmentType, group) {
     }).join('');
 
     var sizeInputs = SIZE_ORDER.map(function (sz) {
-        return '<div class="size-item"><div class="size-label">' + sz + '</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + garmentType + '-' + sz + '"></div>';
+        return '<div class="size-item"><div class="size-label">' + sz + '</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + garmentType + '-' + sz + '">' +
+            '<div class="size-rin" id="rin-' + garmentType + '-' + sz + '"></div></div>';
     }).join('');
 
     return '<div class="sku-card" data-garment="' + garmentType + '">' +
         '<div class="product-name">' + group.label + '</div>' +
         '<div class="product-desc">' + CFG.prefix + ' Custom Print</div>' +
+        '<div class="rin-line" id="rinLine-' + garmentType + '"></div>' +
         '<div class="section-label">Print Complexity / Locations<span class="selected-value" id="tierLabel-' + garmentType + '"></span></div>' +
         '<div class="tier-row" id="tierRow-' + garmentType + '">' + pills + '</div>' +
         '<div class="section-label">Garment Color<span class="selected-value" id="colorLabel-' + garmentType + '">Select a color</span></div>' +
@@ -378,6 +382,7 @@ function selectTier(garmentType, key) {
 function updateTierLabel(garmentType) {
     var t = gridGroups[garmentType].tiers[gridState[garmentType].tierKey];
     $('#tierLabel-' + garmentType).text(t.colorRange + ' Color, ' + t.locCount + ' Loc');
+    updateGridRins(garmentType);
 }
 
 function renderSwatchesFor(garmentType) {
@@ -567,6 +572,149 @@ function selectArt(key, art) {
     showArtPreview(key, art, true);
 }
 
+// ---------------------------------------------------------
+// RINs on the cards, and "Find an item by RIN or SKU" under the rep details
+// ---------------------------------------------------------
+function rinEsc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function parentRinFor(style) {
+    var data = window.RIN_DATA || {}, d = data[style];
+    return d && d.p ? String(d.p) : '';
+}
+/** One line under the product name: parent RIN, or the RIN for a one-size item. */
+function rinLineHtml(style, sizes) {
+    var parent = parentRinFor(style);
+    var one = sizes.length === 1 ? rinFor(style, sizes[0].size, sizes[0].sku) : '';
+    var sku = sizes.length === 1 ? sizes[0].sku : style;
+    if (!parent && !one) return '<div class="rin-line"><span class="rin-none">RIN not assigned yet</span> · SKU <b>' + rinEsc(sku) + '</b></div>';
+    return '<div class="rin-line">' + (one ? 'RIN <b>' + rinEsc(one) + '</b>' : 'Parent RIN <b>' + rinEsc(parent) + '</b>') +
+        ' · SKU <b>' + rinEsc(sku) + '</b></div>';
+}
+/** Apparel: the RIN under each size box follows the selected print tier. */
+function updateGridRins(garmentType) {
+    var st = gridState[garmentType], tier = st && gridGroups[garmentType].tiers[st.tierKey];
+    if (!tier) return;
+    var any = false;
+    SIZE_ORDER.forEach(function (sz) {
+        var rin = tier.skus[sz] ? rinFor(tier.baseSKU, sz, tier.skus[sz]) : '';
+        if (rin) any = true;
+        $('#rin-' + garmentType + '-' + sz).text(rin).attr('title', rin ? 'RIN ' + rin + ' · SKU ' + tier.skus[sz] : '');
+    });
+    var parent = parentRinFor(tier.baseSKU);
+    $('#rinLine-' + garmentType).html(parent || any
+        ? 'Parent RIN <b>' + rinEsc(parent || '—') + '</b> · Style <b>' + rinEsc(tier.baseSKU) + '</b>' + (any ? ' <span class="rin-none">· size RINs below</span>' : '')
+        : '<span class="rin-none">RIN not assigned yet</span> · Style <b>' + rinEsc(tier.baseSKU) + '</b>');
+}
+
+var rinIndex = [];
+function buildRinIndex() {
+    rinIndex = [];
+    Object.keys(gridGroups).forEach(function (g) {
+        var group = gridGroups[g];
+        Object.keys(group.tiers).forEach(function (k) {
+            var t = group.tiers[k];
+            SIZE_ORDER.forEach(function (sz) {
+                if (!t.skus[sz]) return;
+                rinIndex.push({ kind: 'grid', cat: 'APPAREL', garmentType: g, tierKey: k, size: sz, sku: t.skus[sz],
+                                rin: rinFor(t.baseSKU, sz, t.skus[sz]),
+                                label: group.label + ', ' + t.colorRange + ' Color ' + t.locCount + ' Loc', sizeLabel: sz });
+            });
+        });
+    });
+    var byCat = {};
+    hardgoods.forEach(function (h) {
+        var idx = byCat[h.category] = (byCat[h.category] === undefined ? 0 : byCat[h.category] + 1);
+        var sku = h.skus.OS || h.baseSKU;
+        rinIndex.push({ kind: 'hg', cat: h.category, key: h.category + '-' + idx, size: 'OS', sku: sku,
+                        rin: rinFor(h.baseSKU, 'OS', sku), label: h.description || h.baseSKU, sizeLabel: '' });
+    });
+}
+
+function ensureRinFinder() {
+    if (!$('#rinFind').length) {
+        $('head').append('<style>' +
+            '.rin-line { font-size: 12px; color: #555; margin: -8px 0 10px; } .rin-line b { font-family: Menlo, Consolas, monospace; font-weight: 600; color: #333; }' +
+            '.rin-none { color: #999; font-style: italic; }' +
+            '.size-rin { font-family: Menlo, Consolas, monospace; font-size: 9.5px; color: #777; margin-top: 3px; letter-spacing: -.3px; min-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: clip; }' +
+            '.rin-find { background: white; margin: -6px 30px 20px; padding: 14px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }' +
+            '.rin-find label { display: block; font-size: 12px; font-weight: 700; color: #555; margin-bottom: 6px; }' +
+            '.rf-wrap { position: relative; max-width: 560px; }' +
+            '#rinFind { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; }' +
+            '#rinFind:focus { outline: none; border-color: #764ba2; }' +
+            '.rf-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15); z-index: 50; display: none; max-height: 320px; overflow-y: auto; }' +
+            '.rf-opt { padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f2f2f2; font-size: 13px; }' +
+            '.rf-opt:hover, .rf-opt.hl { background: #f1eaf7; }' +
+            '.rf-opt .rf-rin { font-family: Menlo, Consolas, monospace; font-weight: 700; color: #222; }' +
+            '.rf-opt .rf-sub { font-size: 11.5px; color: #777; }' +
+            '.rf-empty { padding: 9px 10px; font-size: 12.5px; color: #888; font-style: italic; }' +
+            '.rf-hint { font-size: 11.5px; color: #888; margin-top: 6px; }' +
+            '.rin-flash { animation: rinFlash 1.6s ease-out; } @keyframes rinFlash { 0%,40% { box-shadow: 0 0 0 3px #764ba2; } 100% { box-shadow: 0 0 0 0 transparent; } }' +
+            '@media (max-width: 480px) { .rin-find { margin-left: 14px; margin-right: 14px; } .size-rin { font-size: 8px; letter-spacing: -.5px; } }' +
+            '</style>');
+        $('.rep-info-bar').after('<div class="rin-find"><label for="rinFind">Find an item by RIN or SKU</label>' +
+            '<div class="rf-wrap"><input type="text" id="rinFind" autocomplete="off" inputmode="search"><div class="rf-list" id="rinFindList"></div></div>' +
+            '<div class="rf-hint" id="rinFindHint"></div></div>');
+        var st = { list: [], hl: -1 };
+        var $in = $('#rinFind'), $dd = $('#rinFindList');
+        var show = function () {
+            if (!st.list.length) { $dd.html('<div class="rf-empty">No item has that RIN or SKU.</div>').show(); return; }
+            $dd.html(st.list.map(function (e, i) {
+                return '<div class="rf-opt' + (i === st.hl ? ' hl' : '') + '" data-i="' + i + '"><span class="rf-rin">' + rinEsc(e.rin || e.sku) + '</span> ' +
+                    rinEsc(e.label) + (e.sizeLabel ? ' · <b>' + rinEsc(e.sizeLabel) + '</b>' : '') +
+                    '<div class="rf-sub">' + (e.rin ? 'SKU ' + rinEsc(e.sku) : 'No RIN yet') + ' · ' + rinEsc(categoryLabel(e.cat)) + '</div></div>';
+            }).join('')).show();
+        };
+        $in.on('input', function () {
+            var q = $.trim($in.val()).toUpperCase().replace(/^RIN\s*/, '');
+            if (q.length < 2) { $dd.hide(); return; }
+            var digits = /^\d+$/.test(q);
+            st.list = rinIndex.filter(function (e) {
+                return digits ? (e.rin && e.rin.indexOf(q) !== -1) || e.sku.toUpperCase().indexOf(q) !== -1
+                              : e.sku.toUpperCase().indexOf(q) !== -1;
+            }).sort(function (a, b) {   // exact matches first
+                var ea = a.rin === q || a.sku.toUpperCase() === q, eb = b.rin === q || b.sku.toUpperCase() === q;
+                return ea === eb ? 0 : ea ? -1 : 1;
+            }).slice(0, 12);
+            st.hl = st.list.length ? 0 : -1;
+            show();
+        });
+        $in.on('keydown', function (e) {
+            if ($dd.css('display') !== 'block') return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); st.hl = Math.min(st.hl + 1, st.list.length - 1); show(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); st.hl = Math.max(st.hl - 1, 0); show(); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (st.list[st.hl]) goToRinEntry(st.list[st.hl]); }
+            else if (e.key === 'Escape') { $dd.hide(); }
+        });
+        $in.on('blur', function () { setTimeout(function () { $dd.hide(); }, 150); });
+        $dd.on('mousedown', '.rf-opt', function (e) { e.preventDefault(); goToRinEntry(st.list[+$(this).attr('data-i')]); });
+    }
+    var hasRins = rinIndex.some(function (e) { return e.rin; });
+    $('#rinFind').attr('placeholder', hasRins ? 'Type a RIN (e.g. 20421639) or a SKU' : 'Type a SKU (e.g. ' + ((rinIndex[0] || {}).sku || 'LNPTEE1-2-1-S') + ')');
+    $('#rinFindHint').text(hasRins ? 'Picks the item, print and size for you. Then choose the color and art, and add it to the cart.'
+                                   : 'RINs haven’t been assigned to these items yet, so search by SKU for now.');
+}
+
+/** Jump to the item: open its tab, pick the print tier, and put the cursor in its quantity box. */
+function goToRinEntry(e) {
+    if (!e) return;
+    $('#rinFindList').hide();
+    $('#rinFind').val((e.rin || e.sku) + ' — ' + e.label + (e.sizeLabel ? ', ' + e.sizeLabel : '')).blur();
+    selectCategory(e.cat);
+    var $card, $qty;
+    if (e.kind === 'grid') {
+        selectTier(e.garmentType, e.tierKey);
+        $card = $('.sku-card[data-garment="' + e.garmentType + '"]');
+        $qty = $('#qty-' + e.garmentType + '-' + e.size);
+    } else {
+        $card = $('.sku-card[data-hg="' + e.key + '"]');
+        $qty = $('#qty-' + e.key);
+    }
+    if (!$card.length) return;
+    $card[0].scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    $card.removeClass('rin-flash'); void $card[0].offsetWidth; $card.addClass('rin-flash');
+    $qty.closest('.size-item').removeClass('rin-flash'); void $card[0].offsetWidth; $qty.closest('.size-item').addClass('rin-flash');
+    setTimeout(function () { $qty.trigger('focus').trigger('select'); }, 450);
+}
+
 // NEXCOM's RIN for an item and size, from rin-data.js (the order template).
 // Blank when the item has no RIN yet (e.g. Local Navy Pride today).
 function rinFor(style, size, sku) {
@@ -623,9 +771,10 @@ function renderHardgoodCard(rec, key) {
           '  <div class="art-preview" id="artPreview-' + key + '"><div class="art-preview-thumb" id="artPreviewThumb-' + key + '">🖼️</div><div style="min-width:0;"><div class="art-preview-empty" id="artPreviewEmpty-' + key + '">No design previewed yet</div><div id="artPreviewText-' + key + '" style="display:none;"><div class="art-preview-id" id="artPreviewId-' + key + '"></div><div class="art-preview-desc" id="artPreviewDesc-' + key + '"></div><div class="art-preview-status" id="artPreviewStatus-' + key + '"></div></div></div></div>' +
           '</div>'
         : '';
-    return '<div class="sku-card">' +
+    return '<div class="sku-card" data-hg="' + key + '">' +
         '<div class="product-name">' + rec.baseSKU + '</div>' +
         '<div class="product-desc">' + rec.description + '</div>' +
+        rinLineHtml(rec.baseSKU, [{ size: 'OS', sku: rec.skus.OS || rec.baseSKU }]) +
         colorBlock + artBlock +
         '<div class="section-label" style="margin-top:14px;">Quantity</div>' +
         '<div class="size-grid" style="grid-template-columns:120px;"><div class="size-item"><div class="size-label">QTY</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + key + '"></div></div>' +
