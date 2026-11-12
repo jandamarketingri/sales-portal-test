@@ -741,7 +741,7 @@ function orderCardHtml(q) {
     var cls = o.status === 'New' ? 'st-ordered' : o.status === 'Cancelled' ? 'st-cancelled' : 'st-licensing';
     var h = '<div class="card" id="orderCard"><h3>🛒 Order<span class="right"><span class="pill ' + cls + '">' + esc(ORDER_STATUS_TEXT[o.status] || o.status) + '</span></span></h3>' +
         '<div class="facts">' + fact('PO number', o.po) + fact('Store', o.storeName + ' (' + o.shipTo + ')') +
-        fact('Begin ship', isoToUs(o.beginShipDate)) + fact('Ship by', isoToUs(o.shipByDate)) +
+        fact('Begin ship', isoToUs(o.beginShipDate)) + fact('Cancel date', isoToUs(o.shipByDate)) +
         fact('Pieces', o.totalQty) + fact('Total cost', money(o.totalCost)) + '</div>' +
         '<table class="ord-tbl">' + orderGroups(o).map(function (g) {
             return '<tr><td class="sk">Sketch ' + g.sketch + '</td><td>' + esc(g.description) + (g.color ? ' — ' + esc(g.color) : '') +
@@ -760,7 +760,7 @@ function orderEditHtml(q) {
     var o = q.data.order, sk = q.data.sketches || [];
     var h = '<div class="oe-dates">' +
         '<label>Begin ship<input type="date" id="oeBegin" value="' + esc(o.beginShipDate) + '"></label>' +
-        '<label>Ship by<input type="date" id="oeEnd" value="' + esc(o.shipByDate) + '"></label></div>';
+        '<label>Cancel date<input type="date" id="oeEnd" value="' + esc(o.shipByDate) + '"></label></div>';
     sk.forEach(function (s, si) {
         (s.items || []).forEach(function (it, ii) {
             var have = {};
@@ -799,7 +799,7 @@ function bindOrder(q) {
             if (bad) return toast('Quantities must be whole numbers.', true);
             var b = $('#oeBegin').val(), e = $('#oeEnd').val();
             if (!b || !e) return toast('Enter both ship dates.', true);
-            if (e < b) return toast('The ship-by date is before the begin ship date.', true);
+            if (e < b) return toast('The cancel date is before the begin ship date.', true);
             var $btn = $(this).prop('disabled', true).text('Saving…');
             apiPost({ action: 'artUpdate', id: q.id, op: 'orderEdit', message: $('#oeNote').val().trim(),
                       order: { beginShipDate: b, shipByDate: e, lines: lines } }).then(function (r) {
@@ -863,7 +863,8 @@ function orderNumbersHtml(d, label) {
     if (!list.length) return '';
     return '<div class="lbl" style="margin:8px 0 4px;">' + (label || 'Art # to order with') + '</div><div class="order-nums">' + list.map(function (x) {
         return '<span class="on-pair">' + (list.length > 1 ? '<span class="on-sk">Sketch ' + x.n + '</span>' : '') + '<span class="art-num">' + esc(x.num) + '</span></span>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' +
+    (label ? '' : '<div class="hint" style="margin-top:4px;">Use this art # on the order page, not the request number (AR-…).</div>');
 }
 // Assign box: the licensing suffix for each new design, and what its art # will be.
 // Licensing types the Art Admin picks from when assigning (Other… = type 2 letters).

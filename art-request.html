@@ -719,9 +719,9 @@ function portalRoleTag(role, onDark) {
                 <div class="field-hint" id="beginHint">Choose a sketch pack first.</div>
             </div>
             <div class="form-group">
-                <label>Ship By Date <span class="required">*</span></label>
+                <label>Cancel Date <span class="required">*</span></label>
                 <input type="date" id="shipBy">
-                <div class="field-hint">The last day the order can ship.</div>
+                <div class="field-hint">Nothing ships after this date, e.g. so nothing arrives after the event.</div>
             </div>
         </div>
         <div class="order-sum" id="orderSum"></div>
@@ -868,7 +868,11 @@ var LOCATIONS = [
 
 // Words that suggest a base/branch name went into the "Add" column. Used only
 // to pre-tick the licensing box — the rep can always change it.
-var LICENSING_HINTS = /\b(navy|nas|nsa|nb|naval|jb|jbphh|nws|nsf|base|station|fleet|usn|marine|usmc|army|air force|coast guard|seabee)\b/i;
+var LICENSING_HINTS = /\b(navy|nas|nsa|nb|naval|jb|jbphh|nws|nsf|base|station|fleet|usn|marine|usmc|army|air force|coast guard|seabee|logos?)\b/i;
+
+// Local Navy Pride art always goes to licensing (Nov 12 2026 meeting): picking
+// that account turns licensing on for every sketch, and it can't be turned off.
+var ACCOUNTS_ALWAYS_LICENSED = ['Local Navy Pride'];
 
 // ── Timeline estimates ────────────────────────────────────────────────────────
 // TODO: confirm with Krystal / the CSR team. These drive the timeline and the
@@ -1100,8 +1104,8 @@ function buildSketch(num) {
 
             '<div class="licensing js-lic">' +
               '<div class="box"></div>' +
-              '<div><div class="t">Includes a base or branch name <span class="auto" style="display:none;">auto-detected</span></div>' +
-              '<div class="s">This sketch will go to licensing review after you approve the final art.</div></div>' +
+              '<div><div class="t">Includes a base or branch name, or a logo <span class="auto" style="display:none;">auto-detected</span></div>' +
+              '<div class="s">This sketch will go to licensing review after you approve the final art. Ships, aircraft and hull numbers count too.</div></div>' +
             '</div>' +
 
           '</div>' +
@@ -1127,7 +1131,9 @@ function buildSketch(num) {
     $card.on('click', '.js-lic', function () {
         var $lic = $(this);
         if ($lic.data('locked') && $lic.hasClass('on')) {
-            alert('This art is ' + $lic.data('locked') + ' art, so it needs licensing. Only _XX art can skip licensing.');
+            alert($lic.data('locked') === 'account'
+                ? 'All ' + state.account + ' art goes to licensing, so this can\'t be turned off.'
+                : 'This art is ' + $lic.data('locked') + ' art, so it needs licensing. Only _XX art can skip licensing.');
             return;
         }
         $lic.toggleClass('on').data('manual', true).find('.auto').hide();
@@ -1446,6 +1452,8 @@ function onAccountChanged(prev, next) {
         if (item && style.indexOf(ACCOUNT_PREFIX[prev]) === 0) { setRowItem($row, item); moved++; }
         else { setRowItem($row, null); $row.find('.js-item').val(''); cleared++; }
     });
+    $('#sketches .sketch-card').each(function () { applyArtSuffix($(this)); });
+    renderTimeline();
     if (cleared) alert(cleared + ' item' + (cleared > 1 ? 's' : '') + ' had no ' + next + ' match and were cleared.');
 }
 
@@ -1674,6 +1682,19 @@ function applyArtSuffix($card) {
     var ref = artTypeOf($card) === 'existing' ? $card.find('.js-refer').val().trim() : '';
     var suf = artSuffixOf(ref);
     var $hint = $card.find('.js-refer-hint');
+    if (ACCOUNTS_ALWAYS_LICENSED.indexOf(state.account) !== -1) {
+        $lic.data('locked', 'account').addClass('on').find('.auto').text('always for ' + state.account).show();
+        $hint.text(suf ? (suf === 'XX' ? '_XX art: ' : '_' + suf + ' art: ') + state.account + ' always goes to licensing.'
+                       : (ref ? 'Add the licensing suffix at the end: an underscore and 2 letters (_NY, _XX…).'
+                              : 'Must end in the licensing suffix: an underscore and 2 letters (_NY, _XX…).'))
+             .css('color', ref && !suf ? '#b42318' : '');
+        updateSummary();
+        return;
+    }
+    if ($lic.data('locked') === 'account') {   // just switched away from an always-licensed account
+        $lic.removeData('locked');
+        if (!$lic.data('manual')) $lic.removeClass('on').find('.auto').hide();
+    }
     if (suf && suf !== 'XX') {
         $lic.data('locked', '_' + suf).addClass('on').find('.auto').text('required by _' + suf + ' art').show();
         $hint.text('_' + suf + ' art needs licensing.').css('color', '');
@@ -1951,8 +1972,8 @@ function validate() {
     var bv = $('#beginShip').val(), ev = $('#shipBy').val();
     if (!bv) { $('#beginShip').addClass('field-error'); errors.push('Order: begin ship date'); }
     else if (state.estShipDate && bv < isoDate(state.estShipDate)) { $('#beginShip').addClass('field-error'); errors.push('Order: the begin ship date can\u2019t be before ' + state.estShip); }
-    if (!ev) { $('#shipBy').addClass('field-error'); errors.push('Order: ship-by date'); }
-    else if (bv && ev < bv) { $('#shipBy').addClass('field-error'); errors.push('Order: the ship-by date is before the begin ship date'); }
+    if (!ev) { $('#shipBy').addClass('field-error'); errors.push('Order: cancel date'); }
+    else if (bv && ev < bv) { $('#shipBy').addClass('field-error'); errors.push('Order: the cancel date is before the begin ship date'); }
     $('#sketches .sketch-card').each(function () {
         var n = $(this).data('num');
         $(this).find('.garment-row').each(function () {

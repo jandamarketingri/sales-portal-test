@@ -207,36 +207,65 @@ function garmentLabel(key) {
 // ---------------------------------------------------------
 // Art from the portal: approved art requests first, then the Art Library.
 // ---------------------------------------------------------
-var artLoadState = 'idle';   // idle | loading | ready | failed
+// Two steps, so reps never wait on the (large) Art Library: approved art
+// requests come first and are usable right away; the library is added when
+// it arrives.
+var artLoadState = 'idle';   // idle | loading | ready | failed   (approved requests)
+var libLoadState = 'idle';   // idle | loading | ready | failed   (Art Library)
+var artRequests = [], artLibrary = [];
 function loadPortalArt() {
     var auth = {};
     try { auth = JSON.parse(sessionStorage.getItem('salesPortalAuth')) || {}; } catch (e) {}
-    artLoadState = 'loading';
+    var me = String(auth.name || '').trim().toLowerCase();
+    var ask = function (part) {
+        return fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify({ action: 'artOrderList', part: part, account: CFG.artAccount, email: auth.email, token: auth.token || '' }) })
+            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (r && r.sessionExpired) { sessionStorage.removeItem('salesPortalAuth'); window.location.href = 'login.html'; throw new Error('expired'); }
+                if (!r || !r.success) throw new Error((r && r.message) || 'failed');
+                return r;
+            });
+    };
+    var rebuild = function () { artIndex = artRequests.concat(artLibrary); refreshOpenArtLists(); };
+    artLoadState = 'loading'; libLoadState = 'loading';
     var d = $.Deferred();
-    fetch(CFG.orderSubmissionUrl, { method: 'POST', body: JSON.stringify({ action: 'artOrderList', account: CFG.artAccount, email: auth.email, token: auth.token || '' }) })
-        .then(function (r) { return r.json(); })
-        .then(function (r) {
-            if (r && r.sessionExpired) { sessionStorage.removeItem('salesPortalAuth'); window.location.href = 'login.html'; return; }
-            if (!r || !r.success) throw new Error((r && r.message) || 'failed');
-            var mine = r.scope !== 'all';
-            artIndex = (r.requests || []).map(function (a) {
-                return { id: a.art, label: a.label, source: 'request', requestId: a.requestId, sketch: a.sketch, status: a.status,
-                         rep: a.rep || '', thumbId: a.thumbId || '',
-                         keywords: (a.label + ' ' + a.requestId + ' ' + (a.rep || '')).toLowerCase(),
-                         tag: (mine ? 'Your request ' : (a.rep ? a.rep + ' · ' : 'Request ')) + a.requestId + (a.status === 'Ordered' ? ' · reorder' : '') };
-            }).concat((r.library || []).map(function (a) {
-                return { id: a.art, label: a.label || '', source: 'library', thumbId: a.thumbId || '', requestId: '',
-                         keywords: ((a.label || '') + ' ' + (a.folder || '')).toLowerCase(), tag: 'Art Library' + (a.folder ? ' · ' + a.folder : '') };
-            }));
-            artLoadState = 'ready';
-            d.resolve();
-        })
-        .catch(function (e) {
-            console.warn('Could not load the art list: ' + e.message);
-            artLoadState = 'failed';
-            d.resolve();
+    ask('requests').then(function (r) {
+        var all = r.scope === 'all';
+        artRequests = (r.requests || []).map(function (a) {
+            var mine = !all || (a.rep && a.rep.trim().toLowerCase() === me);
+            return { id: a.art, label: a.label, source: 'request', requestId: a.requestId, sketch: a.sketch, status: a.status,
+                     rep: a.rep || '', thumbId: a.thumbId || '',
+                     keywords: (a.label + ' ' + a.requestId + ' ' + (a.rep || '')).toLowerCase(),
+                     tag: (mine ? 'Your request ' : (a.rep ? a.rep + ' · ' : 'Request ')) + a.requestId + (a.status === 'Ordered' ? ' · ordered before' : '') };
         });
+        // An older script sends the library with the requests in one go.
+        if (r.library) { artLibrary = libraryEntries(r.library); libLoadState = 'ready'; }
+        artLoadState = 'ready'; rebuild(); d.resolve();
+        if (libLoadState === 'ready') return;
+        ask('library').then(function (l) { artLibrary = libraryEntries(l.library); libLoadState = 'ready'; rebuild(); })
+            .catch(function (e) { console.warn('Could not load the Art Library: ' + e.message); libLoadState = 'failed'; refreshOpenArtLists(); });
+    }).catch(function (e) {
+        if (e.message === 'expired') return;
+        console.warn('Could not load the art list: ' + e.message);
+        artLoadState = 'failed'; libLoadState = 'failed'; d.resolve();
+    });
     return d.promise();
+}
+function libraryEntries(list) {
+    return (list || []).map(function (a) {
+        return { id: a.art, label: a.label || '', source: 'library', thumbId: a.thumbId || '', requestId: '',
+                 keywords: ((a.label || '') + ' ' + (a.folder || '')).toLowerCase(), tag: 'Art Library' + (a.folder ? ' · ' + a.folder : '') };
+    });
+}
+/** New art arrived: redo the list under whichever Artwork box is open, and re-check typed art #s. */
+function refreshOpenArtLists() {
+    var $f = $('.art-input:focus');
+    if ($f.length) $f.trigger('input');
+    $('.art-input.invalid').each(function () {
+        var typed = $.trim($(this).val()).toLowerCase(), key = this.id.replace(/^artInput-/, '');
+        var hit = artIndex.filter(function (a) { return a.id.toLowerCase() === typed || (a.id + ' — ' + a.label).toLowerCase() === typed; })[0];
+        if (hit) { $(this).removeClass('invalid'); $('#artError-' + key).hide(); selectArt(key, hit); }
+    });
 }
 
 // Small pictures, fetched in batches as they're needed (same as Browse art on the request form).
@@ -443,7 +472,9 @@ function initArtComboFor(key) {
                 return a.id.toLowerCase() === typed || (a.id + ' — ' + a.label).toLowerCase() === typed;
             });
             if (exact.length) { selectArt(key, exact[0]); return; }   // approved requests are listed first
-            input.addClass('invalid'); $('#artError-' + key).show();
+            input.addClass('invalid');
+            $('#artError-' + key).text(libLoadState === 'loading' || artLoadState === 'loading'
+                ? 'Checking… the art list is still loading.' : 'That doesn\'t match an approved design.').show();
         }, 150);
     });
 
@@ -468,8 +499,9 @@ function renderArtDropdown(key) {
     var st = artComboState[key];
     var dd = $('#artDropdown-' + key);
     if (!st.filtered.length) {
-        var msg = artLoadState === 'loading' ? 'Loading the art list…' :
-                  artLoadState === 'failed' ? 'Couldn’t load the art list. Refresh the page to try again.' : 'No approved designs match that.';
+        var msg = artLoadState === 'loading' ? 'Loading approved art…' :
+                  artLoadState === 'failed' ? 'Couldn’t load the art list. Refresh the page to try again.' :
+                  libLoadState === 'loading' ? 'No approved art request matches that. Still loading the Art Library…' : 'No approved designs match that.';
         dd.html('<div class="art-empty">' + msg + '</div>').show(); return;
     }
     var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
@@ -486,6 +518,7 @@ function renderArtDropdown(key) {
             '<div class="art-option-text"><div class="art-id">' + esc(a.id) + '</div><div class="art-desc">' + esc(a.label) + '</div>' +
             (a.tag ? '<div class="art-tag' + (a.source === 'request' ? ' req' : '') + '">' + esc(a.tag) + '</div>' : '') + '</div></div>';
     }).join('');
+    if (libLoadState === 'loading') html += '<div class="art-empty" style="font-size:12px;">Still loading the Art Library… more designs will appear in a moment.</div>';
     dd.html(html).show();
 }
 function artHover(key, i) { artComboState[key].highlight = i; renderArtDropdown(key); showArtPreview(key, artComboState[key].filtered[i], false); }

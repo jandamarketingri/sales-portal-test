@@ -148,7 +148,7 @@ function render(q, open, closedMsg) {
         var o = q.order, money = function (n) { return '$' + Number(n || 0).toFixed(2); };
         h += '<div class="card"><h2>🛒 The order</h2>' +
             '<div class="ord-facts"><span><b>PO</b>' + esc(o.po) + '</span><span><b>Store</b>' + esc(o.storeName) + '</span>' +
-            '<span><b>Ships</b>' + esc(o.begin) + ' – ' + esc(o.shipBy) + '</span></div>' +
+            '<span><b>Begin ship</b>' + esc(o.begin) + '</span><span><b>Cancel date</b>' + esc(o.shipBy) + '</span></div>' +
             '<table class="ord">' + o.groups.map(function (g) {
                 return '<tr><td>Sketch ' + g.sketch + '</td><td>' + esc(g.description) + (g.color ? ' — ' + esc(g.color) : '') +
                     '<div class="sz">' + esc(g.sizes.map(function (z) { return (z.size ? z.size + ' ' : '') + z.qty; }).join(' · ')) + '</div></td>' +

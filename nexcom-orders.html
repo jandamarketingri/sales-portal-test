@@ -278,7 +278,7 @@ function orderHtml(o) {
         (o.artRequestId ? '<span class="tag grey">With art request</span>' : '') + '</div>' +
         '<div class="order-store">' + hl(o.storeName, q) + (o.shipTo ? ' <span style="color:var(--text-muted);font-weight:400;">(' + esc(o.shipTo) + ')</span>' : '') + '</div>' +
         '<div class="order-meta"><span>Placed ' + esc(o.placedText || '—') + '</span>' +
-        (o.beginShip ? '<span>Ships ' + esc(o.beginShip) + (o.shipBy ? ' – ' + esc(o.shipBy) : '') + '</span>' : '') +
+        (o.beginShip ? '<span>Begin ship ' + esc(o.beginShip) + '</span>' : '') + (o.shipBy ? '<span>Cancel ' + esc(o.shipBy) + '</span>' : '') +
         (allMode ? '<span>Rep: ' + hl(o.repName || o.repEmail, q) + '</span>' : '') + '</div>' +
         '</div><div class="order-right">' + pillHtml(o) +
         '<div class="order-total">' + money(o.totalCost) + '<small>' + o.totalQty + ' pcs</small></div></div></div>';
