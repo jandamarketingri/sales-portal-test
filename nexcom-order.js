@@ -317,6 +317,7 @@ function buildArtIndex(rows) {
 // Catalog rendering
 // ---------------------------------------------------------
 function renderCatalog() {
+    ensureMoqStyles();
     var tabs = ['APPAREL'].concat(categories);
     var tabHtml = tabs.map(function (t, i) {
         return '<button class="cat-tab' + (i === 0 ? ' active' : '') + '" data-cat="' + t + '" onclick="selectCategory(\'' + t + '\')">' + categoryLabel(t) + '</button>';
@@ -359,7 +360,7 @@ function renderGridCard(garmentType, group) {
     var pills = tierKeys.map(function (k, i) {
         var t = group.tiers[k];
         return '<div class="tier-btn' + (i === 0 ? ' active' : '') + '" data-key="' + k + '" onclick="selectTier(\'' + garmentType + '\',\'' + k + '\')">' +
-            t.colorRange + ' Color, ' + t.locCount + ' Loc<span class="tier-price" id="tp-' + garmentType + '-' + k + '">' + priceLabel(t) + '</span></div>';
+            t.colorRange + ' Color, ' + t.locCount + ' Loc<span class="tier-price" id="tp-' + garmentType + '-' + k + '">' + priceLabel(t) + '</span>' + moqPillHtml(t.baseSKU) + '</div>';
     }).join('');
 
     var sizeInputs = SIZE_ORDER.map(function (sz) {
@@ -380,6 +381,7 @@ function renderGridCard(garmentType, group) {
         '  <div class="art-preview" id="artPreview-' + garmentType + '"><div class="art-preview-thumb" id="artPreviewThumb-' + garmentType + '">🖼️</div><div style="min-width:0;"><div class="art-preview-empty" id="artPreviewEmpty-' + garmentType + '">No design previewed yet</div><div id="artPreviewText-' + garmentType + '" style="display:none;"><div class="art-preview-id" id="artPreviewId-' + garmentType + '"></div><div class="art-preview-desc" id="artPreviewDesc-' + garmentType + '"></div><div class="art-preview-status" id="artPreviewStatus-' + garmentType + '"></div></div></div></div>' +
         '</div>' +
         '<div class="section-label" style="margin-top:14px;">Quantities</div>' +
+        '<div class="moq-line" id="moqLine-' + garmentType + '"></div>' +
         '<div class="size-grid">' + sizeInputs + '</div>' +
         '<div class="size-rins" id="sizeRins-' + garmentType + '"></div>' +
         '<button class="add-btn" onclick="addGridToCart(\'' + garmentType + '\')">Add to Cart</button>' +
@@ -411,6 +413,7 @@ function selectTier(garmentType, key) {
 function updateTierLabel(garmentType) {
     var t = gridGroups[garmentType].tiers[gridState[garmentType].tierKey];
     $('#tierLabel-' + garmentType).text(t.colorRange + ' Color, ' + t.locCount + ' Loc');
+    $('#moqLine-' + garmentType).html(moqLineHtml(t.baseSKU));
     updateGridRins(garmentType);
 }
 
@@ -827,6 +830,7 @@ function renderHardgoodCard(rec, key) {
         '<div class="product-name">' + rec.baseSKU + '</div>' +
         '<div class="product-desc">' + rec.description + '</div>' +
         rinLineHtml(rec.baseSKU, [{ size: 'OS', sku: rec.skus.OS || rec.baseSKU }]) +
+        moqLineHtml(rec.baseSKU) +
         colorBlock + artBlock +
         '<div class="section-label" style="margin-top:14px;">Quantity</div>' +
         '<div class="size-grid" style="grid-template-columns:120px;"><div class="size-item"><div class="size-label">QTY</div><input type="number" min="0" value="0" class="size-qty-input" id="qty-' + key + '"></div></div>' +
@@ -879,6 +883,57 @@ function flashAdded(key) {
 }
 
 // ---------------------------------------------------------
+// Minimum order quantities (moq-data.js)
+// ---------------------------------------------------------
+function moqSafe(style) { return typeof moqFor === 'function' ? moqFor(style) : null; }
+function moqPillHtml(style) {
+    var m = moqSafe(style);
+    return m ? '<span class="tier-moq">MOQ ' + m.q + '</span>' : '';
+}
+function moqLineHtml(style) {
+    var m = moqSafe(style);
+    if (!m) return '';
+    return '<div class="moq-line"><span class="moq-badge">Minimum ' + m.q + (m.apparel ? ' per design' : '') + '</span>' +
+        (m.note ? '<span class="moq-note">' + rinEsc(m.note) + '</span>' : '') + '</div>';
+}
+/** Cart groups below their minimum. Apparel lines with the same art and ink-color tier
+ *  count together (garments and colors can be mixed); other items count per style and art. */
+function moqShortfalls() {
+    var groups = {}, order = [];
+    cart.forEach(function (it) {
+        var m = moqSafe(it.style);
+        if (!m) return;
+        var k = m.key + '|' + (it.artId || '');
+        if (!groups[k]) {
+            groups[k] = { q: m.q, qty: 0, label: (m.apparel ? 'Apparel ' + m.key.replace('APPAREL ', '') + ' color' : String(it.styleDesc || it.productName).replace(/^(SVN|LNP)\s+/, '')) +
+                (it.artId ? ' (art ' + it.artId + ')' : '') };
+            order.push(k);
+        }
+        groups[k].qty += it.quantity;
+    });
+    return order.map(function (k) { return groups[k]; }).filter(function (g) { return g.qty < g.q; });
+}
+function moqWarningsHtml() {
+    var list = moqShortfalls();
+    if (!list.length) return '';
+    return '<div class="moq-warn"><b>Below the minimum</b>' + list.map(function (g) {
+        return '<div>' + rinEsc(g.label) + ': <b>' + g.qty + '</b> of ' + g.q + '</div>';
+    }).join('') + '<div class="moq-warn-sub">Add more pieces, or the order may be sent back.</div></div>';
+}
+function ensureMoqStyles() {
+    if (document.getElementById('moqStyles')) return;
+    $('<style id="moqStyles">').text(
+        '.tier-moq { display: block; font-weight: 700; font-size: 10px; color: #4a2e6b; }' +
+        '.moq-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 6px 0 10px; }' +
+        '.moq-line:empty { display: none; } .moq-line .moq-line { margin: 0; }' +
+        '.moq-badge { display: inline-block; background: #f1eaf7; color: #4a2e6b; border: 1px solid #d9c8ea; border-radius: 12px; padding: 3px 10px; font-size: 13px; font-weight: 700; }' +
+        '.moq-note { font-size: 12px; color: #666; }' +
+        '.moq-warn { background: #fff4e5; border: 1px solid #f0b46a; color: #7a4a00; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }' +
+        '.moq-warn > b { display: block; margin-bottom: 4px; } .moq-warn-sub { font-size: 11px; margin-top: 6px; color: #8a5a10; }'
+    ).appendTo('head');
+}
+
+// ---------------------------------------------------------
 // Cart drawer
 // ---------------------------------------------------------
 function updateCartBadge() {
@@ -899,7 +954,7 @@ function renderCartDrawer() {
             '<br><span style="font-size:11px;color:#666;">' + (item.cost ? '$' + (item.cost * item.quantity).toFixed(2) : 'no price') + '</span></span><button onclick="removeCartItem(' + i + ')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:16px;">✕</button></div>' +
             '</div>';
     }).join('');
-    $('#cartItems').html(html);
+    $('#cartItems').html(moqWarningsHtml() + html);
     $('#cartTotalQty').text(cart.reduce(function (s, i) { return s + i.quantity; }, 0) + ' · $' +
         cart.reduce(function (s, i) { return s + (i.cost || 0) * i.quantity; }, 0).toFixed(2));
 }
@@ -917,6 +972,10 @@ function submitOrder() {
         if (!$('#' + required[i]).val()) { alert('Please fill out all required header fields before submitting.'); closeCart(); return; }
     }
     if (!cart.length) { alert('Your cart is empty!'); return; }
+    var shortList = moqShortfalls();
+    if (shortList.length && !confirm('Some items are below the catalog minimum:\n\n' +
+        shortList.map(function (g) { return '• ' + g.label + ': ' + g.qty + ' of ' + g.q; }).join('\n') +
+        '\n\nSubmit the order anyway?')) return;
 
     var authData = JSON.parse(sessionStorage.getItem('salesPortalAuth'));
     var orderData = {

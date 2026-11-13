@@ -533,6 +533,10 @@
         .qty-total b { color: var(--text); font-family: 'DM Mono', monospace; }
         .qty-total .min { display: block; font-size: 11px; }
         .qty-total .min.bad { color: var(--error); font-weight: 600; }
+        .qty-total .min.moq { font-weight: 700; color: #3a4a9a; }
+        .qty-total .min.moq.short { color: #a15c00; }
+        .moq-chip { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 8px; background: #fff1dc; color: #8a5200; }
+        .rv-moq { background: #fff4e5; border: 1px solid #f0b46a; color: #7a4a00; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 13px; }
         .qty-wrap.field-error-box { border-color: #e57373; background: var(--error-bg); }
         @media (max-width: 600px) { .qty-wrap { grid-column: 1 / -1; } .qty-total { margin-left: 0; flex-basis: 100%; text-align: left; } }
         .rv-order { margin-top: 12px; padding: 10px 12px; border: 1.5px solid #c3e6cb; background: #f5fbf5; border-radius: 8px; font-size: 13px; }
@@ -806,6 +810,7 @@ function portalRoleTag(role, onDark) {
 
 <script src="nexcom-locations.js"></script>
 <script src="rin-data.js"></script>
+<script src="moq-data.js"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 // NEXCOM script (Nexcom.gs + ArtRequests.gs), reached through the Cloudflare relay.
@@ -982,7 +987,9 @@ $(function () {
     $(document).on('input', '.js-qty', function () {
         var $row = $(this).closest('.garment-row');
         $row.find('.qty-wrap').removeClass('field-error-box');
-        updateRowQty($row); updateOrderSummary();
+        // apparel rows on one sketch count toward the same minimum, so refresh them all
+        $row.closest('.sketch-card').find('.garment-row').each(function () { updateRowQty($(this)); });
+        updateOrderSummary();
     });
     $(document).on('nexcom:locationSelected', function (e, loc) {
         $('#storeGroup').removeClass('field-error-group');
@@ -1553,7 +1560,7 @@ function setRowItem($row, item) {
         $in.val(item.desc).addClass('picked').removeClass('field-error');
         $meta.html('<span class="code">Style ' + esc(item.style) + '</span>' +
             (item.tier ? '<span class="tier-chip">' + esc(item.tier) + '</span>' : '') +
-            '<span class="cat-chip">' + esc(item.cat) + '</span>' + rinHtml(item.style));
+            '<span class="cat-chip">' + esc(item.cat) + '</span>' + moqChipHtml(item.style) + rinHtml(item.style));
     } else {
         $in.removeClass('picked');
         $meta.empty();
@@ -1926,6 +1933,34 @@ function minimumFor(cat) {
     var m = ORDER_CFG.minimums || {};
     return Object.prototype.hasOwnProperty.call(m, cat) ? (+m[cat] || 0) : (+ORDER_CFG.minimumDefault || 0);
 }
+// Catalog minimums (moq-data.js). Apparel on one sketch is pooled: the catalog lets
+// garments and colors be mixed to reach the minimum when the art is the same size.
+function moqSafe(style) { return typeof moqFor === 'function' ? moqFor(style) : null; }
+function moqChipHtml(style) { var m = moqSafe(style); return m ? '<span class="moq-chip">MOQ ' + m.q + '</span>' : ''; }
+function sketchMoqQty($card, key) {
+    var qty = 0, rows = 0;
+    $card.find('.garment-row').each(function () {
+        var m = moqSafe($(this).data('style'));
+        if (!m || m.key !== key) return;
+        rows++; qty += rowQty($(this)).qty;
+    });
+    return { qty: qty, rows: rows };
+}
+/** Sketch items below the catalog minimum: [{ sketch, label, qty, q }] */
+function moqShortfalls() {
+    var out = [];
+    $('#sketches .sketch-card').each(function () {
+        var $card = $(this), n = $card.data('num'), seen = {};
+        $card.find('.garment-row').each(function () {
+            var st = $(this).data('style'), m = moqSafe(st);
+            if (!m || seen[m.key]) return;
+            seen[m.key] = true;
+            var g = sketchMoqQty($card, m.key);
+            if (g.qty && g.qty < m.q) out.push({ sketch: n, label: m.apparel ? 'apparel, ' + m.key.replace('APPAREL ', '') + ' color' : ((catalogByStyle[st] || {}).desc || st), qty: g.qty, q: m.q });
+        });
+    });
+    return out;
+}
 function money(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
 
 function renderQty($row, item) {
@@ -1959,11 +1994,16 @@ function rowQty($row) {
 function updateRowQty($row) {
     var st = $row.data('style'), $t = $row.find('.qty-total');
     if (!st || !$t.length) return;
-    var q = rowQty($row), it = catalogByStyle[st] || {}, min = minimumFor(it.cat);
-    var c = $row.find('.js-qty').first().data('cost');
+    var q = rowQty($row), it = catalogByStyle[st] || {}, min = minimumFor(it.cat), moq = moqSafe(st);
+    var c = $row.find('.js-qty').first().data('cost'), moqHtml = '';
+    if (moq) {
+        var g = sketchMoqQty($row.closest('.sketch-card'), moq.key), pooled = g.rows > 1;
+        moqHtml = '<span class="min moq' + (g.qty && g.qty < moq.q ? ' short' : '') + '">Minimum ' + moq.q +
+            (pooled ? ' · this sketch ' + g.qty : '') + (moq.note && !moq.apparel ? ' · ' + esc(moq.note) : '') + '</span>';
+    }
     $t.html('<b>' + q.qty + '</b> pcs' + (q.qty && q.priced ? ' · <b>' + money(q.cost) + '</b>' : '') +
         (c !== '' && c != null ? '<span class="min">' + money(+c) + ' each</span>' : '<span class="min">No price on file</span>') +
-        (min ? '<span class="min' + (q.qty && q.qty < min ? ' bad' : '') + '">Minimum ' + min + '</span>' : ''));
+        (min && !moq ? '<span class="min' + (q.qty && q.qty < min ? ' bad' : '') + '">Minimum ' + min + '</span>' : '') + moqHtml);
 }
 function orderTotals() {
     var qty = 0, cost = 0, priced = true;
@@ -2481,6 +2521,10 @@ function openReview() {
         }).join('') +
         '<tr><td colspan="2"><b>Total</b></td><td class="n"><b>' + t.qty + '</b></td><td class="n"><b>' + money(t.cost) + '</b></td></tr></table>' +
         '<div style="color:var(--text-muted);font-size:12px;margin-top:6px;">Saved with a PO number now; released to production when the art is approved.</div></div>';
+    var short = moqShortfalls();
+    if (short.length) html += '<div class="rv-moq"><b>Below the catalog minimum</b>' + short.map(function (x) {
+        return '<div>Sketch ' + x.sketch + ', ' + esc(x.label) + ': <b>' + x.qty + '</b> of ' + x.q + '</div>';
+    }).join('') + '<div style="font-size:12px;margin-top:4px;">You can still submit, but the order may be sent back.</div></div>';
     $('#reviewBody').html(html);
     $('#reviewModal').addClass('open');
 }
