@@ -1,0 +1,259 @@
+/*
+ * GFSI Credit Memo System — shared parsers.
+ * Runs in the browser (dashboard) and in Node (tests).
+ *   parseCCVText(text)            -> one AAFES CCV text file -> object
+ *   extractCMCandidates(ccv)      -> possible CM#s for matching
+ *   parsePromoRecap(rows, opts)   -> Dick's "CUSTOM PROMOS ... RECAP" sheet (array of arrays) -> events
+ *   parseHistory(rows)            -> old Google Form response sheet (array of arrays) -> memos
+ */
+(function (root) {
+  'use strict';
+
+  // ---------- helpers ----------
+  function clean(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+  function num(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/[$,\s]/g, '');
+    var neg = /^\(.*\)$/.test(s) || /-$/.test(s);
+    s = s.replace(/[()\-]/g, '');
+    var n = parseFloat(s);
+    return isNaN(n) ? null : (neg ? -n : n);
+  }
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+  function pad7(v) {
+    if (v == null || v === '') return '';
+    var s = String(v).replace(/\D/g, '');
+    if (!s || /^0+$/.test(s)) return '';
+    return s.length < 7 ? ('0000000' + s).slice(-7) : s;
+  }
+  function isoDate(d) {
+    if (!(d instanceof Date) || isNaN(d)) return '';
+    var y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    return y + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+  // Excel serial -> Date (when sheet parsed without cellDates)
+  function toDate(v) {
+    if (v == null || v === '') return null;
+    if (v instanceof Date) return isNaN(v) ? null : new Date(Math.round(v.getTime() / 1000) * 1000);
+    if (typeof v === 'number' && v > 20000 && v < 80000) {
+      return new Date(Math.round((v - 25569) * 86400000) + new Date().getTimezoneOffset() * 60000);
+    }
+    var d = new Date(v);
+    return isNaN(d) ? null : d;
+  }
+  var MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  function normKey(s) { return clean(s).toUpperCase().replace(/[^A-Z0-9]+/g, ''); }
+
+  // ---------- CCV (AAFES "DUE AAFES CHARGE VOUCHER" text export) ----------
+  function parseCCVText(text) {
+    var t = String(text || '').replace(/\r/g, '');
+    function grab(re) { var m = t.match(re); return m ? clean(m[1]) : ''; }
+    var out = {
+      ccvNumber: grab(/CCV NUMBER[ \t]*:[ \t]*(\S+)/i),
+      vendorNumber: grab(/VENDOR NUMBER[ \t]*:[ \t]*(\S+)/i),
+      returnAuth: grab(/RETURN AUTH[ \t]*:[ \t]*([^\n]*)/i),
+      refInvoice: grab(/REF INVOICE[ \t]*:[ \t]*([^\n]*)/i),
+      facilityNumber: grab(/FACILITY NUMBER[ \t]*:[ \t]*(\S+)/i),
+      facilityName: grab(/FACILITY ADD[ \t]*:[ \t]*([^\n]*)/i),
+      ccvDate: '', amount: null, items: [], comments: '', warnings: [],
+      raw: t.slice(0, 20000)   // kept so the CCV can be re-printed in the packet sent to Kathleen
+    };
+    // Date: AAFES prints DD/MM/YY
+    var dm = t.match(/CCV DATE\s*:\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+    if (dm) {
+      var dd = +dm[1], mm = +dm[2], yy = +dm[3];
+      if (yy < 100) yy += 2000;
+      out.ccvDate = isoDate(new Date(yy, mm - 1, dd));
+    } else out.warnings.push('No CCV date found');
+    // "DUE AAFES" = credit to the store (normal). "DUE VENDOR" = money back to us (a reversal) -> stored as negative.
+    out.dueTo = /DUE\s+VENDOR\s+CHARGE\s+VOUCHER|TOTAL\s+USD\s+DUE\s+VENDOR/i.test(t) ? 'VENDOR' : 'AAFES';
+    var tot = t.match(/TOTAL\s+USD\s+DUE\s+(?:AAFES|VENDOR)\s+(<?-?[\d,]+\.\d{2}>?-?)/i);
+    if (tot) {
+      out.amount = num(tot[1].replace(/[<>]/g, function (c) { return c === '<' ? '(' : ')'; }));
+      if (out.dueTo === 'VENDOR') out.amount = -Math.abs(out.amount);
+    } else out.warnings.push('No total found');
+    // Items: between 2nd and 3rd ==== lines
+    var lines = t.split('\n'), eq = [];
+    lines.forEach(function (l, i) { if (/^\s*={20,}\s*$/.test(l)) eq.push(i); });
+    if (eq.length >= 3) {
+      for (var i = eq[1] + 1; i < eq[2]; i++) {
+        var m = lines[i].match(/^\s{2,}(\S.*?)\s{2,}(-?[\d.]+)\s+(-?[\d,]+\.\d{2})\s+(-?[\d,]+\.\d{2})\s*$/);
+        if (m) out.items.push({ description: clean(m[1]), qty: num(m[2]), unitCost: num(m[3]), extCost: num(m[4]) });
+      }
+    }
+    var cm = t.match(/COMMENTS:\s*\n([\s\S]*?)\n\s*={20,}/i);
+    if (cm) { out.comments = clean(cm[1]); if (out.comments.toUpperCase() === 'N/A') out.comments = ''; }
+    if (!out.ccvNumber) out.warnings.push('No CCV number found');
+    out.cmCandidates = extractCMCandidates(out);
+    out.kind = classifyCCV(out);
+    return out;
+  }
+
+  // Returns ordered list of CM# guesses, e.g. ['PR10207133'] or ['PR10187155','MD10187155']
+  function extractCMCandidates(ccv) {
+    var found = [], seen = {};
+    function add(x) { x = x.toUpperCase(); if (!seen[x]) { seen[x] = 1; found.push(x); } }
+    var sources = [ccv.returnAuth || '', ccv.refInvoice || '', ccv.comments || ''];
+    sources.forEach(function (s) {
+      var re = /\b(PR|MD)\s*[-#]?\s*(\d[\d\s]{4,11}\d)\b/gi, m;
+      while ((m = re.exec(s))) add(m[1] + m[2].replace(/\s/g, ''));
+    });
+    // Only fall back to bare order numbers when the CCV says it's a promo/markdown credit —
+    // otherwise an RMA/return number could accidentally match one of our order numbers.
+    if (!found.length && PROMOISH.test(sources.join(' '))) {
+      sources.forEach(function (s) {
+        var m = s.match(/(?:ORDER|ORD|CM)\s*#?\s*:?\s*(\d[\d\s]{4,11}\d)/i) || s.match(/\b(\d{7,9})\b/);
+        if (m) { var d = m[1].replace(/\s/g, ''); add('PR' + d); add('MD' + d); }
+      });
+    }
+    return found;
+  }
+
+  var PROMOISH = /PROMO|MARK\s*-?\s*DOWN|REBATE|\bCM\s*#|\bMD\s*#?\d|\bPR\s*#?\d|10\s*%|12\.5\s*%/i;
+
+  // Clear signs a CCV is a return / damage / pricing claim rather than a promo or markdown credit
+  var RETURNISH = /\bRMA\b|RMA\s*#|\bRTV\b|RETURN(?:ED|S)?\b|DAMAG|DEFECT|SHORT(?:AGE)?\b|SHORT\s*SHIP|OVERAGE|CONCEALED|PRICE\s*(?:DIFF|ADJ|CHANGE)|FREIGHT\s*CLAIM|MIS\s*-?SHIP|WRONG\s+ITEM/i;
+
+  // 'Credit memo' | 'Reversal' | 'Not ours' (returns, RMAs, damages — recorded only)
+  // Anything ambiguous (no CM#, no clear return wording) is treated as ours so it lands in "Unmatched" for review.
+  function classifyCCV(c) {
+    var rev = c.dueTo === 'VENDOR';
+    if (c.cmCandidates && c.cmCandidates.length) return rev ? 'Reversal' : 'Credit memo';
+    var txt = [c.returnAuth, c.refInvoice, c.comments].concat((c.items || []).map(function (i) { return i.description; })).join(' ');
+    if (PROMOISH.test(txt)) return rev ? 'Reversal' : 'Credit memo';
+    if (RETURNISH.test(txt)) return 'Not ours';
+    return rev ? 'Reversal' : 'Credit memo';
+  }
+
+  // ---------- Dick's promo recap ----------
+  // rows: array of arrays (row 0 = sheet row 1). Values may be Date objects or Excel serials.
+  // Layout: A store | B facility | C event | D date | E giveaways | F champ style | G champ $ |
+  //         H UA style | I UA $ | J CW style | K CW $ | L display | M rep | N pictures | O submitted Y/N
+  function parsePromoRecap(rows, opts) {
+    opts = opts || {};
+    var warnings = [], skipped = [];
+    // Find header row ("STORE" in col A followed by a row with "NAME")
+    var h = -1;
+    for (var r = 0; r < Math.min(rows.length, 15); r++) {
+      if (/^STORE/i.test(clean((rows[r] || [])[0])) && /EVENT/i.test((rows[r] || []).join(' '))) { h = r; break; }
+    }
+    if (h < 0) throw new Error('Could not find the header row (a row starting with "STORE" that mentions "EVENT").');
+    var start = /NAME/i.test(clean((rows[h + 1] || [])[0])) ? h + 2 : h + 1;
+    // Year: from title row, else option, else current year
+    var year = opts.year;
+    if (!year) {
+      for (var t = 0; t < h; t++) { var m = (rows[t] || []).join(' ').match(/\b(20\d{2})\b/); if (m) { year = +m[1]; break; } }
+    }
+    year = year || new Date().getFullYear();
+
+    var BR = [
+      { brand: 'Champion', s: 5, a: 6 },
+      { brand: 'Under Armour', s: 7, a: 8 },
+      { brand: 'Comfort Wash', s: 9, a: 10 }
+    ];
+    var events = [], cur = null;
+    function flush() {
+      if (!cur) return;
+      cur.rep = clean(cur._rep.join(' '));
+      cur.display = clean(cur._display.join(' '));
+      delete cur._rep; delete cur._display;
+      if (!cur.event && !cur.lines.length) { skipped.push(cur.store + ' (row ' + cur.sheetRow + '): no event or amounts'); }
+      else {
+        cur.id = [normKey(cur.store), normKey(cur.event), year].join('|');
+        BR.forEach(function (b) {
+          var ls = cur.lines.filter(function (l) { return l.brand === b.brand; });
+          cur.planned[b.brand] = round2(ls.reduce(function (s, l) { return s + l.planned; }, 0));
+          cur.plannedOpen[b.brand] = round2(ls.filter(function (l) { return !l.submitted; }).reduce(function (s, l) { return s + l.planned; }, 0));
+          cur.submitted[b.brand] = ls.length > 0 && ls.every(function (l) { return l.submitted; });
+        });
+        if (!cur.facility) warnings.push(cur.store + ' / ' + cur.event + ': no facility # on recap');
+        if (!cur.lines.length) warnings.push(cur.store + ' / ' + cur.event + ': no styles/amounts yet');
+        events.push(cur);
+      }
+      cur = null;
+    }
+    for (var i = start; i < rows.length; i++) {
+      var row = rows[i] || [];
+      var store = clean(row[0]);
+      if (store) {
+        flush();
+        var d = toDate(row[3]), dateText = clean(row[3]);
+        if (!d && dateText) {
+          var mi = MONTHS.indexOf(dateText.toUpperCase().slice(0, 3));
+          if (mi >= 0) d = new Date(year, mi, 1);
+        }
+        cur = {
+          store: store, facility: pad7(row[1]), event: clean(row[2]),
+          eventDate: d ? isoDate(d) : '', eventDateText: d && row[3] instanceof Date ? '' : dateText,
+          giveaways: clean(row[4]).toUpperCase() === 'Y',
+          lines: [], planned: {}, plannedOpen: {}, submitted: {},
+          _rep: [], _display: [], sheetRow: i + 1, year: year
+        };
+      }
+      if (!cur) continue;
+      if (clean(row[11])) cur._display.push(clean(row[11]));
+      if (clean(row[12])) cur._rep.push(clean(row[12]));
+      var submitted = /^Y/i.test(clean(row[14]));
+      BR.forEach(function (b) {
+        var style = clean(row[b.s]), sold = num(row[b.a]);
+        if (style || sold) {
+          cur.lines.push({ brand: b.brand, style: style, sold: sold || 0, planned: round2(0.1 * (sold || 0)), submitted: submitted, sheetRow: i + 1 });
+        }
+      });
+    }
+    flush();
+    return { year: year, events: events, warnings: warnings, skipped: skipped };
+  }
+
+  // ---------- Old Google Form responses (history import) ----------
+  function parseHistory(rows) {
+    var hdr = (rows[0] || []).map(function (x) { return clean(x).toLowerCase(); });
+    function col(re) { for (var i = 0; i < hdr.length; i++) if (re.test(hdr[i])) return i; return -1; }
+    var C = {
+      ts: col(/^timestamp/), email: col(/email/), rep: col(/rep name/), store: col(/store name/),
+      fac: col(/facility/), type: col(/request type/), brand: col(/brand/), gender: col(/gender/),
+      order: col(/^order/), shipped: col(/shipped/), comments: col(/^comments/), promo: col(/what promo/),
+      promoStart: col(/start date/), cm: col(/request id/), amount: col(/credit memo amount/),
+      status: col(/approval status/), pdf: col(/pdf/)
+    };
+    if (C.cm < 0 || C.amount < 0) throw new Error('This does not look like the old form-response sheet (no "Request ID" / "Credit Memo Amount" columns).');
+    var styleCols = [];
+    hdr.forEach(function (x, i) {
+      var m = x.match(/style #(\d+)\s*(.*)/);
+      if (m) {
+        var n = +m[1]; styleCols[n] = styleCols[n] || {};
+        if (/quantity/.test(m[2])) styleCols[n].q = i; else if (/cost/.test(m[2])) styleCols[n].c = i; else styleCols[n].s = i;
+      }
+    });
+    var out = [];
+    for (var r = 1; r < rows.length; r++) {
+      var row = rows[r] || [];
+      var cmNo = clean(row[C.cm]).toUpperCase();
+      if (!cmNo) continue;
+      var styles = [];
+      styleCols.forEach(function (sc) {
+        if (!sc) return;
+        var s = clean(row[sc.s]); if (!s) return;
+        styles.push({ style: s, qty: num(row[sc.q]) || 0, cost: num(row[sc.c]) || 0 });
+      });
+      var type = /markdown/i.test(clean(row[C.type])) ? 'MD' : 'PR';
+      var ts = toDate(row[C.ts]);
+      out.push({
+        cm: cmNo, submittedAt: ts ? ts.toISOString() : '', repEmail: clean(row[C.email]), repName: clean(row[C.rep]),
+        store: clean(row[C.store]), facility: pad7(row[C.fac]), type: type, brand: clean(row[C.brand]),
+        gender: clean(row[C.gender]), orderNo: clean(row[C.order]), styles: styles,
+        shipped: C.shipped >= 0 && toDate(row[C.shipped]) ? isoDate(toDate(row[C.shipped])) : '',
+        comments: C.comments >= 0 ? clean(row[C.comments]) : '', promoTitle: C.promo >= 0 ? clean(row[C.promo]) : '',
+        promoStart: C.promoStart >= 0 && toDate(row[C.promoStart]) ? isoDate(toDate(row[C.promoStart])) : '',
+        amount: num(row[C.amount]), status: clean(row[C.status]) || 'Approved', pdfUrl: C.pdf >= 0 ? clean(row[C.pdf]) : ''
+      });
+    }
+    return out;
+  }
+
+  var api = { parseCCVText: parseCCVText, extractCMCandidates: extractCMCandidates, classifyCCV: classifyCCV, parsePromoRecap: parsePromoRecap,
+              parseHistory: parseHistory, normKey: normKey, round2: round2, pad7: pad7, isoDate: isoDate };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.GFSIParsers = api;
+})(this);

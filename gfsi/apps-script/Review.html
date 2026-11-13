@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --ink:#1b2430; --muted:#667085; --line:#e4e7ec; --bg:#f6f7f9; --accent:#1f4e8c; --ok:#18794e; --bad:#b42318; --warn:#9a5b00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.45 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 120px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:12px; }
+  .row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+  .cm { font-weight:700; font-size:17px; }
+  .amt { font-weight:700; font-size:18px; }
+  .meta { color:var(--muted); font-size:13px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+  td, th { padding:5px 6px; border-bottom:1px solid var(--line); text-align:left; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  .r { text-align:right; }
+  .warn { background:#fff6e5; color:var(--warn); border-radius:6px; padding:8px 10px; margin-top:10px; font-size:13px; }
+  .warn div::before { content:"⚠ "; }
+  .choice { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .choice label { border:1px solid var(--line); border-radius:999px; padding:6px 14px; cursor:pointer; user-select:none; }
+  .choice input { display:none; }
+  .choice input:checked + span.ok { color:#fff; }
+  .choice label:has(input[value=approve]:checked) { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .choice label:has(input[value=reject]:checked) { background:var(--bad); border-color:var(--bad); color:#fff; }
+  .note { width:100%; margin-top:8px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; display:none; }
+  .done { color:var(--muted); font-style:italic; margin-top:10px; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:12px 16px; }
+  .bar .in { max-width:860px; margin:0 auto; display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  button { font:inherit; font-weight:600; border-radius:8px; padding:10px 18px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  a { color: var(--accent); }
+  .err { background:#fef3f2; color:var(--bad); padding:14px; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="bar" id="bar" style="display:none"><div class="in">
+  <div id="summary"></div>
+  <div style="display:flex;gap:8px">
+    <button id="allBtn" type="button">Approve all</button>
+    <button id="saveBtn" class="primary" type="button">Submit decisions</button>
+  </div>
+</div></div>
+<script>
+  var OK = <?!= ok ? 'true' : 'false' ?>;
+  var BATCH = <?!= JSON.stringify(batchId) ?>, TOKEN = <?!= JSON.stringify(token) ?>;
+  var DATA = <?!= data ?>;
+  var app = document.getElementById('app');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function money(n){ return '$' + Number(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  function render() {
+    if (!OK) { app.innerHTML = '<div class="err">This approval link is not valid or has been changed. Please use the link in the original email.</div>'; return; }
+    if (!DATA || !DATA.length) { app.innerHTML = '<div class="err">No requests found for this link.</div>'; return; }
+    var f = DATA[0];
+    var h = '<h1>' + esc(f.store) + (f.facility ? ' · ' + esc(f.facility) : '') + '</h1>' +
+      '<div class="sub">Requested by ' + esc(f.rep) + ' · ' + DATA.length + ' order' + (DATA.length>1?'s':'') + '</div>';
+    DATA.forEach(function (m, i) {
+      var gross = m.styles.reduce(function(t,s){return t + s.qty*s.cost;},0);
+      h += '<div class="card"><div class="row"><div>' +
+        '<div class="cm">' + esc(m.cm) + '</div>' +
+        '<div class="meta">' + esc(m.brand) + ' ' + esc(m.gender) + ' · ' + (m.type==='PR' ? 'Custom promo 10%' : 'Markdown 12.5%') +
+        ' · Order ' + esc(m.orderNo) + '</div>' +
+        (m.type==='PR' ? '<div class="meta">Promo: <b>' + esc(m.promoTitle||'—') + '</b>' + (m.promoApproved==='Y' ? ' (on approved list)' : ' <b style="color:#b42318">(not on approved list)</b>') + (m.promoStart ? ' · starts ' + esc(m.promoStart) : '') + '</div>'
+                       : '<div class="meta">Shipped: ' + esc(m.shipped || 'not given') + '</div>') +
+        '</div><div class="amt">' + money(m.amount) + '</div></div>' +
+        '<table><tr><th>Style</th><th class="r">Qty</th><th class="r">Cost</th><th class="r">Ext.</th>' + (m.type==='MD'?'<th class="r">Orig. shipped</th>':'') + '</tr>' +
+        m.styles.map(function(s){ return '<tr><td>'+esc(s.style)+'</td><td class="r">'+s.qty+'</td><td class="r">'+money(s.cost)+'</td><td class="r">'+money(s.qty*s.cost)+'</td>' + (m.type==='MD'?'<td class="r">'+(s.shippedQty||'—')+'</td>':'') + '</tr>'; }).join('') +
+        '<tr><td colspan="3" class="r meta">Wholesale ' + money(gross) + ' × ' + (m.type==='PR'?'10%':'12.5%') + '</td><td class="r"><b>' + money(m.amount) + '</b></td>' + (m.type==='MD'?'<td></td>':'') + '</tr></table>' +
+        (m.comments ? '<div class="meta" style="margin-top:8px">Comments: ' + esc(m.comments) + '</div>' : '') +
+        (m.photos.length ? '<div class="meta" style="margin-top:6px">Photos: ' + m.photos.map(function(u,k){return '<a href="'+esc(u)+'" target="_blank">photo '+(k+1)+'</a>';}).join(' · ') + '</div>' : '') +
+        (m.warnings.length ? '<div class="warn">' + m.warnings.map(function(w){return '<div>'+esc(w)+'</div>';}).join('') + '</div>' : '');
+      if (m.status === 'Pending') {
+        h += '<div class="choice">' +
+          '<label><input type="radio" name="d'+i+'" value="approve"><span>Approve</span></label>' +
+          '<label><input type="radio" name="d'+i+'" value="reject"><span>Reject</span></label></div>' +
+          '<textarea class="note" id="n'+i+'" rows="2" placeholder="Reason (sent to the rep)"></textarea>';
+      } else {
+        h += '<div class="done">Already ' + esc(String(m.status).toLowerCase()) + (m.decidedAt ? ' on ' + esc(String(m.decidedAt).slice(0,10)) : '') + (m.pdf ? ' · <a href="'+esc(m.pdf)+'" target="_blank">PDF</a>' : '') + '</div>';
+      }
+      h += '</div>';
+    });
+    app.innerHTML = h;
+    var pending = DATA.filter(function(m){return m.status==='Pending';}).length;
+    document.getElementById('bar').style.display = pending ? '' : 'none';
+    app.querySelectorAll('input[type=radio]').forEach(function (r) { r.addEventListener('change', update); });
+    update();
+  }
+  function decisions() {
+    var out = [];
+    DATA.forEach(function (m, i) {
+      if (m.status !== 'Pending') return;
+      var c = document.querySelector('input[name=d'+i+']:checked');
+      var n = document.getElementById('n'+i);
+      if (n) n.style.display = c && c.value === 'reject' ? 'block' : 'none';
+      if (c) out.push({ cm: m.cm, approve: c.value === 'approve', note: n ? n.value : '' });
+    });
+    return out;
+  }
+  function update() {
+    var d = decisions(), pend = DATA.filter(function(m){return m.status==='Pending';}).length;
+    var ap = d.filter(function(x){return x.approve;}).length, rj = d.length - ap;
+    document.getElementById('summary').textContent = d.length + ' of ' + pend + ' decided' + (d.length ? ' (' + ap + ' approve, ' + rj + ' reject)' : '');
+    document.getElementById('saveBtn').disabled = d.length === 0;
+  }
+  document.getElementById('allBtn').onclick = function () {
+    DATA.forEach(function (m, i) { var r = document.querySelector('input[name=d'+i+'][value=approve]'); if (r) r.checked = true; });
+    update();
+  };
+  document.getElementById('saveBtn').onclick = function () {
+    var d = decisions();
+    var missing = d.filter(function(x){ return !x.approve && !x.note.trim(); });
+    if (missing.length) { alert('Please add a short reason for each rejection — it goes to the rep.'); return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+    google.script.run.withSuccessHandler(function (res) {
+      var by = {}; res.forEach(function (r) { by[r.cm] = r; });
+      DATA.forEach(function (m) { if (by[m.cm] && by[m.cm].ok) { var dd = d.filter(function(x){return x.cm===m.cm;})[0]; if (dd) m.status = dd.approve ? 'Approved' : 'Rejected'; } });
+      render();
+      app.insertAdjacentHTML('afterbegin', '<div class="card" style="border-color:#18794e"><b>Done.</b> ' + res.map(function(r){return esc(r.cm)+': '+esc(r.msg);}).join(' · ') + '</div>');
+      btn.textContent = 'Submit decisions';
+    }).withFailureHandler(function (e) {
+      alert('Something went wrong: ' + e.message); btn.disabled = false; btn.textContent = 'Submit decisions';
+    }).decideBatch(BATCH, TOKEN, d);
+  };
+  render();
+</script>
+</body>
+</html>

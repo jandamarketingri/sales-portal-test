@@ -1,0 +1,112 @@
+/*
+ * GFSI Credit Memo System — CCV packet builder (browser + Node).
+ * Combines one or more AAFES CCVs (re-typeset from their text export, exactly as AAFES lays them out)
+ * with the credit memo PDF into a single PDF.
+ *   buildPacket(PDFLib, { ccvs: [{ raw, ccvNumber, ... }], memoPdf: Uint8Array|ArrayBuffer }) -> Promise<Uint8Array>
+ *   packetFileName(template, ccvNumber, cm) -> "WWACVX110060670_PR10207133.pdf"
+ */
+(function (root) {
+  'use strict';
+
+  function packetFileName(template, ccvNumber, cm) {
+    var full = String(ccvNumber || '').toUpperCase();
+    var digits = full.replace(/^[A-Z]+/, '') || full.replace(/\D/g, '');
+    var name = String(template || '{ccv}_{cm}.pdf')
+      .replace(/\{ccvDigits\}/g, digits).replace(/\{ccv\}/g, full).replace(/\{cm\}/g, String(cm || '').toUpperCase());
+    name = name.replace(/[\\/:*?"<>|]+/g, '');
+    return /\.pdf$/i.test(name) ? name : name + '.pdf';
+  }
+
+  // Fallback text when a CCV was imported without its raw text
+  function ccvTextFromFields(c) {
+    var L = [];
+    L.push('                         ARMY AND AIR FORCE EXCHANGE SERVICE');
+    L.push('                       DUE ' + (c.dueTo === 'VENDOR' ? 'VENDOR' : 'AAFES') + ' CHARGE VOUCHER');
+    L.push('');
+    L.push('    VENDOR NUMBER: ' + (c.vendorNumber || c.vendor || ''));
+    L.push('    CCV NUMBER : ' + (c.ccvNumber || c.ccv || ''));
+    L.push('    CCV DATE   : ' + (c.ccvDate || c.date || ''));
+    L.push('    RETURN AUTH: ' + (c.returnAuth || ''));
+    L.push('');
+    L.push('    ITEMS: ' + (c.itemsText || c.items || ''));
+    L.push('    TOTAL USD DUE ' + (c.dueTo === 'VENDOR' ? 'VENDOR' : 'AAFES') + ': ' + Math.abs(Number(c.amount) || 0).toFixed(2));
+    L.push('');
+    L.push('    COMMENTS: ' + (c.comments || ''));
+    L.push('    FACILITY NUMBER: ' + (c.facilityNumber || c.facility || ''));
+    L.push('    FACILITY ADD:    ' + (c.facilityName || ''));
+    L.push('');
+    L.push('    (re-created from imported data; original text was not available)');
+    return L.join('\n');
+  }
+
+  // WinAnsi-safe: Courier standard font can't encode arbitrary bytes
+  function sanitize(s) {
+    return String(s || '').replace(/\r/g, '').replace(/\t/g, '    ').replace(/[^\x20-\x7E\n]/g, '');
+  }
+
+  async function buildPacket(PDFLib, opts) {
+    var doc = await PDFLib.PDFDocument.create();
+    var font = await doc.embedFont(PDFLib.StandardFonts.Courier);
+    var W = 612, H = 792, margin = 36;
+    (opts.ccvs || []).forEach(function (c) {
+      var text = sanitize(c.raw && /\S/.test(c.raw) ? c.raw : ccvTextFromFields(c));
+      var lines = text.split('\n');
+      while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+      var longest = lines.reduce(function (m, l) { return Math.max(m, l.length); }, 1);
+      var size = Math.min(9, (W - 2 * margin) / (longest * 0.6));     // Courier glyphs are 0.6em wide
+      var lead = size * 1.22, perPage = Math.floor((H - 2 * margin) / lead);
+      for (var start = 0; start < lines.length; start += perPage) {
+        var page = doc.addPage([W, H]);
+        lines.slice(start, start + perPage).forEach(function (ln, k) {
+          if (ln) page.drawText(ln, { x: margin, y: H - margin - size - k * lead, size: size, font: font });
+        });
+      }
+    });
+    if (opts.memoPdf) {
+      var memo = await PDFLib.PDFDocument.load(opts.memoPdf);
+      var pages = await doc.copyPages(memo, memo.getPageIndices());
+      pages.forEach(function (p) { doc.addPage(p); });
+    }
+    doc.setTitle(opts.title || 'CCV packet');
+    doc.setProducer('GFSI Credit Memo System');
+    return doc.save();
+  }
+
+  // Summary spreadsheet sent along with a batch of packets.
+  // rows: [{ fileName, ccvNumbers, ccvDate, cm, type, brand, store, facility, aafesFacility, orderNo, rep, issueDate, promo, memoAmount, ccvAmount, finalAmount }]
+  function buildSummaryXlsx(XLSX, rows, sentDate) {
+    var hdr = ['Packet file', 'CCV #', 'CCV date', 'CM#', 'Type', 'Brand', 'Store', 'Facility #', 'AAFES facility #', 'Order #',
+      'Sales rep', 'Memo issued', 'Promo', 'Memo amount', 'CCV amount', 'Difference', 'Final credit'];
+    var aoa = [hdr];
+    rows.forEach(function (r) {
+      var diff = Math.round(((Number(r.ccvAmount) || 0) - (Number(r.memoAmount) || 0)) * 100) / 100;
+      aoa.push([r.fileName, r.ccvNumbers, r.ccvDate, r.cm, r.type === 'MD' ? 'Markdown 12.5%' : 'Custom promo 10%', r.brand, r.store,
+        r.facility || '', r.aafesFacility || '', r.orderNo || '', r.rep || '', r.issueDate || '', r.promo || '',
+        Number(r.memoAmount) || 0, Number(r.ccvAmount) || 0, diff, Number(r.finalAmount) || 0]);
+    });
+    var n = rows.length;
+    aoa.push([]);
+    aoa.push(['Total (' + n + ' packet' + (n === 1 ? '' : 's') + ')', '', '', '', '', '', '', '', '', '', '', '', '',
+      { f: 'SUM(N2:N' + (n + 1) + ')' }, { f: 'SUM(O2:O' + (n + 1) + ')' }, { f: 'SUM(P2:P' + (n + 1) + ')' }, { f: 'SUM(Q2:Q' + (n + 1) + ')' }]);
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    // money format + totals values (so viewers that don't calculate still show numbers)
+    var totals = [13, 14, 15, 16].map(function (c) { return rows.reduce(function (t, r, i) { return t + (Number(aoa[i + 1][c]) || 0); }, 0); });
+    for (var R = 1; R <= n + 2; R++) [13, 14, 15, 16].forEach(function (C, k) {
+      var ref = XLSX.utils.encode_cell({ r: R, c: C }); var cell = ws[ref]; if (!cell) return;
+      if (R === n + 2) { cell.v = Math.round(totals[k] * 100) / 100; cell.t = 'n'; }
+      cell.z = '$#,##0.00';
+    });
+    ws['!cols'] = [34, 30, 11, 12, 16, 13, 22, 10, 15, 10, 20, 11, 22, 12, 12, 11, 12].map(function (w) { return { wch: w }; });
+    ws['!autofilter'] = { ref: 'A1:Q' + (n + 1) };
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CCV summary');
+    return {
+      fileName: 'CCV summary ' + (sentDate || new Date().toISOString().slice(0, 10)) + '.xlsx',
+      b64: XLSX.write(wb, { bookType: 'xlsx', type: 'base64' })
+    };
+  }
+
+  var api = { buildPacket: buildPacket, packetFileName: packetFileName, ccvTextFromFields: ccvTextFromFields, buildSummaryXlsx: buildSummaryXlsx };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.GFSIPacket = api;
+})(this);

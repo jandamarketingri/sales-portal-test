@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_blank">
+<meta charset="utf-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<?!= include('Parsers') ?>
+<?!= include('Packet') ?>
+<style>
+  :root { --ink:#17212b; --muted:#5f6b7a; --line:#e2e6eb; --soft:#f5f7f9; --accent:#1f4e8c; --accent-2:#e8eff8;
+    --ok:#17734a; --ok-bg:#e7f5ee; --warn:#8a5300; --warn-bg:#fff4dc; --bad:#b42318; --bad-bg:#fdecea;
+    --c1:#1f4e8c; --c2:#4f86c6; --c3:#9bbbe0; --c4:#d5e2f1; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:#fff; }
+  header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; z-index:5; }
+  header h1 { font-size:17px; margin:0; }
+  nav { display:flex; gap:2px; padding:0 18px; border-bottom:1px solid var(--line); background:#fff; position:sticky; top:49px; z-index:5; }
+  nav button { border:0; background:none; font:inherit; padding:10px 14px; cursor:pointer; color:var(--muted); border-bottom:2px solid transparent; }
+  nav button.on { color:var(--ink); font-weight:600; border-bottom-color:var(--accent); }
+  nav .badge { background:var(--bad); color:#fff; border-radius:999px; font-size:11px; padding:1px 6px; margin-left:4px; }
+  main { padding:18px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:14px 16px; background:#fff; }
+  .card h3 { margin:0 0 2px; font-size:15px; }
+  .big { font-size:24px; font-weight:700; letter-spacing:-.01em; }
+  .muted { color:var(--muted); } .small { font-size:12px; }
+  .meter { height:14px; border-radius:7px; background:var(--soft); overflow:hidden; display:flex; margin:10px 0 8px; }
+  .meter span { height:100%; }
+  .legend { display:grid; grid-template-columns:auto 1fr auto; gap:3px 8px; font-size:13px; }
+  .sw { width:10px; height:10px; border-radius:2px; display:inline-block; margin-top:4px; }
+  .over { color:var(--bad); font-weight:700; }
+  .tiles { display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin:16px 0; }
+  .tile { border:1px solid var(--line); border-radius:10px; padding:10px 12px; cursor:pointer; }
+  .tile:hover { background:var(--soft); }
+  .tile .n { font-size:22px; font-weight:700; }
+  .tile.bad .n { color:var(--bad); } .tile.warn .n { color:var(--warn); }
+  table.t { width:100%; border-collapse:collapse; font-size:13px; }
+  table.t th { text-align:left; color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.04em; padding:6px 8px; border-bottom:1px solid var(--line); position:sticky; top:0; background:#fff; }
+  table.t td { padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.t tr.click:hover td { background:var(--soft); cursor:pointer; }
+  .r { text-align:right; } .mono { font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .p-Open { background:var(--accent-2); color:var(--accent); } .p-Pending { background:#eef0f3; color:#444; }
+  .p-Matched { background:var(--ok-bg); color:var(--ok); } .p-Reversed { background:var(--warn-bg); color:var(--warn); }
+  .p-Credit { background:var(--accent-2); color:var(--accent); } .p-Not, .p-Old { background:#eee; color:#555; }
+  .p-Resolved { background:var(--ok-bg); color:var(--ok); } .p-Expiring { background:var(--warn-bg); color:var(--warn); }
+  .p-Expired { background:#eee; color:#666; } .p-Reversal { background:var(--bad-bg); color:var(--bad); }
+  .p-Rejected, .p-Void { background:#eee; color:#888; text-decoration:line-through; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chips button { border:1px solid var(--line); background:#fff; border-radius:999px; padding:4px 10px; font:inherit; font-size:13px; cursor:pointer; }
+  .chips button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  input[type=text], input[type=number], input[type=date], input[type=search], select, textarea { font:inherit; padding:6px 9px; border:1px solid var(--line); border-radius:7px; }
+  .btn { font:inherit; font-weight:600; padding:7px 13px; border-radius:7px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.danger { color:var(--bad); }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .drop { border:2px dashed #b9c4d2; border-radius:12px; padding:26px; text-align:center; color:var(--muted); cursor:pointer; }
+  .drop.hover { background:var(--accent-2); border-color:var(--accent); color:var(--accent); }
+  .detail { background:var(--soft); }
+  .detail td { padding:12px 14px; }
+  .msg { padding:10px 14px; border-radius:8px; margin-bottom:12px; }
+  .msg.ok { background:var(--ok-bg); color:var(--ok); } .msg.err { background:var(--bad-bg); color:var(--bad); } .msg.warn { background:var(--warn-bg); color:var(--warn); }
+  .scroll { max-height:560px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+  .loading { padding:60px; text-align:center; color:var(--muted); }
+  h2 { font-size:15px; margin:18px 0 8px; }
+  .sugg td { padding:2px 8px 10px 26px; border-bottom:1px solid var(--line); background:#fbfcfd; }
+  .sg { display:flex; align-items:center; gap:10px; padding:4px 0; font-size:13px; }
+  .sg .why { color:var(--muted); }
+  .score { font-size:11px; font-weight:700; border-radius:4px; padding:1px 6px; }
+  .score.hi { background:var(--ok-bg); color:var(--ok); } .score.md { background:var(--warn-bg); color:var(--warn); } .score.lo { background:#eef0f3; color:#555; }
+  .formgrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px 12px; }
+  .formgrid label { font-size:12px; font-weight:600; display:block; margin-bottom:2px; }
+  .formgrid input { width:100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GFSI Credit Memos</h1>
+  <div class="row">
+    <label class="muted small">Budget year <select id="year"></select></label>
+    <button class="btn" id="refresh" type="button">Refresh</button>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main id="main"><div class="loading">Loading…</div></main>
+
+<script>
+(function () {
+  'use strict';
+  var D = null, tab = 'overview', memoFilter = 'Action', memoSearch = '', openRow = null, flash = null;
+  var pendingCCVs = null, pendingRecap = null, pendingHistory = null;
+  var main = document.getElementById('main');
+  var COLORS = { carryIn: '#7a8794', ccvd: 'var(--c1)', open: 'var(--c2)', pending: 'var(--c3)', planned: 'var(--c4)' };
+  var LABELS = { carryIn: 'Before go-live (old system)', ccvd: 'CCV received', open: 'Open memos', pending: 'Awaiting approval', planned: 'Approved promos, no memo yet' };
+  function parts(B) { return (B.carryIn ? ['carryIn'] : []).concat(['ccvd', 'open', 'pending', 'planned']); }
+
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (res, rej) {
+      var r = google.script.run.withSuccessHandler(res).withFailureHandler(rej);
+      r[fn].apply(r, args);
+    });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { if (n == null || n === '') return ''; var neg = n < 0; return (neg ? '−' : '') + '$' + Math.abs(Number(n)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function pill(s) { return '<span class="pill p-' + String(s).split(/[^A-Za-z]/)[0] + '">' + esc(s) + '</span>'; }
+  function fyLabel(y) { return 'Apr ' + y + ' – Mar ' + (y + 1); }
+  function setFlash(kind, html) { flash = { kind: kind, html: html }; }
+
+  // ---------------- data ----------------
+  function load() {
+    var y = document.getElementById('year').value;
+    return call('getDashboardData', y).then(function (d) { D = d; render(); })
+      .catch(function (e) { main.innerHTML = '<div class="msg err">' + esc(e.message) + '</div>'; });
+  }
+  (function initYear() {
+    var sel = document.getElementById('year'), now = new Date(), y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    for (var i = y; i >= y - 3; i--) sel.insertAdjacentHTML('beforeend', '<option value="' + i + '"' + (i === y ? ' selected' : '') + '>' + fyLabel(i) + '</option>');
+    sel.onchange = load;
+    document.getElementById('refresh').onclick = load;
+  })();
+
+  function counts() {
+    var c = { Pending: 0, Open: 0, Expiring: 0, Expired: 0, 'Reversal needed': 0, Unapproved: 0, unmatched: 0 };
+    D.memos.forEach(function (m) {
+      if (c[m.state] != null) c[m.state]++;
+      if (m.type === 'PR' && m.promoApproved === 'N' && m.status !== 'Rejected' && m.status !== 'Void') c.Unapproved++;
+    });
+    c.ready = D.memos.filter(function (m) { return m.packetReady; }).length;
+    c.unmatched = D.ccvs.filter(function (x) { return !x.cm && x.kind !== 'Not ours' && x.kind !== 'Old system'; }).length;
+    c.notOurs = D.ccvs.filter(function (x) { return x.kind === 'Not ours'; }).length;
+    D.memos.forEach(function (m) { if (m.state === 'Reversed — awaiting new CCV') c.Reversed = (c.Reversed || 0) + 1; });
+    return c;
+  }
+
+  // ---------------- render ----------------
+  function render() {
+    var c = counts();
+    var T = [['overview', 'Overview'], ['memos', 'Credit memos', c['Reversal needed'] + (c.Reversed || 0) + c.Expiring], ['ccvs', 'CCVs', c.unmatched + c.ready], ['promos', 'Promos']];
+    document.getElementById('tabs').innerHTML = T.map(function (t) {
+      return '<button type="button" data-tab="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + (t[2] ? '<span class="badge">' + t[2] + '</span>' : '') + '</button>';
+    }).join('');
+    var h = flash ? '<div class="msg ' + flash.kind + '">' + flash.html + '</div>' : '';
+    flash = null;
+    h += ({ overview: viewOverview, memos: viewMemos, ccvs: viewCCVs, promos: viewPromos, history: viewHistory })[tab](c);
+    main.innerHTML = h;
+    bindDrops();
+  }
+
+  function viewOverview(c) {
+    var M = D.budgetMeta || {};
+    var h = '<div class="muted small" style="margin-bottom:10px">Budget year <b>' + fyLabel(D.year) + '</b>, counted by CCV date' + (M.includesMarkdowns ? ' · promos + markdowns' : ' · promos only') +
+      (M.isCurrent ? ' · amounts with no CCV yet (open memos, awaiting approval, approved promos) count toward this year' : ' · <b>past year: CCV actuals only</b>') +
+      (D.year === D.currentFY && D.settings.goLive && D.budget[D.brands[0]].carryIn === 0 && D.budget[D.brands[1]].carryIn === 0 && D.budget[D.brands[2]].carryIn === 0 && D.settings.goLive > M.from && D.settings.goLive < M.to ? ' · <b style="color:var(--warn)">Went live mid-year: enter old-system spending in CARRY_IN_… on the Settings tab</b>' : '') +
+      (M.unmatchedCount ? ' · <a href="#" data-goto="__ccvs">' + M.unmatchedCount + ' unmatched CCV' + (M.unmatchedCount > 1 ? 's' : '') + ' (' + money(M.unmatchedCCVs) + ') not counted until linked</a>' : '') + '</div>';
+    h += '<div class="grid3">';
+    D.brands.forEach(function (b) {
+      var B = D.budget[b], tot = Math.max(B.budget, B.committed) || 1;
+      h += '<div class="card"><h3>' + esc(b) + '</h3><div class="muted small">Budget ' + money(B.budget) + '</div>' +
+        '<div class="row" style="justify-content:space-between;margin-top:8px"><div><div class="muted small">Remaining</div><div class="big' + (B.remaining < 0 ? ' over' : '') + '">' + money(B.remaining) + '</div></div>' +
+        '<div class="r"><div class="muted small">Committed</div><div class="big" style="font-size:18px">' + money(B.committed) + '</div></div></div>' +
+        '<div class="meter">' + parts(B).map(function (k) { return '<span title="' + LABELS[k] + ' ' + money(B[k]) + '" style="width:' + (100 * B[k] / tot) + '%;background:' + COLORS[k] + '"></span>'; }).join('') + '</div>' +
+        '<div class="legend">' + parts(B).map(function (k) { return '<span class="sw" style="background:' + COLORS[k] + '"></span><span>' + LABELS[k] + '</span><span class="r">' + money(B[k]) + '</span>'; }).join('') + '</div></div>';
+    });
+    h += '</div><div class="tiles">' +
+      tile('Reversal needed', c['Reversal needed'] + (c.Reversed || 0), 'bad', 'Reversals') + tile('Expiring (no CCV)', c.Expiring, 'warn', 'Expiring') +
+      tile('Expired (no CCV)', c.Expired, '', 'Expired') + tile('Unmatched CCVs', c.unmatched, c.unmatched ? 'bad' : '', '__ccvs') +
+      tile('CCV packets to send', c.ready, c.ready ? 'warn' : '', '__ccvs') + tile('Awaiting approval', c.Pending, '', 'Pending') + tile('Unapproved promos', c.Unapproved, c.Unapproved ? 'warn' : '', 'Unapproved') + '</div>';
+    var recent = D.memos.slice().sort(function (a, b) { return String(b.submitted).localeCompare(String(a.submitted)); }).slice(0, 8);
+    h += '<h2>Latest requests</h2>' + memoTable(recent, true);
+    if (!D.settings.managerEmail) h = '<div class="msg warn">MANAGER_EMAIL is not set on the Settings tab — approval emails will not go out.</div>' + h;
+    return h;
+  }
+  function tile(label, n, cls, target) { return '<div class="tile ' + (n ? cls : '') + '" data-goto="' + esc(target) + '"><div class="n">' + n + '</div><div class="muted small">' + label + '</div></div>'; }
+
+  var FILTERS = ['Action', 'All', 'Pending', 'Open', 'Expiring', 'Reversals', 'Matched', 'Expired', 'Unapproved', 'Rejected'];
+  function filterMemos() {
+    var q = memoSearch.trim().toUpperCase();
+    return D.memos.filter(function (m) {
+      var f = memoFilter;
+      var ok = f === 'All' ? true
+        : f === 'Action' ? (m.state === 'Reversal needed' || m.state === 'Reversed — awaiting new CCV' || m.state === 'Expiring' || m.state === 'Pending')
+        : f === 'Reversals' ? (m.state === 'Reversal needed' || m.state === 'Reversed — awaiting new CCV')
+        : f === 'Matched' ? /^Matched|Resolved/.test(m.state)
+        : f === 'Unapproved' ? (m.type === 'PR' && m.promoApproved === 'N' && m.status !== 'Rejected' && m.status !== 'Void')
+        : f === 'Rejected' ? (m.status === 'Rejected' || m.status === 'Void')
+        : m.state === f;
+      if (!ok) return false;
+      if (!q) return true;
+      return [m.cm, m.store, m.rep, m.brand, m.facility, m.promoTitle, m.ccvs, m.orderNo].join(' ').toUpperCase().indexOf(q) >= 0;
+    }).sort(function (a, b) { return String(b.issueDate || b.submitted).localeCompare(String(a.issueDate || a.submitted)); });
+  }
+  function viewMemos() {
+    var list = filterMemos();
+    return '<div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="chips">' +
+      FILTERS.map(function (f) { return '<button type="button" data-filter="' + f + '" class="' + (memoFilter === f ? 'on' : '') + '">' + (f === 'Action' ? 'Needs action' : f) + '</button>'; }).join('') +
+      '</div><input type="search" id="msearch" placeholder="Search CM#, store, rep, CCV…" value="' + esc(memoSearch) + '" style="width:260px"></div>' +
+      '<div class="muted small" style="margin-bottom:6px">' + list.length + ' memo' + (list.length === 1 ? '' : 's') + ' · ' + money(list.reduce(function (t, m) { return t + m.amount; }, 0)) + '</div>' +
+      '<div class="scroll">' + memoTable(list, false) + '</div>';
+  }
+  function memoTable(list, compact) {
+    if (!list.length) return '<div class="muted" style="padding:16px">Nothing here.</div>';
+    var h = '<table class="t"><thead><tr><th>CM#</th><th>Issued</th><th>Store</th><th>Rep</th><th>Brand</th><th class="r">Memo</th>' +
+      (compact ? '' : '<th>CCV</th><th class="r">CCV amt</th><th class="r">Diff</th><th class="r">Age</th>') + '<th>Status</th></tr></thead><tbody>';
+    list.forEach(function (m) {
+      var diff = m.ccvAmount != null ? Math.round((m.ccvAmount - m.amount) * 100) / 100 : null;
+      h += '<tr class="click" data-memo="' + esc(m.cm) + '"><td class="mono"><b>' + esc(m.cm) + '</b>' + (m.type === 'PR' && m.promoApproved === 'N' ? ' <span title="Promo not on approved list">⚠</span>' : '') + '</td>' +
+        '<td>' + esc(m.issueDate || String(m.submitted || '').slice(0, 10)) + '</td><td>' + esc(m.store) + '</td><td>' + esc(m.rep) + '</td>' +
+        '<td>' + esc(m.brand) + ' <span class="muted small">' + (m.type === 'PR' ? '10%' : '12.5%') + '</span></td><td class="r">' + money(m.amount) + '</td>' +
+        (compact ? '' : '<td class="mono">' + esc(m.ccvs) + '</td><td class="r">' + money(m.ccvAmount) + '</td><td class="r' + (diff && Math.abs(diff) >= D.settings.tolerance ? ' over' : '') + '">' + (diff ? money(diff) : '') + '</td>' +
+          '<td class="r">' + (m.age != null && !m.ccvs && m.status === 'Approved' ? m.age + 'd' : '') + '</td>') +
+        '<td>' + pill(m.state) + '</td></tr>';
+      if (!compact && openRow === m.cm) h += '<tr class="detail"><td colspan="11">' + memoDetail(m) + '</td></tr>';
+    });
+    return h + '</tbody></table>';
+  }
+  function memoDetail(m) {
+    var h = '<div class="row" style="align-items:flex-start;gap:28px"><div style="min-width:320px">' +
+      '<div><b>' + esc(m.store) + '</b> ' + (m.facility ? '· ' + esc(m.facility) : '') + ' · order ' + esc(m.orderNo) + ' · ' + esc(m.brand) + ' ' + esc(m.gender) + '</div>' +
+      (m.type === 'PR' ? '<div>Promo: <b>' + esc(m.promoTitle || '—') + '</b> ' + (m.promoApproved === 'N' ? '<span class="pill p-Expiring">not on approved list</span>' : '') + '</div>' : '<div>Shipped ' + esc(m.shipped || '—') + '</div>') +
+      '<table class="t" style="margin-top:6px;width:auto">' + m.styles.map(function (s) { return '<tr><td>' + esc(s.style) + '</td><td class="r">' + s.qty + '</td><td class="r">' + money(s.cost) + '</td></tr>'; }).join('') + '</table>' +
+      (m.warnings.length ? '<div class="small" style="color:var(--warn);margin-top:6px">⚠ ' + m.warnings.map(esc).join('<br>⚠ ') + '</div>' : '') +
+      (m.matchNote ? '<div class="small" style="margin-top:6px">' + esc(m.matchNote) + '</div>' : '') +
+      (m.adjusted != null ? '<div class="small" style="margin-top:6px">Adjusted to CCV amount: <b>' + money(m.adjusted) + '</b></div>' : '') +
+      (m.note ? '<div class="small" style="margin-top:6px">Manager note: ' + esc(m.note) + '</div>' : '') +
+      '</div><div class="row" style="gap:6px">';
+    var rev = [];
+    Object.keys(D.suggestions || {}).forEach(function (cv) { D.suggestions[cv].forEach(function (g) { if (g.cm === m.cm) { var c = D.ccvs.filter(function (z) { return z.ccv === cv; })[0]; if (c) rev.push({ c: c, g: g }); } }); });
+    if (rev.length) h += '<div style="flex-basis:100%"><div class="small muted">Unmatched CCVs that might be this memo:</div>' + rev.map(function (r) {
+      return '<div class="sg"><button class="btn" style="padding:3px 10px" type="button" data-act="linksugg" data-ccv="' + esc(r.c.ccv) + '" data-cm="' + esc(m.cm) + '">Link</button><span class="mono">' + esc(r.c.ccv) + '</span><span>' + esc(r.c.date) + ' · ' + esc(r.c.facilityName) + ' · ' + money(r.c.amount) + '</span><span class="why">' + esc(r.g.reasons.join(', ')) + '</span></div>';
+    }).join('') + '</div>';
+    if (m.pdf) h += '<a class="btn" href="' + esc(m.pdf) + '">Open PDF</a>';
+    if (m.packetLink) h += '<a class="btn" href="' + esc(m.packetLink) + '">CCV packet</a>';
+    if (m.packetReady) h += '<button class="btn primary" type="button" data-act="sendone" data-cm="' + esc(m.cm) + '">Email CCV packet to Kathleen</button>';
+    if (m.packetSent) h += '<button class="btn" type="button" data-act="resetpacket" data-cm="' + esc(m.cm) + '" title="Sent ' + esc(String(m.packetSent).slice(0, 10)) + '">Send packet again…</button>';
+    if (m.status === 'Approved') h += '<button class="btn" type="button" data-act="resend" data-cm="' + esc(m.cm) + '">Re-send memo</button>';
+    if (m.state === 'Reversed — awaiting new CCV') h += '<button class="btn" type="button" data-act="state" data-state="Resolved" data-cm="' + esc(m.cm) + '">Mark resolved</button>';
+    if (m.state === 'Reversal needed') h += '<button class="btn" type="button" data-act="state" data-state="Resolved" data-cm="' + esc(m.cm) + '">Mark resolved</button>' +
+      '<button class="btn" type="button" data-act="copyrev" data-cm="' + esc(m.cm) + '">Copy note to store</button>';
+    if (m.state === 'Expired' || m.state === 'Expiring' || m.state === 'Open') h += '<button class="btn" type="button" data-act="state" data-state="Expired" data-cm="' + esc(m.cm) + '">Mark expired</button>';
+    if (m.match === 'Resolved' || m.match === 'Expired') h += '<button class="btn" type="button" data-act="state" data-state="" data-cm="' + esc(m.cm) + '">Re-open</button>';
+    if (m.type === 'PR' && m.promoApproved === 'N' && m.status !== 'Rejected') h += '<button class="btn" type="button" data-act="linkpromo" data-cm="' + esc(m.cm) + '">Link to approved promo…</button>';
+    if (m.status !== 'Void' && m.status !== 'Rejected') h += '<button class="btn danger" type="button" data-act="state" data-state="Void" data-cm="' + esc(m.cm) + '">Void</button>';
+    return h + '</div></div>';
+  }
+
+  function viewCCVs() {
+    var ready = D.memos.filter(function (m) { return m.packetReady; }).sort(function (a, b) { return String(a.ccvDate).localeCompare(String(b.ccvDate)); });
+    var sentRecent = D.memos.filter(function (m) { return m.packetSent; }).sort(function (a, b) { return String(b.packetSent).localeCompare(String(a.packetSent)); }).slice(0, 10);
+    var h = '<div class="card" style="margin-bottom:16px"><div class="row" style="justify-content:space-between"><div><h3>Ready to send to Kathleen (' + ready.length + ')</h3>' +
+      '<div class="muted small">Each packet = the CCV page(s) + the matching credit memo, one PDF named like ' + esc(GFSIPacket.packetFileName(D.settings.packetFile, 'WWACVX110060670', 'PR10207133')) + '. ' +
+      'To: ' + esc(D.settings.packetTo || '(PACKET_TO not set)') + ' · CC: ' + esc(D.settings.packetCc || '—') + ' · ' + (String(D.settings.packetMode).toLowerCase() === 'batch' ? 'one email with all packets + a summary spreadsheet' : 'one email per packet') + '</div></div>' +
+      (ready.length ? '<button class="btn primary" type="button" data-act="sendpackets">Email ' + ready.length + ' packet' + (ready.length > 1 ? 's' : '') + '</button>' : '') + '</div>' +
+      '<div id="pkt-progress" class="small" style="margin-top:6px"></div>' +
+      (ready.length ? '<table class="t" style="margin-top:8px"><thead><tr><th><input type="checkbox" id="pkt-all" checked></th><th>CM#</th><th>CCV(s)</th><th>CCV date</th><th>Store</th><th>Brand</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>' +
+        ready.map(function (m) {
+          return '<tr><td><input type="checkbox" data-pkt="' + esc(m.cm) + '" checked></td><td class="mono"><b>' + esc(m.cm) + '</b></td><td class="mono">' + esc(m.ccvs) + '</td><td>' + esc(m.ccvDate) + '</td><td>' + esc(m.store) + '</td><td>' + esc(m.brand) + '</td>' +
+            '<td class="r">' + money(m.adjusted != null ? m.adjusted : m.amount) + '</td><td>' + pill(m.state) + '</td><td><button class="btn" style="padding:3px 10px" type="button" data-act="previewpacket" data-cm="' + esc(m.cm) + '">Preview</button></td></tr>';
+        }).join('') + '</tbody></table>' : '<div class="muted small" style="margin-top:6px">Nothing waiting. Packets appear here as soon as a CCV is matched to its memo.</div>') +
+      (sentRecent.length ? '<details style="margin-top:10px"><summary class="small muted">Recently sent</summary><table class="t"><tbody>' + sentRecent.map(function (m) {
+        return '<tr><td class="mono">' + esc(m.packetFile) + '</td><td>' + esc(m.store) + '</td><td>' + esc(String(m.packetSent).slice(0, 10)) + '</td><td>' + (m.packetLink ? '<a href="' + esc(m.packetLink) + '">open</a>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></details>' : '') + '</div>';
+    h += '<div class="drop" data-drop="ccv">Drop the <b>Universal Search .zip</b> from AAFES Partners here (or the individual CCV text files) — or click to choose</div>' +
+      '<input type="file" id="f-ccv" multiple accept=".zip,.txt,*/*" hidden>';
+    if (pendingCCVs) {
+      var known = {}; D.ccvs.forEach(function (x) { known[x.ccv] = 1; });
+      var memoSet = {}; D.memos.forEach(function (m) { memoSet[m.cm] = m; });
+      var fresh = pendingCCVs.filter(function (x) { return !known[x.ccvNumber]; });
+      h += '<h2>Ready to import: ' + fresh.length + ' new CCV' + (fresh.length === 1 ? '' : 's') + (pendingCCVs.length - fresh.length ? ' <span class="muted small">(' + (pendingCCVs.length - fresh.length) + ' already imported)</span>' : '') + '</h2>' +
+        '<table class="t"><thead><tr><th>CCV #</th><th>Date</th><th>Facility</th><th>Return auth</th><th class="r">Amount</th><th>Type</th><th>Will match</th></tr></thead><tbody>' +
+        pendingCCVs.map(function (x) {
+          var hit = x.cmCandidates.filter(function (c) { return memoSet[c]; })[0], m = hit && memoSet[hit];
+          var res = known[x.ccvNumber] ? '<span class="muted">already imported</span>'
+            : x.kind === 'Not ours' ? '<span class="muted">recorded only — not a promo/markdown credit</span>'
+            : !m && D.settings.goLive && x.ccvDate < D.settings.goLive ? pill('Old system') + ' <span class="muted small">dated before go-live — recorded only</span>'
+            : !m && D.settings.goLive && x.cmCandidates.length ? pill('Old system') + ' <span class="muted small">' + esc(x.cmCandidates[0]) + ' isn’t in this system — likely an old memo (recorded only)</span>'
+            : x.kind === 'Reversal' ? (m ? pill('Reversal') + ' of ' + esc(hit) + ' <span class="small">memo ' + money(m.amount) + '</span>' : '<span class="pill p-Reversal">reversal — no memo found</span>')
+            : !m ? '<span class="pill p-Reversal-needed">no memo found</span> <span class="muted small">' + esc(x.cmCandidates.join(', ')) + '</span>'
+            : Math.abs(x.amount - m.amount) < D.settings.tolerance ? pill(x.amount === m.amount ? 'Matched' : 'Matched (adjusted)') + ' ' + esc(hit)
+            : pill('Reversal needed') + ' ' + esc(hit) + ' <span class="small">memo ' + money(m.amount) + '</span>';
+          return '<tr><td class="mono">' + esc(x.ccvNumber) + '</td><td>' + esc(x.ccvDate) + '</td><td>' + esc(x.facilityName) + '</td><td class="mono">' + esc(x.returnAuth) +
+            (x.comments ? '<div class="muted small">' + esc(x.comments) + '</div>' : '') + '</td><td class="r">' + money(x.amount) + '</td><td>' + pill(x.kind) + '</td><td>' + res + (x.warnings.length ? '<div class="small over">' + esc(x.warnings.join('; ')) + '</div>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table><div class="row" style="margin-top:10px"><button class="btn primary" type="button" data-act="importccv"' + (fresh.length ? '' : ' disabled') + '>Import ' + fresh.length + ' CCV' + (fresh.length === 1 ? '' : 's') + '</button>' +
+        '<button class="btn" type="button" data-act="cancelccv">Cancel</button></div>';
+    }
+    function ccvRows(list, mode) {
+      if (!list.length) return '<tr><td colspan="7" class="muted">None.</td></tr>';
+      return list.map(function (x) {
+        var act = mode === 'unmatched'
+          ? '<input type="text" list="memo-opts" placeholder="Find memo: CM#, store, $" data-linkccv="' + esc(x.ccv) + '" style="width:190px"> <button class="btn" type="button" data-act="link" data-ccv="' + esc(x.ccv) + '">Link</button> <button class="btn" type="button" data-act="kind" data-kind="Not ours" data-ccv="' + esc(x.ccv) + '" title="A return/RMA or other CCV that is not one of our credit memos">Not ours</button> <button class="btn" type="button" data-act="kind" data-kind="Old system" data-ccv="' + esc(x.ccv) + '" title="For a memo issued before this system went live">Old system</button>'
+          : mode === 'notours' || mode === 'old' ? '<button class="btn" type="button" data-act="kind" data-kind="Credit memo" data-ccv="' + esc(x.ccv) + '">This is ours</button>'
+          : '<span class="mono">' + esc(x.cm) + '</span> <button class="btn small" style="padding:2px 8px" type="button" data-act="unlink" data-ccv="' + esc(x.ccv) + '">unlink</button>';
+        return '<tr><td class="mono">' + esc(x.ccv) + '</td><td>' + esc(x.date) + '</td><td>' + esc(x.facilityName) + ' <span class="muted small">' + esc(x.facility) + '</span></td>' +
+          '<td class="mono">' + esc(x.returnAuth) + (x.comments ? '<div class="muted small">' + esc(x.comments) + '</div>' : '') + ((mode === 'notours' || mode === 'old') && x.items ? '<div class="muted small">' + esc(x.items) + '</div>' : '') + '</td>' +
+          '<td class="r">' + money(x.amount) + '</td><td>' + pill(x.kind) + '</td><td>' + act + '</td></tr>' +
+          (mode === 'unmatched' ? suggRow(x) : '');
+      }).join('');
+    }
+    function suggRow(x) {
+      var sg = (D.suggestions || {})[x.ccv];
+      var named = String(x.returnAuth + ' ' + x.comments).match(/\b(PR|MD)\s*(\d{6,9})\b/i);
+      var hint = named ? 'This CCV names ' + named[1].toUpperCase() + named[2] + ', which isn’t in the system — if it’s an old memo, add it on “Import old memos”; otherwise search above. ' : '';
+      if (!sg || !sg.length) return '<tr class="sugg"><td colspan="7"><span class="muted small">' + hint + (hint ? '' : 'No likely memos found — search above, or mark Not ours.') + '</span></td></tr>';
+      return '<tr class="sugg"><td colspan="7"><div class="muted small" style="padding-top:4px">Possible matches:</div>' + sg.map(function (g, k) {
+        var lvl = g.score >= 75 ? 'hi' : g.score >= 50 ? 'md' : 'lo';
+        return '<div class="sg"><button class="btn" style="padding:3px 10px" type="button" data-act="linksugg" data-ccv="' + esc(x.ccv) + '" data-cm="' + esc(g.cm) + '">Link</button>' +
+          '<span class="score ' + lvl + '">' + (lvl === 'hi' ? 'Strong' : lvl === 'md' ? 'Likely' : 'Possible') + '</span>' +
+          '<span class="mono"><b>' + esc(g.cm) + '</b></span><span>' + esc(g.store) + ' · ' + esc(g.brand) + ' · ' + money(g.amount) + ' · issued ' + esc(g.issueDate) + '</span>' +
+          '<span class="why">' + esc(g.reasons.join(', ')) + '</span></div>';
+      }).join('') + '</td></tr>';
+    }
+    var confident = D.ccvs.filter(function (x) { var g = (D.suggestions || {})[x.ccv]; return !x.cm && x.kind !== 'Not ours' && g && g[0].confident; });
+    var openMemos = D.memos.filter(function (m) { return m.status === 'Approved' && (!m.ccvs || /Reversal|Reversed/.test(m.state)); });
+    h += '<datalist id="memo-opts">' + openMemos.map(function (m) {
+      return '<option value="' + esc(m.cm) + '">' + esc(m.cm + ' · ' + m.store + ' · ' + m.brand + ' · ' + money(m.amount) + ' · issued ' + (m.issueDate || '')) + '</option>';
+    }).join('') + '</datalist>';
+    var head = '<table class="t"><thead><tr><th>CCV #</th><th>Date</th><th>Facility</th><th>Return auth / comments</th><th class="r">Amount</th><th>Type</th><th></th></tr></thead><tbody>';
+    var byDate = function (a, b) { return String(b.date).localeCompare(String(a.date)); };
+    var un = D.ccvs.filter(function (x) { return !x.cm && x.kind !== 'Not ours' && x.kind !== 'Old system'; }).sort(byDate);
+    var mt = D.ccvs.filter(function (x) { return x.cm && x.kind !== 'Not ours' && x.kind !== 'Old system'; }).sort(byDate);
+    var old = D.ccvs.filter(function (x) { return x.kind === 'Old system'; }).sort(byDate);
+    var no = D.ccvs.filter(function (x) { return x.kind === 'Not ours'; }).sort(byDate);
+    h += '<div class="row" style="justify-content:space-between;align-items:flex-end"><h2>Unmatched (' + un.length + ')</h2>' +
+      (confident.length ? '<button class="btn primary" type="button" data-act="linkconfident">Link ' + confident.length + ' strong match' + (confident.length > 1 ? 'es' : '') + '</button>' : '') + '</div>' +
+      '<div class="muted small" style="margin-bottom:6px">CCVs with no usable CM#, or a CM# that isn’t in the system. Pick a suggested memo, search for one, or mark the CCV “Not ours”. Every link teaches the system which AAFES facility is which store.</div>' +
+      '<div class="scroll">' + head + ccvRows(un, 'unmatched') + '</tbody></table></div>' +
+      '<h2>Matched (' + mt.length + ')</h2><div class="scroll">' + head + ccvRows(mt, 'matched') + '</tbody></table></div>' +
+      '<h2>Not ours — recorded only (' + no.length + ')</h2><div class="muted small" style="margin-bottom:6px">Returns, RMAs, damages and other CCVs that aren’t promo or markdown credits. Kept so you can show why no credit memo exists for them.</div>' +
+      '<div class="scroll">' + head + ccvRows(no, 'notours') + '</tbody></table></div>' +
+      '<h2>Old system — recorded only (' + old.length + ')</h2><div class="muted small" style="margin-bottom:6px">CCVs for credit memos issued before this system went live' + (D.settings.goLive ? ' (' + esc(D.settings.goLive) + ')' : '') +
+      ': dated before go-live, or naming a CM# this system has never seen. Not matched and not counted in the budget (the CARRY_IN settings cover old-system spending).</div>' +
+      '<div class="scroll">' + head + ccvRows(old, 'old') + '</tbody></table></div>';
+    return h;
+  }
+
+  function viewPromos() {
+    var h = '<div class="row" style="align-items:stretch"><div class="drop" data-drop="recap" style="flex:1">Drop Dick\'s <b>CUSTOM PROMOS … RECAP .xlsx</b> here — or click to choose</div>' +
+      '<input type="file" id="f-recap" accept=".xlsx,.xls" hidden></div>';
+    if (pendingRecap) {
+      var P = pendingRecap.parsed;
+      h += '<h2>Preview: ' + P.events.length + ' events for ' + P.year + ' from ' + esc(pendingRecap.name) + '</h2>' +
+        (P.warnings.length || P.skipped.length ? '<div class="msg warn small">' + P.warnings.concat(P.skipped.map(function (s) { return 'Skipped ' + s; })).map(esc).join('<br>') + '</div>' : '') +
+        promoTable(P.events.map(function (e) { return { store: e.store, facility: e.facility, event: e.event, eventDate: e.eventDate, dateText: e.eventDateText, rep: e.rep, planned: e.planned, open: e.plannedOpen, memo: {}, lines: e.lines }; })) +
+        '<div class="row" style="margin-top:10px"><button class="btn primary" type="button" data-act="importrecap">Replace ' + P.year + ' promos with this sheet</button><button class="btn" type="button" data-act="cancelrecap">Cancel</button>' +
+        '<span class="muted small">Promos you added by hand are kept.</span></div>';
+    }
+    var list = D.promos.filter(function (p) { return p.year === Number(D.year); });
+    h += '<h2>Approved promos — ' + D.year + ' recap (' + list.length + ')</h2>' + promoTable(list) +
+      '<h2>Add a promo by hand</h2><div class="muted small" style="margin-bottom:8px">For a promo the manager approved that is not on his sheet yet. Amounts are the planned credit (10%).</div>' +
+      '<div class="formgrid"><div><label>Store</label><input type="text" id="np-store"></div><div><label>Facility #</label><input type="text" id="np-fac"></div>' +
+      '<div><label>Event</label><input type="text" id="np-event"></div><div><label>Event date</label><input type="date" id="np-date"></div>' +
+      '<div><label>Rep</label><input type="text" id="np-rep"></div>' +
+      D.brands.map(function (b, i) { return '<div><label>' + b + ' credit $</label><input type="number" step="0.01" id="np-a' + i + '"></div>'; }).join('') +
+      '</div><div style="margin-top:8px"><button class="btn primary" type="button" data-act="addpromo">Add promo</button></div>';
+    return h;
+  }
+  function promoTable(list) {
+    if (!list.length) return '<div class="muted">No promos loaded yet.</div>';
+    return '<div class="scroll"><table class="t"><thead><tr><th>Store</th><th>Facility</th><th>Event</th><th>Date</th><th>Rep</th>' +
+      D.brands.map(function (b) { return '<th class="r">' + b + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      list.map(function (p) {
+        return '<tr><td>' + esc(p.store) + (p.source === 'manual' ? ' <span class="pill p-Pending">manual</span>' : '') + '</td><td>' + esc(p.facility || '—') + '</td><td>' + esc(p.event) + '</td><td>' + esc(p.eventDate || p.dateText) + '</td><td>' + esc(p.rep) + '</td>' +
+          D.brands.map(function (b) {
+            var pl = p.planned[b] || 0, op = p.open[b] || 0;
+            if (!pl) return '<td class="r muted">—</td>';
+            return '<td class="r">' + money(pl) + (p.memo[b] ? '<div class="small" style="color:var(--ok)">memo ' + esc(p.memo[b]) + '</div>' : op < pl ? '<div class="small muted">' + (op ? money(op) + ' open' : 'marked submitted') + '</div>' : '') + '</td>';
+          }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function viewHistory() {
+    var h = '<p>Bring in credit memos from the old Google Form sheet (File → Download → .xlsx), so CCVs for those memos match too. Memos already in the system are skipped.</p>' +
+      '<div class="drop" data-drop="history">Drop the old form-response <b>.xlsx</b> here — or click to choose</div><input type="file" id="f-history" accept=".xlsx,.xls,.csv" hidden>';
+    if (pendingHistory) {
+      var have = {}; D.memos.forEach(function (m) { have[m.cm] = 1; });
+      var fresh = pendingHistory.filter(function (x) { return !have[x.cm]; });
+      h += '<h2>' + fresh.length + ' new of ' + pendingHistory.length + ' rows</h2><div class="scroll"><table class="t"><thead><tr><th>CM#</th><th>Date</th><th>Store</th><th>Rep</th><th>Brand</th><th>Promo</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>' +
+        pendingHistory.map(function (x) { return '<tr' + (have[x.cm] ? ' class="muted"' : '') + '><td class="mono">' + esc(x.cm) + '</td><td>' + esc(String(x.submittedAt).slice(0, 10)) + '</td><td>' + esc(x.store) + '</td><td>' + esc(x.repName) + '</td><td>' + esc(x.brand) + '</td><td>' + esc(x.promoTitle) + '</td><td class="r">' + money(x.amount) + '</td><td>' + esc(have[x.cm] ? 'already in' : x.status) + '</td></tr>'; }).join('') +
+        '</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn primary" type="button" data-act="importhistory"' + (fresh.length ? '' : ' disabled') + '>Import ' + fresh.length + '</button><button class="btn" type="button" data-act="cancelhistory">Cancel</button></div>';
+    }
+    return h;
+  }
+
+  // ---------------- files ----------------
+  function bindDrops() {
+    main.querySelectorAll('[data-drop]').forEach(function (z) {
+      var kind = z.getAttribute('data-drop'), input = document.getElementById('f-' + kind);
+      z.onclick = function () { input.click(); };
+      input.onchange = function () { handleFiles(kind, input.files); };
+      z.ondragover = function (e) { e.preventDefault(); z.classList.add('hover'); };
+      z.ondragleave = function () { z.classList.remove('hover'); };
+      z.ondrop = function (e) { e.preventDefault(); z.classList.remove('hover'); handleFiles(kind, e.dataTransfer.files); };
+    });
+  }
+  function readText(f) { return f.text ? f.text() : new Promise(function (r) { var fr = new FileReader(); fr.onload = function () { r(fr.result); }; fr.readAsText(f); }); }
+  function readBuf(f) { return f.arrayBuffer ? f.arrayBuffer() : new Promise(function (r) { var fr = new FileReader(); fr.onload = function () { r(fr.result); }; fr.readAsArrayBuffer(f); }); }
+  function sheetRows(buf) { var wb = XLSX.read(buf, { type: 'array', cellDates: true }); return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null }); }
+
+  function handleFiles(kind, files) {
+    files = Array.prototype.slice.call(files || []);
+    if (!files.length) return;
+    if (kind === 'ccv') {
+      var texts = [];
+      Promise.all(files.map(function (f) {
+        if (/\.zip$/i.test(f.name)) return readBuf(f).then(JSZip.loadAsync).then(function (z) {
+          return Promise.all(Object.keys(z.files).filter(function (n) { return !z.files[n].dir; }).map(function (n) { return z.files[n].async('string').then(function (t) { texts.push(t); }); }));
+        });
+        if (/\.pdf$/i.test(f.name)) { setFlash('warn', 'PDF CCVs can’t be read (they are images). Use the Download button in Partners to get the text/zip version.'); return null; }
+        return readText(f).then(function (t) { texts.push(t); });
+      })).then(function () {
+        var parsed = texts.filter(function (t) { return /CHARGE VOUCHER|CCV NUMBER/i.test(t); }).map(GFSIParsers.parseCCVText);
+        if (!parsed.length) setFlash('err', 'No CCVs found in those files.');
+        pendingCCVs = parsed.length ? parsed : null; render();
+      }).catch(function (e) { setFlash('err', 'Could not read the file: ' + esc(e.message)); render(); });
+    } else if (kind === 'recap') {
+      readBuf(files[0]).then(function (buf) {
+        try { pendingRecap = { name: files[0].name, parsed: GFSIParsers.parsePromoRecap(sheetRows(buf)) }; }
+        catch (e) { setFlash('err', esc(e.message)); pendingRecap = null; }
+        render();
+      });
+    } else if (kind === 'history') {
+      readBuf(files[0]).then(function (buf) {
+        try { pendingHistory = GFSIParsers.parseHistory(sheetRows(buf)); }
+        catch (e) { setFlash('err', esc(e.message)); pendingHistory = null; }
+        render();
+      });
+    }
+  }
+
+  // ---------------- CCV packets ----------------
+  function b64ToBytes(b64) { var bin = atob(b64), out = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; }
+  function bytesToB64(bytes) { var s = '', CH = 0x8000; for (var i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH)); return btoa(s); }
+  function buildPacketFor(cm) {
+    return call('getPacketJob', cm).then(function (job) {
+      return GFSIPacket.buildPacket(PDFLib, { ccvs: job.ccvs, memoPdf: b64ToBytes(job.memoPdfB64), title: cm + ' CCV packet' }).then(function (bytes) {
+        var fileName = GFSIPacket.packetFileName(job.fileTemplate, job.mainCcv, cm);
+        return { cm: cm, fileName: fileName, b64: bytesToB64(bytes), summary: Object.assign({ fileName: fileName }, job.summary) };
+      });
+    });
+  }
+  function progress(txt) { var el = document.getElementById('pkt-progress'); if (el) el.textContent = txt; }
+  function sendPacketsFor(cms, btn) {
+    if (typeof PDFLib === 'undefined') { setFlash('err', 'The PDF tool did not load (no internet?). Reload the dashboard and try again.'); render(); return; }
+    if (btn) btn.disabled = true;
+    var built = [], i = 0;
+    (function next() {
+      if (i >= cms.length) {
+        progress('Emailing ' + built.length + ' packet(s)…');
+        var batch = String(D.settings.packetMode || 'batch').toLowerCase() === 'batch';
+        var size = batch ? 40 : 10;   // keep each email well under Gmail's 25 MB attachment limit
+        var chunks = []; for (var k = 0; k < built.length; k += size) chunks.push(built.slice(k, k + size));
+        var sent = 0, notes = [], links = [], today = new Date().toISOString().slice(0, 10);
+        chunks.reduce(function (p, ch, ci) { return p.then(function () {
+          var summary = batch ? GFSIPacket.buildSummaryXlsx(XLSX, ch.map(function (x) { return x.summary; }), today + (chunks.length > 1 ? ' (' + (ci + 1) + ' of ' + chunks.length + ')' : '')) : null;
+          return call('sendPackets', ch.map(function (x) { return { cm: x.cm, fileName: x.fileName, b64: x.b64 }; }), summary)
+            .then(function (r) { sent += r.sent; if (r.note) notes.push(r.note); if (r.summaryLink) links.push(r.summaryLink); });
+        }); }, Promise.resolve())
+          .then(function () { setFlash('ok', 'Emailed ' + sent + ' CCV packet(s) to ' + esc(D.settings.packetTo) + (links.length ? ' with the summary spreadsheet (<a href="' + esc(links[0]) + '">open</a>)' : '') + '. ' + esc(notes.join(' '))); return load(); })
+          .catch(function (e) { setFlash('err', 'Sent ' + sent + ', then stopped: ' + esc(e.message)); load(); });
+        return;
+      }
+      progress('Building packet ' + (i + 1) + ' of ' + cms.length + ' (' + cms[i] + ')…');
+      buildPacketFor(cms[i]).then(function (p) { built.push(p); i++; next(); })
+        .catch(function (e) { setFlash('err', 'Could not build packet for ' + esc(cms[i]) + ': ' + esc(e.message)); load(); });
+    })();
+  }
+
+  // ---------------- events ----------------
+  document.getElementById('tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.getAttribute('data-tab'); render(); } };
+  main.addEventListener('change', function (e) {
+    if (e.target.id === 'pkt-all') main.querySelectorAll('[data-pkt]').forEach(function (x) { x.checked = e.target.checked; });
+  });
+  main.addEventListener('input', function (e) { if (e.target.id === 'msearch') { memoSearch = e.target.value; var pos = e.target.selectionStart; render(); var s = document.getElementById('msearch'); s.focus(); s.setSelectionRange(pos, pos); } });
+  main.addEventListener('click', function (e) {
+    var t = e.target;
+    var g = t.closest('[data-goto]');
+    if (g) { e.preventDefault(); var to = g.getAttribute('data-goto'); if (to === '__ccvs') tab = 'ccvs'; else { tab = 'memos'; memoFilter = to; } render(); return; }
+    var f = t.closest('[data-filter]'); if (f) { memoFilter = f.getAttribute('data-filter'); openRow = null; render(); return; }
+    var act = t.getAttribute('data-act');
+    if (!act) {
+      var row = t.closest('[data-memo]');
+      if (row && !t.closest('a')) { var cm = row.getAttribute('data-memo'); if (tab !== 'memos') { tab = 'memos'; memoFilter = 'All'; memoSearch = cm; } openRow = openRow === cm ? null : cm; render(); }
+      return;
+    }
+    var cmA = t.getAttribute('data-cm'), busy = function (p, ok) { t.disabled = true; return p.then(function (r) { if (ok) setFlash('ok', ok(r)); return load(); }).catch(function (er) { setFlash('err', esc(er.message)); render(); }); };
+    if (act === 'importccv') {
+      busy(call('importCCVs', pendingCCVs), function (r) { pendingCCVs = null; return 'Imported ' + r.added + ' CCV(s). Overall: ' + r.matched + ' matched, ' + r.reversals + ' need reversal, ' + r.awaiting + ' reversed & awaiting new CCV, ' + r.unmatched + ' unmatched, ' + r.notOurs + ' not ours, ' + r.oldSystem + ' old system.'; });
+    } else if (act === 'cancelccv') { pendingCCVs = null; render(); }
+    else if (act === 'link') { var v = main.querySelector('[data-linkccv="' + t.getAttribute('data-ccv') + '"]').value.trim().split(/[\s·]/)[0]; if (v) busy(call('linkCCV', t.getAttribute('data-ccv'), v), function () { return 'Linked.'; }); }
+    else if (act === 'linksugg') busy(call('linkCCV', t.getAttribute('data-ccv'), t.getAttribute('data-cm')), function () { return esc(t.getAttribute('data-ccv')) + ' linked to ' + esc(t.getAttribute('data-cm')) + '.'; });
+    else if (act === 'linkconfident') {
+      var pairs = D.ccvs.filter(function (x) { var g = (D.suggestions || {})[x.ccv]; return !x.cm && x.kind !== 'Not ours' && g && g[0].confident; })
+        .map(function (x) { return { ccv: x.ccv, cm: D.suggestions[x.ccv][0].cm }; });
+      if (!confirm('Link these ' + pairs.length + ' CCV(s)?\n\n' + pairs.map(function (p) { return p.ccv + '  →  ' + p.cm; }).join('\n'))) return;
+      busy(call('linkCCVs', pairs), function (r) { return 'Linked ' + r.linked + ' CCV(s).'; });
+    }
+    else if (act === 'sendpackets') {
+      var cms = Array.prototype.map.call(main.querySelectorAll('[data-pkt]:checked'), function (x) { return x.getAttribute('data-pkt'); });
+      if (!cms.length) return;
+      if (!confirm('Email ' + cms.length + ' CCV packet(s) to ' + D.settings.packetTo + (D.settings.packetCc ? '\nCC: ' + D.settings.packetCc : '') + '?')) return;
+      sendPacketsFor(cms, t);
+    }
+    else if (act === 'sendone') {
+      if (!confirm('Email the CCV packet for ' + cmA + ' to ' + D.settings.packetTo + '?')) return;
+      sendPacketsFor([cmA], t);
+    }
+    else if (act === 'previewpacket') {
+      t.disabled = true; t.textContent = 'Building…';
+      buildPacketFor(cmA).then(function (p) { return call('savePacketPreview', p.fileName, p.b64); })
+        .then(function (url) { t.disabled = false; t.textContent = 'Preview'; window.open(url, '_blank'); setFlash('ok', 'Preview saved — <a href="' + esc(url) + '">open it</a> (if it didn’t open by itself).'); render(); })
+        .catch(function (e) { setFlash('err', esc(e.message)); render(); });
+    }
+    else if (act === 'resetpacket') {
+      if (!confirm('Put ' + cmA + ' back on the "Ready to send" list so you can email it again?')) return;
+      busy(call('resetPacket', cmA), function () { return cmA + ' is back on the Ready to send list (CCVs tab).'; });
+    }
+    else if (act === 'kind') busy(call('setCCVKind', t.getAttribute('data-ccv'), t.getAttribute('data-kind')), function () { return 'Updated.'; });
+    else if (act === 'unlink') busy(call('linkCCV', t.getAttribute('data-ccv'), ''), function () { return 'Unlinked.'; });
+    else if (act === 'importrecap') busy(call('importPromos', pendingRecap.parsed, pendingRecap.name), function (r) { pendingRecap = null; return 'Loaded ' + r.imported + ' promos' + (r.relinked ? '; ' + r.relinked + ' earlier request(s) now linked to an approved promo' : '') + '.'; });
+    else if (act === 'cancelrecap') { pendingRecap = null; render(); }
+    else if (act === 'importhistory') busy(call('importHistory', pendingHistory), function (r) { pendingHistory = null; return 'Imported ' + r.imported + ' old memos (' + r.skipped + ' already there).'; });
+    else if (act === 'cancelhistory') { pendingHistory = null; render(); }
+    else if (act === 'resend') busy(call('resendMemo', cmA), function () { return 'Memo ' + cmA + ' re-sent.'; });
+    else if (act === 'state') {
+      var st = t.getAttribute('data-state');
+      var note = st === 'Void' ? prompt('Void ' + cmA + '? Reason:') : st === 'Resolved' ? prompt('Note (e.g. "reversal + new CCV received"):', '') : '';
+      if (note === null) return;
+      busy(call('setMemoState', cmA, st, note), function () { return cmA + ' updated.'; });
+    } else if (act === 'copyrev') {
+      var m = D.memos.filter(function (x) { return x.cm === cmA; })[0];
+      var txt = 'Hi — the CCV (' + m.ccvs + ') for credit memo ' + m.cm + ' was issued for ' + money(m.ccvAmount) + ', but the credit memo is for ' + money(m.amount) +
+        '. Please reverse that CCV and issue a new CCV for ' + money(m.amount) + ' with CM# ' + m.cm + ' in the Return Auth field. Thank you!';
+      navigator.clipboard.writeText(txt).then(function () { setFlash('ok', 'Copied note for the store to the clipboard.'); render(); }, function () { prompt('Copy this:', txt); });
+    } else if (act === 'linkpromo') {
+      var mm = D.memos.filter(function (x) { return x.cm === cmA; })[0];
+      var opts = D.promos.filter(function (p) { return p.year >= Number(D.year) - 1; });
+      var pick = prompt('Link ' + cmA + ' (' + mm.store + ', "' + mm.promoTitle + '") to which promo? Enter the number:\n\n' + opts.map(function (p, i) { return (i + 1) + '. ' + p.store + ' — ' + p.event + ' (' + (p.eventDate || p.dateText) + ')'; }).join('\n') + '\n\nOr leave blank to add a new promo for it on the Promos tab.');
+      if (!pick) return;
+      var chosen = opts[Number(pick) - 1]; if (!chosen) return;
+      busy(call('linkMemoToPromo', cmA, chosen.id), function () { return cmA + ' linked to ' + esc(chosen.event) + '.'; });
+    } else if (act === 'addpromo') {
+      var g2 = function (id) { return (document.getElementById(id).value || '').trim(); };
+      var p = { store: g2('np-store'), facility: g2('np-fac'), event: g2('np-event'), eventDate: g2('np-date'), rep: g2('np-rep'), year: D.year, amounts: {} };
+      D.brands.forEach(function (b, i) { p.amounts[b] = Number(g2('np-a' + i)) || 0; });
+      if (!p.store || !p.event) { setFlash('err', 'Store and event are required.'); render(); return; }
+      busy(call('addManualPromo', p), function () { return 'Promo added.'; });
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

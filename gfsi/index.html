@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GFSI Credit Memo Request - Sales Portal</title>
+<script>
+  // Sales Portal login gate (same session the rest of the portal uses)
+  (function () {
+    try { if (!JSON.parse(sessionStorage.getItem('salesPortalAuth') || 'null')) throw 0; }
+    catch (e) { window.location.replace('../login.html'); }
+  })();
+</script>
+<style>
+  /* ---- Scoped to #gfsi-cm so it can be dropped into an existing portal page ---- */
+  body { margin: 0; background: #f5f5f5; }
+  .portal-top { max-width: 980px; margin: 0 auto; padding: 18px 16px 0; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    font: 14px Arial, sans-serif; flex-wrap: wrap; }
+  .portal-top a.back { color: #2196F3; text-decoration: none; font-size: 16px; }
+  .portal-top a.back:hover { text-decoration: underline; }
+  .portal-user { display: flex; gap: 10px; align-items: center; color: #666; }
+  .portal-user button { background: #dc3545; color: #fff; border: 0; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 600; }
+  #gfsi-cm { --ink:#17212b; --muted:#5f6b7a; --line:#dfe3e8; --soft:#f4f6f8; --card:#fff; --accent:#6a4fb3; --accent-2:#f1eaf7;
+    --ok:#17734a; --warn:#8a5300; --warn-bg:#fff5e0; --bad:#b42318; --bad-bg:#fdecea;
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink);
+    max-width: 980px; margin: 0 auto; padding: 24px 16px 140px; }
+  #gfsi-cm * { box-sizing: border-box; }
+  #gfsi-cm h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+  #gfsi-cm h2 { font-size: 16px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  #gfsi-cm .lede { color: var(--muted); margin: 0 0 22px; }
+  #gfsi-cm .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  #gfsi-cm .grid { display: grid; gap: 12px 16px; grid-template-columns: repeat(12, 1fr); }
+  #gfsi-cm .c3 { grid-column: span 3; } #gfsi-cm .c4 { grid-column: span 4; } #gfsi-cm .c5 { grid-column: span 5; }
+  #gfsi-cm .c6 { grid-column: span 6; } #gfsi-cm .c8 { grid-column: span 8; } #gfsi-cm .c12 { grid-column: span 12; }
+  @media (max-width: 720px) { #gfsi-cm .c3, #gfsi-cm .c4, #gfsi-cm .c5, #gfsi-cm .c6, #gfsi-cm .c8 { grid-column: span 12; } }
+  #gfsi-cm label.f { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  #gfsi-cm label.f small { font-weight: 400; color: var(--muted); }
+  #gfsi-cm input[type=text], #gfsi-cm input[type=email], #gfsi-cm input[type=number], #gfsi-cm input[type=date], #gfsi-cm select, #gfsi-cm textarea {
+    width: 100%; font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  #gfsi-cm input:focus, #gfsi-cm select:focus, #gfsi-cm textarea:focus { outline: 2px solid var(--accent-2); border-color: var(--accent); }
+  #gfsi-cm .invalid { border-color: var(--bad) !important; background: #fffafa !important; }
+  #gfsi-cm .check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin-top: 6px; }
+  #gfsi-cm .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  #gfsi-cm .seg button { border: 0; background: #fff; padding: 9px 14px; font: inherit; cursor: pointer; color: var(--ink); }
+  #gfsi-cm .seg button + button { border-left: 1px solid var(--line); }
+  #gfsi-cm .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+  #gfsi-cm .order { border-left: 4px solid var(--accent); }
+  #gfsi-cm .order-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  #gfsi-cm .order-title { font-weight: 700; font-size: 17px; }
+  #gfsi-cm .cmno { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--soft); border-radius: 6px; padding: 2px 8px; font-size: 13px; margin-left: 8px; color: var(--muted); }
+  #gfsi-cm .credit { font-weight: 700; font-size: 20px; }
+  #gfsi-cm .credit small { font-weight: 400; color: var(--muted); font-size: 12px; display: block; text-align: right; }
+  #gfsi-cm .link { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 4px 6px; }
+  #gfsi-cm .link.danger { color: var(--bad); }
+  #gfsi-cm table.styles { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  #gfsi-cm table.styles th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); text-align: left; padding: 4px 6px; }
+  #gfsi-cm table.styles td { padding: 4px 6px; vertical-align: middle; }
+  #gfsi-cm table.styles td.ext { text-align: right; white-space: nowrap; color: var(--muted); width: 110px; }
+  #gfsi-cm .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  #gfsi-cm .chip { border: 1px dashed var(--accent); color: var(--accent); background: var(--accent-2); border-radius: 999px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+  #gfsi-cm .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  #gfsi-cm .warns { margin-top: 12px; background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+  #gfsi-cm .warns div::before { content: "⚠ "; }
+  #gfsi-cm .errors { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+  #gfsi-cm .btn { font: inherit; font-weight: 600; border-radius: 9px; padding: 11px 18px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
+  #gfsi-cm .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #gfsi-cm .btn:disabled { opacity: .55; cursor: default; }
+  #gfsi-cm .add { width: 100%; border: 2px dashed var(--line); background: transparent; border-radius: 12px; padding: 16px; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; }
+  #gfsi-cm .add:hover { background: var(--accent-2); }
+  #gfsi-cm .bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,.97); border-top: 1px solid var(--line); z-index: 50; }
+  #gfsi-cm .bar .in { max-width: 980px; margin: 0 auto; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  #gfsi-cm .total { font-size: 15px; } #gfsi-cm .total b { font-size: 20px; }
+  #gfsi-cm .success { text-align: left; }
+  #gfsi-cm .success table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+  #gfsi-cm .success td { border-bottom: 1px solid var(--line); padding: 8px 6px; }
+  #gfsi-cm .demo { background: #eef4ff; color: #1d3f72; border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-bottom: 14px; }
+  #gfsi-cm .promo-info { background: var(--soft); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 8px; }
+  #gfsi-cm .thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  #gfsi-cm .thumbs img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="portal-top">
+  <a class="back" href="../aafes-hub.html">← Back to AAFES</a>
+  <div class="portal-user" id="portal-user"></div>
+</div>
+<div id="gfsi-cm">
+  <h1>Credit Memo Request</h1>
+  <p class="lede">Custom promotions (10%) and markdowns (12.5%) for Champion, Under Armour and Comfort Wash. Add every order for one store here — each order gets its own credit memo once the manager approves it.</p>
+  <div id="cm-root"></div>
+</div>
+
+<script>
+/* =====================================================================
+ *  CONFIG — paste your Apps Script web app URL here (ends in /exec).
+ *  Leave blank to run in demo mode (nothing is sent).
+ * ===================================================================== */
+var GFSI_CONFIG = {
+  API_URL: '',
+  PORTAL_KEY: ''   // only if you set PORTAL_KEY on the Settings tab
+};
+
+(function () {
+  'use strict';
+  var BRANDS = ['Champion', 'Under Armour', 'Comfort Wash'];
+  var GENDERS = ["Men's", "Women's", 'Youth', 'Unisex'];
+  var RATE = { PR: 0.10, MD: 0.125 };
+  var root = document.getElementById('cm-root');
+  var AUTH = null;
+  try { AUTH = JSON.parse(sessionStorage.getItem('salesPortalAuth') || 'null'); } catch (e) {}
+  (function topBar() {
+    var el = document.getElementById('portal-user'); if (!el || !AUTH) return;
+    el.innerHTML = '<span>👤 ' + String(AUTH.name || AUTH.email || '').replace(/[&<>"']/g, '') + '</span><button type="button" id="portal-logout">Logout</button>';
+    document.getElementById('portal-logout').onclick = function () {
+      if (confirm('Are you sure you want to log out?')) { sessionStorage.removeItem('salesPortalAuth'); window.location.href = '../login.html'; }
+    };
+  })();
+  var DEMO = !GFSI_CONFIG.API_URL;
+  var promos = [], uid = 0;
+
+  var state = load() || { rep: { name: '', email: '' }, cc: '', store: '', facility: '', nonAafes: false, orders: [] };
+  if (AUTH && AUTH.email) state.rep = { name: AUTH.name || AUTH.email, email: AUTH.email };
+  state.store = ''; state.facility = ''; state.nonAafes = false; state.orders = [];
+  addOrder();
+
+  // ---------------- utils ----------------
+  function $(sel, el) { return (el || root).querySelector(sel); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '$' + (Number(n) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+  function norm(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, ''); }
+  function save() { try { localStorage.setItem('gfsi-cm-rep', JSON.stringify({ rep: state.rep, cc: state.cc })); } catch (e) {} }
+  function load() { try { var s = JSON.parse(localStorage.getItem('gfsi-cm-rep') || 'null'); return s && { rep: s.rep, cc: s.cc || '' }; } catch (e) { return null; } }
+  function daysAgo(iso) { if (!iso) return null; return Math.floor((Date.now() - new Date(iso + 'T12:00:00').getTime()) / 86400000); }
+
+  function newStyle() { return { id: ++uid, style: '', qty: '', cost: '', shippedQty: '' }; }
+  function addOrder(copyFrom) {
+    var o = { id: ++uid, type: 'PR', brand: '', gender: '', orderNo: '', styles: [newStyle()], promoId: '', promoTitle: '', promoStart: '', shipped: '', comments: '', photos: [] };
+    if (copyFrom) { o.type = copyFrom.type; o.brand = copyFrom.brand; o.gender = copyFrom.gender; o.promoId = copyFrom.promoId; o.promoTitle = copyFrom.promoTitle; o.promoStart = copyFrom.promoStart; o.shipped = copyFrom.shipped; }
+    state.orders.push(o); return o;
+  }
+  function orderGross(o) { return o.styles.reduce(function (t, s) { return t + (Number(s.qty) || 0) * (Number(s.cost) || 0); }, 0); }
+  function orderCredit(o) { return r2(orderGross(o) * RATE[o.type]); }
+  function promoById(id) { for (var i = 0; i < promos.length; i++) if (promos[i].id === id) return promos[i]; return null; }
+  function promoMatchesStore(p) {
+    if (state.facility && p.facility && p.facility === state.facility) return true;
+    var a = norm(state.store), b = norm(p.store);
+    return a && b && (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0);
+  }
+
+  function orderWarnings(o) {
+    var w = [];
+    if (o.type === 'PR') {
+      if (o.promoId === '__other') w.push('This promo is not on the approved list. You can still submit it; the manager will be asked to confirm it.');
+      var p = promoById(o.promoId);
+      if (p) {
+        if (!promoMatchesStore(p) && (state.store || state.facility)) w.push('The selected promo is for ' + p.store + (p.facility ? ' (' + p.facility + ')' : '') + ', not this store.');
+        if (o.brand && !(p.brands[o.brand] || []).length) w.push('This promo has no ' + o.brand + ' styles listed.');
+        else if (o.brand) {
+          var ok = (p.brands[o.brand] || []).join('/').toUpperCase();
+          var off = o.styles.filter(function (s) { return s.style && ok.indexOf(s.style.toUpperCase()) < 0; }).map(function (s) { return s.style.toUpperCase(); });
+          if (off.length) w.push('Not on the approved promo: ' + off.join(', '));
+        }
+      }
+      var start = o.promoStart || (p && p.eventDate);
+      var d = daysAgo(start); if (d != null && d > 90) w.push('This promo started ' + d + ' days ago (memos are valid 90 days).');
+    } else {
+      var sd = daysAgo(o.shipped);
+      if (!o.shipped) w.push('Add the shipped date (product must be on the floor 6+ months).');
+      else if (sd < 182) w.push('Shipped ' + sd + ' days ago — markdowns need 6+ months on the floor.');
+      o.styles.forEach(function (s) {
+        var q = Number(s.qty), sh = Number(s.shippedQty);
+        if (q && sh && q < 0.25 * sh) w.push((s.style || 'A style') + ': ' + q + ' of ' + sh + ' left is under 25% — needs manager OK.');
+        if (q && sh && q > sh) w.push((s.style || 'A style') + ': more left than were shipped?');
+      });
+      if (!o.photos.length) w.push('Attach a photo of the display if you can.');
+    }
+    return w;
+  }
+
+  // ---------------- render ----------------
+  function render() {
+    var stores = {}; promos.forEach(function (p) { stores[p.store] = 1; });
+    var h = '';
+    if (DEMO) h += '<div class="demo"><b>Demo mode</b> — no API URL is configured, so nothing will be sent. Sample promos are loaded.</div>';
+    h += '<div id="cm-errors"></div>';
+    if (AUTH && AUTH.email) {
+      h += '<div class="panel"><h2>You</h2><div class="grid">' +
+        '<div class="c8"><label class="f">Submitting as</label><div style="padding:9px 0"><b>' + esc(state.rep.name) + '</b> · ' + esc(state.rep.email) + ' <span class="hint">(from your portal login — approved memos are emailed here)</span></div></div>' +
+        '<div class="c4"><label class="f" for="rep-cc">Also send memos to <small>(optional)</small></label><input type="text" id="rep-cc" placeholder="email, email" value="' + esc(state.cc) + '"></div>' +
+        '</div></div>';
+    } else {
+    h += '<div class="panel"><h2>You</h2><div class="grid">' +
+      '<div class="c4"><label class="f" for="rep-name">Your name</label><input type="text" id="rep-name" autocomplete="name" value="' + esc(state.rep.name) + '"></div>' +
+      '<div class="c4"><label class="f" for="rep-email">Your email</label><input type="email" id="rep-email" autocomplete="email" value="' + esc(state.rep.email) + '"></div>' +
+      '<div class="c4"><label class="f" for="rep-cc">Also send memos to <small>(optional)</small></label><input type="text" id="rep-cc" placeholder="email, email" value="' + esc(state.cc) + '"></div>' +
+      '</div></div>';
+    }
+    h += '<div class="panel"><h2>Store</h2><div class="grid">' +
+      '<div class="c6"><label class="f" for="store">Store / facility name</label><input type="text" id="store" list="store-list" placeholder="e.g. TINKER MAIN" value="' + esc(state.store) + '">' +
+      '<datalist id="store-list">' + Object.keys(stores).sort().map(function (s) { return '<option value="' + esc(s) + '">'; }).join('') + '</datalist></div>' +
+      '<div class="c3"><label class="f" for="facility">7-digit facility #</label><input type="text" id="facility" inputmode="numeric" maxlength="7" value="' + esc(state.facility) + '"' + (state.nonAafes ? ' disabled' : '') + '></div>' +
+      '<div class="c3"><label class="f">&nbsp;</label><label class="check"><input type="checkbox" id="non-aafes"' + (state.nonAafes ? ' checked' : '') + '> Non-AAFES account</label></div>' +
+      '</div></div>';
+    state.orders.forEach(function (o, i) { h += renderOrder(o, i); });
+    h += '<button type="button" class="add" id="add-order">+ Add another order for this store</button>';
+    h += '<div class="bar"><div class="in"><div class="total" id="cm-total"></div>' +
+      '<button type="button" class="btn primary" id="submit">Submit for approval</button></div></div>';
+    root.innerHTML = h;
+    updateTotals();
+  }
+
+  function renderOrder(o, i) {
+    var mine = promos.filter(promoMatchesStore), others = promos.filter(function (p) { return !promoMatchesStore(p); });
+    function opt(p) {
+      var when = p.eventDate ? new Date(p.eventDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (p.dateText || '');
+      return '<option value="' + esc(p.id) + '"' + (o.promoId === p.id ? ' selected' : '') + '>' + esc(p.event) + ' — ' + esc(p.store) + (when ? ' · ' + esc(when) : '') + '</option>';
+    }
+    var p = promoById(o.promoId);
+    var styleList = p && o.brand ? (p.brands[o.brand] || []).filter(function (x, k, a) { return x && a.indexOf(x) === k; }) : [];
+    var w = orderWarnings(o);
+    var h = '<div class="panel order" data-o="' + o.id + '">' +
+      '<div class="order-head"><div><span class="order-title">Order ' + (i + 1) + '</span>' +
+      '<span class="cmno" title="Credit memo number">' + (o.orderNo ? 'CM# ' + o.type + esc(o.orderNo) : 'CM# —') + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:14px"><div class="credit" data-credit>' + money(orderCredit(o)) + '<small>' + (o.type === 'PR' ? '10%' : '12.5%') + ' of ' + money(orderGross(o)) + '</small></div>' +
+      '<button type="button" class="link" data-act="dup">Duplicate</button>' +
+      (state.orders.length > 1 ? '<button type="button" class="link danger" data-act="del">Remove</button>' : '') + '</div></div>' +
+      '<div class="grid">' +
+      '<div class="c12"><div class="seg" role="group" aria-label="Request type">' +
+        '<button type="button" data-type="PR" class="' + (o.type === 'PR' ? 'on' : '') + '">Custom promotion · 10%</button>' +
+        '<button type="button" data-type="MD" class="' + (o.type === 'MD' ? 'on' : '') + '">Markdown · 12.5%</button></div></div>' +
+      '<div class="c4"><label class="f">Brand</label><select data-f="brand"><option value="">Choose…</option>' +
+        BRANDS.map(function (b) { return '<option' + (o.brand === b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></div>' +
+      '<div class="c4"><label class="f">Gender</label><select data-f="gender"><option value="">Choose…</option>' +
+        GENDERS.map(function (g) { return '<option' + (o.gender === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="c4"><label class="f">Order # <small>(one order per memo)</small></label><input type="text" inputmode="numeric" data-f="orderNo" value="' + esc(o.orderNo) + '"></div>';
+    if (o.type === 'PR') {
+      h += '<div class="c8"><label class="f">Approved promotion</label><select data-f="promoId"><option value="">Choose the promo…</option>' +
+        (mine.length ? '<optgroup label="Approved for this store">' + mine.map(opt).join('') + '</optgroup>' : '') +
+        (others.length ? '<optgroup label="Other approved promos">' + others.map(opt).join('') + '</optgroup>' : '') +
+        '<option value="__other"' + (o.promoId === '__other' ? ' selected' : '') + '>Not listed — request anyway</option></select>';
+      if (p) h += '<div class="promo-info">' + esc(p.event) + ' at ' + esc(p.store) + (p.rep ? ' · rep ' + esc(p.rep) : '') + '</div>';
+      h += '</div>';
+      if (o.promoId === '__other') {
+        h += '<div class="c8"><label class="f">Promo name</label><input type="text" data-f="promoTitle" placeholder="e.g. VETERANS DAY" value="' + esc(o.promoTitle) + '"></div>';
+      }
+      h += '<div class="c4"><label class="f">Promo start date</label><input type="date" data-f="promoStart" value="' + esc(o.promoStart || (p && p.eventDate) || '') + '"></div>';
+    } else {
+      h += '<div class="c4"><label class="f">Date product shipped</label><input type="date" data-f="shipped" value="' + esc(o.shipped) + '"></div>' +
+        '<div class="c8"><label class="f">Display photos <small>(optional, up to 6)</small></label><input type="file" accept="image/*" multiple data-f="photos">' +
+        '<div class="thumbs">' + o.photos.map(function (ph) { return '<img alt="" src="data:' + ph.type + ';base64,' + ph.data + '">'; }).join('') + '</div></div>';
+    }
+    h += '<div class="c12"><label class="f">Styles</label><table class="styles"><thead><tr><th>Style #</th><th>' + (o.type === 'MD' ? 'Qty left in inventory' : 'Quantity') + '</th><th>Wholesale cost / unit</th>' +
+      (o.type === 'MD' ? '<th>Qty originally shipped</th>' : '') + '<th style="text-align:right">Extended</th><th></th></tr></thead><tbody>' +
+      o.styles.map(function (s) {
+        return '<tr data-s="' + s.id + '"><td><input type="text" data-sf="style" placeholder="e.g. UM0706" value="' + esc(s.style) + '"></td>' +
+          '<td><input type="number" min="0" step="1" data-sf="qty" value="' + esc(s.qty) + '"></td>' +
+          '<td><input type="number" min="0" step="0.01" data-sf="cost" placeholder="$" value="' + esc(s.cost) + '"></td>' +
+          (o.type === 'MD' ? '<td><input type="number" min="0" step="1" data-sf="shippedQty" value="' + esc(s.shippedQty) + '"></td>' : '') +
+          '<td class="ext" data-ext>' + money((Number(s.qty) || 0) * (Number(s.cost) || 0)) + '</td>' +
+          '<td>' + (o.styles.length > 1 ? '<button type="button" class="link danger" data-act="delstyle" title="Remove style">✕</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<button type="button" class="link" data-act="addstyle">+ Add style</button>' +
+      (styleList.length ? '<div class="hint">Approved ' + esc(o.brand) + ' styles for this promo — click to add:</div><div class="chips">' +
+        styleList.map(function (st) { return '<span class="chip" data-chip="' + esc(st) + '">' + esc(st) + '</span>'; }).join('') + '</div>' : '') +
+      '</div>' +
+      '<div class="c12"><label class="f">Comments <small>(optional)</small></label><textarea rows="2" data-f="comments">' + esc(o.comments) + '</textarea></div>' +
+      '</div>' +
+      '<div class="warns" data-warns' + (w.length ? '' : ' hidden') + '>' + w.map(function (x) { return '<div>' + esc(x) + '</div>'; }).join('') + '</div>' +
+      '</div>';
+    return h;
+  }
+
+  // Light refresh of numbers/warnings without re-rendering (keeps focus while typing)
+  function refreshOrder(o) {
+    var el = root.querySelector('[data-o="' + o.id + '"]'); if (!el) return;
+    $('[data-credit]', el).innerHTML = money(orderCredit(o)) + '<small>' + (o.type === 'PR' ? '10%' : '12.5%') + ' of ' + money(orderGross(o)) + '</small>';
+    $('.cmno', el).textContent = o.orderNo ? 'CM# ' + o.type + o.orderNo : 'CM# —';
+    o.styles.forEach(function (s) { var tr = el.querySelector('[data-s="' + s.id + '"] [data-ext]'); if (tr) tr.textContent = money((Number(s.qty) || 0) * (Number(s.cost) || 0)); });
+    var w = orderWarnings(o), box = $('[data-warns]', el);
+    box.hidden = !w.length; box.innerHTML = w.map(function (x) { return '<div>' + esc(x) + '</div>'; }).join('');
+    updateTotals();
+  }
+  function updateTotals() {
+    var t = state.orders.reduce(function (a, o) { return a + orderCredit(o); }, 0);
+    var el = document.getElementById('cm-total');
+    if (el) el.innerHTML = state.orders.length + ' order' + (state.orders.length > 1 ? 's' : '') + ' · total credit <b>' + money(t) + '</b>';
+  }
+
+  // ---------------- events ----------------
+  function findOrder(el) { var c = el.closest('[data-o]'); if (!c) return null; var id = +c.getAttribute('data-o'); return state.orders.filter(function (o) { return o.id === id; })[0]; }
+  function findStyle(o, el) { var r = el.closest('[data-s]'); if (!r) return null; var id = +r.getAttribute('data-s'); return o.styles.filter(function (s) { return s.id === id; })[0]; }
+
+  root.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.id === 'rep-name') { state.rep.name = t.value; save(); return; }
+    if (t.id === 'rep-email') { state.rep.email = t.value.trim(); save(); return; }
+    if (t.id === 'rep-cc') { state.cc = t.value; save(); return; }
+    if (t.id === 'facility') { t.value = t.value.replace(/\D/g, '').slice(0, 7); state.facility = t.value; state.orders.forEach(refreshOrder); return; }
+    if (t.id === 'store') { state.store = t.value; state.orders.forEach(refreshOrder); return; }
+    var o = findOrder(t); if (!o) return;
+    var sf = t.getAttribute('data-sf'), f = t.getAttribute('data-f');
+    if (sf) { var s = findStyle(o, t); s[sf] = sf === 'style' ? t.value.toUpperCase().trim() : t.value; refreshOrder(o); return; }
+    if (f === 'orderNo') { t.value = t.value.replace(/\D/g, ''); o.orderNo = t.value; refreshOrder(o); return; }
+    if (f === 'comments' || f === 'promoTitle') { o[f] = t.value; refreshOrder(o); return; }
+  });
+
+  root.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.id === 'non-aafes') { state.nonAafes = t.checked; if (t.checked) state.facility = ''; render(); return; }
+    if (t.id === 'store') {
+      // auto-fill facility from an approved promo with the same store
+      var hit = promos.filter(function (p) { return norm(p.store) === norm(t.value) && p.facility; })[0];
+      if (hit && !state.facility) state.facility = hit.facility;
+      render(); return;
+    }
+    if (t.id === 'facility') { render(); return; }
+    var o = findOrder(t); if (!o) return;
+    var f = t.getAttribute('data-f');
+    if (f === 'brand' || f === 'gender' || f === 'promoId' || f === 'promoStart' || f === 'shipped') {
+      o[f] = t.value;
+      if (f === 'promoId') { var p = promoById(t.value); o.promoStart = p && p.eventDate ? p.eventDate : ''; if (t.value !== '__other') o.promoTitle = ''; }
+      render(); return;
+    }
+    if (f === 'photos') { addPhotos(o, t.files); }
+  });
+
+  root.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.id === 'add-order') { var last = state.orders[state.orders.length - 1]; addOrder(last); render(); scrollToLast(); return; }
+    if (t.id === 'submit') { submit(); return; }
+    if (t.id === 'new-request') { state.orders = []; addOrder(); state.store = ''; state.facility = ''; state.nonAafes = false; render(); window.scrollTo(0, 0); return; }
+    var o = findOrder(t); if (!o) return;
+    if (t.hasAttribute('data-type')) { o.type = t.getAttribute('data-type'); render(); return; }
+    var act = t.getAttribute('data-act');
+    if (act === 'addstyle') { o.styles.push(newStyle()); render(); return; }
+    if (act === 'delstyle') { var s = findStyle(o, t); o.styles = o.styles.filter(function (x) { return x !== s; }); render(); return; }
+    if (act === 'del') { state.orders = state.orders.filter(function (x) { return x !== o; }); render(); return; }
+    if (act === 'dup') {
+      var c = JSON.parse(JSON.stringify(o)); c.id = ++uid; c.orderNo = ''; c.styles.forEach(function (s) { s.id = ++uid; });
+      state.orders.splice(state.orders.indexOf(o) + 1, 0, c); render(); return;
+    }
+    var chip = t.getAttribute('data-chip');
+    if (chip) {
+      var empty = o.styles.filter(function (s) { return !s.style; })[0];
+      if (empty) empty.style = chip; else { var ns = newStyle(); ns.style = chip; o.styles.push(ns); }
+      render(); return;
+    }
+  });
+
+  function scrollToLast() { var els = root.querySelectorAll('.order'); var el = els[els.length - 1]; if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+  function addPhotos(o, files) {
+    var list = Array.prototype.slice.call(files || [], 0, 6 - o.photos.length);
+    var pending = list.length; if (!pending) return;
+    list.forEach(function (file) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var max = 1600, sc = Math.min(1, max / Math.max(img.width, img.height));
+        var cv = document.createElement('canvas'); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        o.photos.push({ name: file.name.replace(/\.[^.]+$/, '') + '.jpg', type: 'image/jpeg', data: cv.toDataURL('image/jpeg', 0.82).split(',')[1] });
+        URL.revokeObjectURL(url);
+        if (--pending === 0) render();
+      };
+      img.onerror = function () { if (--pending === 0) render(); };
+      img.src = url;
+    });
+  }
+
+  // ---------------- validation & submit ----------------
+  function validate() {
+    var errs = [];
+    root.querySelectorAll('.invalid').forEach(function (el) { el.classList.remove('invalid'); });
+    function bad(sel, msg) { var el = root.querySelector(sel); if (el) el.classList.add('invalid'); if (msg) errs.push(msg); }
+    if (!state.rep.name.trim()) bad('#rep-name', 'Enter your name.');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(state.rep.email)) bad('#rep-email', 'Enter a valid email address.');
+    if (!state.store.trim()) bad('#store', 'Enter the store name.');
+    if (!state.nonAafes && !/^\d{7}$/.test(state.facility)) bad('#facility', 'Facility # must be 7 digits (or tick Non-AAFES account).');
+    var seen = {};
+    state.orders.forEach(function (o, i) {
+      var c = '[data-o="' + o.id + '"] ', n = 'Order ' + (i + 1) + ': ';
+      if (!o.brand) bad(c + '[data-f=brand]', n + 'choose a brand.');
+      if (!o.gender) bad(c + '[data-f=gender]', n + 'choose a gender.');
+      if (!o.orderNo) bad(c + '[data-f=orderNo]', n + 'enter the order #.');
+      else if (seen[o.type + o.orderNo]) bad(c + '[data-f=orderNo]', n + 'order ' + o.orderNo + ' is already listed above.');
+      seen[o.type + o.orderNo] = 1;
+      if (o.type === 'PR' && !o.promoId) bad(c + '[data-f=promoId]', n + 'choose the promotion (or "Not listed").');
+      if (o.type === 'PR' && o.promoId === '__other' && !o.promoTitle.trim()) bad(c + '[data-f=promoTitle]', n + 'enter the promo name.');
+      var lines = o.styles.filter(function (s) { return s.style || s.qty || s.cost; });
+      if (!lines.length) bad(c + '[data-sf=style]', n + 'add at least one style.');
+      o.styles.forEach(function (s) {
+        if (!(s.style || s.qty || s.cost)) return;
+        var r = c + '[data-s="' + s.id + '"] ';
+        if (!s.style) bad(r + '[data-sf=style]');
+        if (!(Number(s.qty) > 0)) bad(r + '[data-sf=qty]');
+        if (!(Number(s.cost) > 0)) bad(r + '[data-sf=cost]');
+        if (!s.style || !(Number(s.qty) > 0) || !(Number(s.cost) > 0)) errs.push(n + 'each style needs a style #, quantity and cost.');
+      });
+    });
+    return errs.filter(function (x, i, a) { return a.indexOf(x) === i; });
+  }
+
+  function showErrors(errs) {
+    var box = document.getElementById('cm-errors');
+    box.innerHTML = errs.length ? '<div class="errors"><b>Please fix:</b><ul style="margin:6px 0 0 18px;padding:0">' + errs.map(function (e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul></div>' : '';
+    if (errs.length) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function payload() {
+    return {
+      action: 'submit', key: GFSI_CONFIG.PORTAL_KEY || undefined,
+      rep: { name: state.rep.name.trim(), email: state.rep.email.trim() }, cc: state.cc.trim(),
+      store: state.store.trim(), facility: state.facility, nonAafes: state.nonAafes,
+      orders: state.orders.map(function (o) {
+        var other = o.promoId === '__other';
+        return { type: o.type, brand: o.brand, gender: o.gender, orderNo: o.orderNo,
+          styles: o.styles.filter(function (s) { return s.style; }).map(function (s) { return { style: s.style, qty: Number(s.qty), cost: Number(s.cost), shippedQty: Number(s.shippedQty) || 0 }; }),
+          promoId: o.type === 'PR' && !other ? o.promoId : '', promoTitle: o.type === 'PR' && other ? o.promoTitle.trim() : '',
+          promoStart: o.type === 'PR' ? o.promoStart : '', shipped: o.type === 'MD' ? o.shipped : '', comments: o.comments.trim(),
+          photos: o.type === 'MD' ? o.photos : [] };
+      })
+    };
+  }
+
+  function submit() {
+    var errs = validate(); showErrors(errs); if (errs.length) return;
+    var btn = document.getElementById('submit'); btn.disabled = true; btn.textContent = 'Submitting…';
+    var body = payload();
+    if (DEMO) {
+      setTimeout(function () {
+        success({ ok: true, memos: body.orders.map(function (o, i) { return { cm: o.type + o.orderNo, amount: orderCredit(state.orders[i]), warnings: orderWarnings(state.orders[i]) }; }) });
+        console.log('Demo payload', body);
+      }, 500);
+      return;
+    }
+    fetch(GFSI_CONFIG.API_URL, { method: 'POST', body: JSON.stringify(body) })   // text/plain: no CORS preflight
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.ok) success(res);
+        else { showErrors(res.errors || [res.error || 'Something went wrong.']); btn.disabled = false; btn.textContent = 'Submit for approval'; }
+      })
+      .catch(function (err) {
+        showErrors(['Could not reach the server (' + err.message + '). Your entries are still here — please try again.']);
+        btn.disabled = false; btn.textContent = 'Submit for approval';
+      });
+  }
+
+  function success(res) {
+    var total = res.memos.reduce(function (t, m) { return t + m.amount; }, 0);
+    root.innerHTML = '<div class="panel success"><h2 style="color:var(--ok)">Submitted for approval</h2>' +
+      '<p>' + res.memos.length + ' credit memo request' + (res.memos.length > 1 ? 's were' : ' was') + ' sent to the manager. You will get each approved memo as a PDF by email.</p>' +
+      '<table>' + res.memos.map(function (m) {
+        return '<tr><td><b>' + esc(m.cm) + '</b>' + (m.warnings && m.warnings.length ? '<div class="hint" style="color:var(--warn)">⚠ ' + m.warnings.map(esc).join('<br>⚠ ') + '</div>' : '') + '</td><td style="text-align:right">' + money(m.amount) + '</td></tr>';
+      }).join('') + '<tr><td style="text-align:right"><b>Total</b></td><td style="text-align:right"><b>' + money(total) + '</b></td></tr></table>' +
+      (DEMO ? '<p class="hint">Demo mode — nothing was actually sent.</p>' : '') +
+      '<button type="button" class="btn primary" id="new-request">Start another request</button></div>';
+    window.scrollTo(0, 0);
+  }
+
+  // ---------------- boot ----------------
+  function boot() {
+    if (DEMO) { promos = SAMPLE_PROMOS; render(); return; }
+    render();
+    fetch(GFSI_CONFIG.API_URL + '?action=promos').then(function (r) { return r.json(); })
+      .then(function (res) { promos = (res && res.promos) || []; render(); })
+      .catch(function () { /* form still works; promos dropdown will only offer "Not listed" */ });
+  }
+  var SAMPLE_PROMOS = [   // demo data only (shown when API_URL is blank)
+    { id: 'DEMO1', store: 'SAMPLE BASE MAIN', facility: '1000001', event: 'SPRING SALE', eventDate: '2027-04-15', rep: 'DEMO REP', brands: { Champion: ['CT1000'], 'Under Armour': ['UM0706', 'UW0848'] } },
+    { id: 'DEMO2', store: 'SAMPLE BASE MAIN', facility: '1000001', event: 'GRADUATION', eventDate: '2027-05-22', rep: 'DEMO REP', brands: { 'Under Armour': ['UM1505'], 'Comfort Wash': ['GDH-100'] } },
+    { id: 'DEMO3', store: 'EXAMPLE EXPRESS', facility: '1000002', event: 'FATHERS DAY', eventDate: '2027-06-20', rep: 'DEMO REP', brands: { Champion: ['CS1220'] } }
+  ];
+  boot();
+})();
+</script>
+</body>
+</html>
